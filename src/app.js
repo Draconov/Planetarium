@@ -16,11 +16,11 @@ const UI = {
   sliderX: 8, sliderY: 254, sliderW: 162,
   buttonY: 251,
   buttons: [
-    { id:'log', x:286, key:'L', icon:null, tip:"CAPTAIN'S LOG" },
-    { id:'probe', x:306, key:'P', icon:null, tip:'LAUNCH PROBE' },
+    { id:'log', x:286, key:'L', icon:'s_UI_log', tip:"CAPTAIN'S LOG" },
+    { id:'probe', x:306, key:'P', icon:'s_UI_probe', tip:'LAUNCH PROBE' },
     { id:'temp', x:326, key:'TAB', icon:'s_UI_temp', tip:'TEMPERATURE VIEW' },
     { id:'reverse', x:346, key:'1', icon:'s_UI_reverse', tip:'REVERSE TIME' },
-    { id:'pause', x:366, key:'SPACE', icon:null, tip:'PAUSE TIME' },
+    { id:'pause', x:366, key:'SPACE', icon:'s_UI_pause', tip:'PAUSE TIME' },
     { id:'fast', x:386, key:'2', icon:'s_UI_fastforward', tip:'TIME SPEED' },
     { id:'rocket', x:406, key:'3', icon:'s_UI_rocket', tip:'LAUNCH ROCKET' },
     { id:'camera', x:426, key:'4', icon:'s_UI_camera', tip:'TAKE PICTURE' },
@@ -37,6 +37,7 @@ const assetNames = {
   rocketSprite: 's_rocket_00.png',
   cursor0: 's_cursor_00.png', cursor1: 's_cursor_01.png', cursor2: 's_cursor_02.png',
   focusTL: 's_cursor_ext_00.png', focusTR: 's_cursor_ext_01.png', focusBR: 's_cursor_ext_02.png', focusBL: 's_cursor_ext_03.png',
+  log: 's_UI_log_00.png', probe: 's_UI_probe_00.png', pause: 's_UI_pause_00.png',
   reverse: 's_UI_reverse_00.png', fast: 's_UI_fastforward_00.png', rocket: 's_UI_rocket_00.png',
   camera: 's_UI_camera_00.png', mute: 's_UI_mute_00.png', random: 's_UI_random_00.png'
 };
@@ -1718,14 +1719,12 @@ function drawButtons(){
     const hover=state.mouse.inside && state.mouse.x>=b.x-3 && state.mouse.x<=b.x+14 && state.mouse.y>=UI.buttonY-4 && state.mouse.y<=UI.buttonY+14;
     if(hover) state.hovered=b;
     let im=null;
-    if(b.id==='temp' && state.viewMode!==2) im=asset['temp'+tempBand()]; else if(b.id!=='probe'&&b.id!=='temp'&&b.id!=='log'&&b.id!=='pause') im=asset[b.id];
+    if(b.id==='temp' && state.viewMode!==2) im=asset['temp'+tempBand()];
+    else if(b.id!=='temp') im=asset[b.id];
     const active=(b.id==='log'&&state.libraryOpen)||(b.id==='probe'&&!!state.probe)||(b.id==='temp'&&state.viewMode!==0)||(b.id==='reverse'&&state.reverse)||(b.id==='pause'&&state.paused)||(b.id==='mute'&&state.muted)||(b.id==='fast'&&state.speedIndex>1)||(b.id==='rocket'&&!!state.rocket);
     const rocketLocked=b.id==='rocket'&&!canLaunchCivilizationRocket();
     ctx.globalAlpha=rocketLocked?(hover?.52:.30):(active?1:(hover?.95:.72));
-    if(b.id==='log') drawLogButtonIcon(b.x,UI.buttonY,active);
-    else if(b.id==='pause') drawPauseButtonIcon(b.x,UI.buttonY,active);
-    else if(b.id==='probe') drawProbeButtonIcon(b.x,UI.buttonY,active);
-    else if(b.id==='temp' && state.viewMode===2 && hasAtmosphereView()) drawAtmosphereViewIcon(b.x,UI.buttonY);
+    if(b.id==='temp' && state.viewMode===2 && hasAtmosphereView()) drawAtmosphereViewIcon(b.x,UI.buttonY);
     else if(im && im.complete && im.naturalWidth) ctx.drawImage(im,b.x,UI.buttonY);
     else {ctx.fillStyle=C.white;ctx.fillRect(b.x,UI.buttonY,9,9);}
     ctx.globalAlpha=1;
@@ -1893,57 +1892,6 @@ function drawProbeStatus(){
   else if(p.phase==='scanning') drawText('PROBE SCANNING',472,224,C.green,1,'right');
   else if(p.phase==='complete') drawText('PROBE DATA RECEIVED',472,224,C.green,1,'right');
   else if(p.phase==='lost') drawText('PROBE LOST - CAUSE UNKNOWN',472,224,C.red,1,'right');
-}
-function drawLogButtonIcon(x,y,active=false){
-  const edge=active?C.green:C.purple;
-  const page=active?mixHex(C.green,C.white,.55):C.white;
-  const shade=active?mixHex(C.green,C.black,.35):C.blue;
-  ctx.fillStyle=edge;
-  ctx.fillRect(x+1,y+1,8,8);
-  ctx.fillStyle=C.black;
-  ctx.fillRect(x+2,y+2,6,6);
-  ctx.fillStyle=edge;
-  ctx.fillRect(x+2,y+2,2,6);
-  ctx.fillStyle=page;
-  ctx.fillRect(x+4,y+2,4,6);
-  ctx.fillStyle=shade;
-  ctx.fillRect(x+5,y+3,2,1);
-  ctx.fillRect(x+5,y+5,2,1);
-  ctx.fillRect(x+5,y+7,2,1);
-  ctx.fillStyle=C.white;
-  ctx.fillRect(x+3,y+3,1,1);
-}
-function drawPauseButtonIcon(x,y,active=false){
-  const edge=active?C.green:C.purple;
-  const fill=active?mixHex(C.green,C.white,.35):mixHex(C.white,C.black,.18);
-  ctx.fillStyle=edge;
-  ctx.fillRect(x+1,y+1,8,8);
-  ctx.fillStyle=C.black;
-  ctx.fillRect(x+2,y+2,6,6);
-  ctx.fillStyle=fill;
-  ctx.fillRect(x+3,y+3,2,4);
-  ctx.fillRect(x+6,y+3,2,4);
-  ctx.fillStyle=active?C.white:C.blue;
-  ctx.fillRect(x+3,y+7,2,1);
-  ctx.fillRect(x+6,y+7,2,1);
-}
-function drawProbeButtonIcon(x,y,active=false){
-  const body=active?C.green:C.cyan;
-  const accent=active?C.white:C.purple;
-  ctx.fillStyle=body;
-  ctx.fillRect(x+4,y+4,2,2);
-  ctx.fillStyle=C.white;
-  ctx.fillRect(x+5,y+2,1,2);
-  ctx.fillRect(x+2,y+5,2,1);
-  ctx.fillRect(x+6,y+5,2,1);
-  ctx.fillRect(x+4,y+6,1,2);
-  ctx.fillStyle=accent;
-  ctx.fillRect(x+3,y+3,1,1);
-  ctx.fillRect(x+6,y+3,1,1);
-  ctx.fillRect(x+3,y+6,1,1);
-  ctx.fillRect(x+6,y+6,1,1);
-  ctx.fillRect(x+1,y+5,1,1);
-  ctx.fillRect(x+8,y+5,1,1);
 }
 function updateCameraHold(t){
   const h=state.cameraHold;
