@@ -952,11 +952,13 @@ function doAction(id){
   }
 }
 function takeScreenshot(){
+  let png='';
+  try{ png=canvas.toDataURL('image/png'); }catch{}
   flash();
   requestAnimationFrame(()=>{
     try{
       const a=document.createElement('a'); const safe=planet.name.replace(/[^A-Z0-9_-]+/g,'_').replace(/^_+|_+$/g,'')||'planet';
-      a.download=`planetarium-${safe.toLowerCase()}.png`; a.href=canvas.toDataURL('image/png'); a.click();
+      a.download=`planetarium-${safe.toLowerCase()}.png`; a.href=png || canvas.toDataURL('image/png'); a.click();
     }catch{}
   });
 }
