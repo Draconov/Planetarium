@@ -419,6 +419,27 @@ const INFO_CARDS = {
 
 function storageGet(key, fallback=null){ try { const v=localStorage.getItem(key); return v===null?fallback:v; } catch { return fallback; } }
 function storageSet(key,v){ try { localStorage.setItem(key,v); } catch {} }
+function storageRemove(key){ try { localStorage.removeItem(key); } catch {} }
+function planetariumStorageEntries(){
+  const out={};
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key?.startsWith('planetarium:')) out[key]=localStorage.getItem(key);
+    }
+  }catch{}
+  return out;
+}
+function clearPlanetariumStorage(){
+  try{
+    const keys=[];
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key?.startsWith('planetarium:')) keys.push(key);
+    }
+    keys.forEach(key=>localStorage.removeItem(key));
+  }catch{}
+}
 
 const state = {
   name: urlPlanet || storageGet('planetarium:lastName','PLANET'),
@@ -426,7 +447,7 @@ const state = {
   phase:0, simDays:0, intro:!urlPlanet, introUntil: Infinity,
   mouse:{x:-20,y:-20,down:false,inside:false,pointerType:'mouse'},
   draggingSlider:false, hovered:null, hoverBody:null, pinnedBody:null, moonHoverGrace:null, moonHoverUntil:0, rocket:null, probe:null, spaceLaunchSerial:0,
-  history:[], historyPos:-1, favorites:[], libraryOpen:false, libraryTab:'favorites', librarySelection:0, libraryRows:[],
+  history:[], historyPos:-1, favorites:[], scannedWorlds:[], libraryOpen:false, libraryTab:'favorites', librarySelection:0, libraryRows:[], libraryActionRects:[], resetConfirmUntil:0,
   lifeScroll:0, lifeScrollMax:0, lifePanelRect:null, lifePanelFocused:false, lifePanelKey:'',
   info:null, infoTitle:null, toastText:'', toastUntil:0,
   lastTime:performance.now(), twinkle:0, cameraFlash:0,
@@ -434,8 +455,27 @@ const state = {
 };
 try { state.history = JSON.parse(storageGet('planetarium:history','[]')) || []; } catch { state.history=[]; }
 try { state.favorites = JSON.parse(storageGet('planetarium:favorites','[]')) || []; } catch { state.favorites=[]; }
+try { state.scannedWorlds = JSON.parse(storageGet('planetarium:scanned-worlds','[]')) || []; } catch { state.scannedWorlds=[]; }
 state.history=state.history.filter(v=>typeof v==='string').slice(-40);
-state.favorites=[...new Set(state.favorites.filter(v=>typeof v==='string').map(v=>v.toUpperCase()))].slice(0,100);
+state.favorites=[...new Set(state.favorites.filter(v=>typeof v==='string').map(v=>canonicalPlanetName(v)))].slice(0,100);
+state.scannedWorlds=[...new Set(state.scannedWorlds.filter(v=>typeof v==='string').map(v=>canonicalPlanetName(v)))].slice(-200);
+function hasStoredScanForWorld(name){
+  const seed=hashString(canonicalPlanetName(name));
+  const prefix=`planetarium:probe-scan:${seed}:`;
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key?.startsWith(prefix) && localStorage.getItem(key)==='1') return true;
+    }
+  }catch{}
+  return false;
+}
+for(const name of [...state.history,...state.favorites,state.name]){
+  const canonical=canonicalPlanetName(name);
+  if(canonical && hasStoredScanForWorld(canonical) && !state.scannedWorlds.includes(canonical)) state.scannedWorlds.push(canonical);
+}
+state.scannedWorlds=state.scannedWorlds.slice(-200);
+storageSet('planetarium:scanned-worlds',JSON.stringify(state.scannedWorlds));
 
 let planet=null;
 function pick(r, arr){ return arr[Math.floor(r()*arr.length)]; }
@@ -990,7 +1030,14 @@ function bodyName(body){ return body?.type==='moon'?(planet.moonData[body.index]
 function scanStorageKey(body){ return `planetarium:probe-scan:${planet.seed}:${bodyId(body)}`; }
 function probeLossStorageKey(body){ return `planetarium:probe-loss:${planet.seed}:${bodyId(body)}`; }
 function isScanned(body){ return storageGet(scanStorageKey(body),'0')==='1'; }
-function markScanned(body){ storageSet(scanStorageKey(body),'1'); }
+function markScanned(body){
+  storageSet(scanStorageKey(body),'1');
+  const name=canonicalPlanetName(planet.name);
+  state.scannedWorlds=state.scannedWorlds.filter(v=>v!==name);
+  state.scannedWorlds.push(name);
+  state.scannedWorlds=state.scannedWorlds.slice(-200);
+  storageSet('planetarium:scanned-worlds',JSON.stringify(state.scannedWorlds));
+}
 function scanForBody(body){ return body?.type==='moon'?planet.moonData[body.index]?.scan:planet.scan; }
 function moonTemperatureC(m){ return Math.round(tempC()+(m.scan.tempBias||0)); }
 function planetShareUrl(){
@@ -1015,6 +1062,66 @@ function toggleFavorite(){
   }
   storageSet('planetarium:favorites',JSON.stringify(state.favorites));
 }
+function downloadTextFile(filename,text,mime='application/json'){
+  try{
+    const blob=new Blob([text],{type:mime});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=filename; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1200);
+    return true;
+  }catch{return false;}
+}
+function exportCaptainLog(){
+  storageSet('planetarium:history',JSON.stringify(state.history));
+  storageSet('planetarium:favorites',JSON.stringify(state.favorites));
+  storageSet('planetarium:scanned-worlds',JSON.stringify(state.scannedWorlds));
+  const payload={
+    format:'planetarium-captains-log',
+    schema:1,
+    appVersion:'1.1.0',
+    exportedAt:new Date().toISOString(),
+    data:planetariumStorageEntries()
+  };
+  const date=new Date().toISOString().slice(0,10);
+  if(downloadTextFile(`planetarium-captains-log-${date}.json`,JSON.stringify(payload,null,2))) showToast('CAPTAIN LOG EXPORTED',2200);
+  else showToast('EXPORT FAILED',2200);
+}
+let captainLogInput=null;
+function importCaptainLog(){
+  if(!captainLogInput){
+    captainLogInput=document.createElement('input');
+    captainLogInput.type='file'; captainLogInput.accept='.json,application/json'; captainLogInput.style.display='none';
+    document.body.appendChild(captainLogInput);
+    captainLogInput.addEventListener('change',async()=>{
+      const file=captainLogInput.files?.[0]; captainLogInput.value=''; if(!file) return;
+      try{
+        const parsed=JSON.parse(await file.text());
+        if(parsed?.format!=='planetarium-captains-log' || parsed?.schema!==1 || !parsed.data || typeof parsed.data!=='object') throw new Error('bad format');
+        const entries=Object.entries(parsed.data).filter(([key,value])=>key.startsWith('planetarium:') && typeof value==='string');
+        if(!entries.length || entries.length>10000) throw new Error('bad data');
+        clearPlanetariumStorage();
+        for(const [key,value] of entries) storageSet(key,value);
+        showToast('CAPTAIN LOG IMPORTED',1600);
+        try{ window.history.replaceState(null,'',window.location.pathname); }catch{}
+        setTimeout(()=>window.location.reload(),500);
+      }catch{ showToast('INVALID CAPTAIN LOG',2600); }
+    });
+  }
+  captainLogInput.click();
+}
+function resetExplorationData(){
+  const now=performance.now();
+  if(now>state.resetConfirmUntil){
+    state.resetConfirmUntil=now+4500;
+    showToast('SELECT RESET AGAIN TO CONFIRM',3200);
+    return;
+  }
+  clearPlanetariumStorage();
+  state.resetConfirmUntil=0;
+  try{ window.history.replaceState(null,'',window.location.pathname); }catch{}
+  window.location.reload();
+}
+
 async function sharePlanet(){
   const url=planetShareUrl();
   try{
@@ -1457,29 +1564,57 @@ function recentItems(){
   for(let i=state.history.length-1;i>=0;i--){ if(!out.includes(state.history[i])) out.push(state.history[i]); if(out.length>=20) break; }
   return out;
 }
-function libraryItems(){ return state.libraryTab==='favorites' ? state.favorites.slice().reverse() : recentItems(); }
+function scannedItems(){ return state.scannedWorlds.slice().reverse(); }
+function libraryItems(){
+  if(state.libraryTab==='favorites') return state.favorites.slice().reverse();
+  if(state.libraryTab==='scanned') return scannedItems();
+  return recentItems();
+}
+function libraryEmptyText(){
+  if(state.libraryTab==='favorites') return 'NO FAVORITES YET - PRESS F ON A PLANET';
+  if(state.libraryTab==='scanned') return 'NO PROBE RECORDS YET';
+  return 'NO RECENT PLANETS YET';
+}
 function drawLibraryOverlay(){
   if(!state.libraryOpen) return;
-  const x=86,y=39,w=308,h=191;
-  ctx.globalAlpha=.97;ctx.fillStyle=C.black;ctx.fillRect(x,y,w,h);ctx.globalAlpha=1;
+  const x=78,y=31,w=324,h=207;
+  ctx.globalAlpha=.98;ctx.fillStyle=C.black;ctx.fillRect(x,y,w,h);ctx.globalAlpha=1;
   ctx.strokeStyle=C.purple;ctx.strokeRect(x+.5,y+.5,w-1,h-1);
-  drawText('PLANET LIBRARY',x+12,y+13,C.white,1);
-  const favRect={x:x+7,y:y+20,w:75,h:19}, recentRect={x:x+84,y:y+20,w:63,h:19};
+  drawText("CAPTAIN'S LOG",x+12,y+13,C.white,1);
+  drawText(`FAV ${state.favorites.length}  SCANNED ${state.scannedWorlds.length}`,x+w-12,y+13,C.brown,1,'right');
+
+  const favRect={x:x+7,y:y+20,w:76,h:19}, recentRect={x:x+87,y:y+20,w:61,h:19}, scannedRect={x:x+152,y:y+20,w:68,h:19};
   drawText(state.libraryTab==='favorites'?'> FAVORITES':'FAVORITES',x+12,y+29,state.libraryTab==='favorites'?C.green:C.purple,1);
-  drawText(state.libraryTab==='recent'?'> RECENT':'RECENT',x+91,y+29,state.libraryTab==='recent'?C.green:C.purple,1);
+  drawText(state.libraryTab==='recent'?'> RECENT':'RECENT',x+92,y+29,state.libraryTab==='recent'?C.green:C.purple,1);
+  drawText(state.libraryTab==='scanned'?'> SCANNED':'SCANNED',x+157,y+29,state.libraryTab==='scanned'?C.green:C.purple,1);
   if(hoverActive()&&pointInRect(state.mouse,favRect.x,favRect.y,favRect.w,favRect.h)) drawFocusFrame(favRect.x,favRect.y,favRect.w,favRect.h);
   if(hoverActive()&&pointInRect(state.mouse,recentRect.x,recentRect.y,recentRect.w,recentRect.h)) drawFocusFrame(recentRect.x,recentRect.y,recentRect.w,recentRect.h);
+  if(hoverActive()&&pointInRect(state.mouse,scannedRect.x,scannedRect.y,scannedRect.w,scannedRect.h)) drawFocusFrame(scannedRect.x,scannedRect.y,scannedRect.w,scannedRect.h);
+
   const items=libraryItems(); state.libraryRows=[];
-  if(!items.length){ drawText(state.libraryTab==='favorites'?'NO FAVORITES YET - PRESS F':'NO RECENT PLANETS YET',x+12,y+54,C.brown,1); }
-  const visible=items.slice(0,11);
+  if(!items.length) drawText(libraryEmptyText(),x+12,y+54,C.brown,1);
+  const visible=items.slice(0,8);
   state.librarySelection=clamp(state.librarySelection,0,Math.max(0,visible.length-1));
   visible.forEach((name,i)=>{
     const ry=y+48+i*12, row={name,x:x+10,y:ry-5,w:w-20,h:11}; state.libraryRows.push(row);
     if(i===state.librarySelection){ctx.fillStyle=mixHex(C.purple,C.black,.48);ctx.fillRect(x+8,ry-6,w-16,10);}
-    drawText(name,x+14,ry,isFavorite(name)?C.green:C.white,1);
+    drawText(name,x+14,ry,isFavorite(name)?C.green:(state.libraryTab==='scanned'?C.cyan:C.white),1);
     if(hoverActive()&&pointInRect(state.mouse,row.x,row.y,row.w,row.h)) drawFocusFrame(row.x,row.y,row.w,row.h);
   });
-  drawText('F/R TABS   ENTER VISIT   L CLOSE',x+12,y+h-10,C.purple,1);
+
+  const actionY=y+h-43;
+  const exportRect={id:'export',x:x+9,y:actionY,w:88,h:19};
+  const importRect={id:'import',x:x+106,y:actionY,w:88,h:19};
+  const resetRect={id:'reset',x:x+203,y:actionY,w:111,h:19};
+  state.libraryActionRects=[exportRect,importRect,resetRect];
+  drawText('EXPORT JSON',exportRect.x+6,actionY+12,C.cyan,1);
+  drawText('IMPORT JSON',importRect.x+6,actionY+12,C.green,1);
+  const confirming=performance.now()<=state.resetConfirmUntil;
+  drawText(confirming?'CONFIRM RESET':'RESET DATA',resetRect.x+6,actionY+12,confirming?C.red:C.purple,1);
+  for(const rect of state.libraryActionRects){
+    if(hoverActive()&&pointInRect(state.mouse,rect.x,rect.y,rect.w,rect.h)) drawFocusFrame(rect.x,rect.y,rect.w,rect.h);
+  }
+  drawText('SPACE VISIT  E EXPORT  I IMPORT  X RESET  L CLOSE',x+12,y+h-9,C.purple,1);
 }
 function drawToast(t){
   if(!state.toastText || t>=state.toastUntil) return;
@@ -1811,12 +1946,20 @@ function takeScreenshot(options={}){
 }
 function handleLibraryPointer(p){
   if(!state.libraryOpen) return false;
-  const x=86,y=39,w=308,h=191;
-  if(p.x>=x+7&&p.x<=x+82&&p.y>=y+20&&p.y<=y+39){state.libraryTab='favorites';state.librarySelection=0;return true;}
-  if(p.x>=x+84&&p.x<=x+147&&p.y>=y+20&&p.y<=y+39){state.libraryTab='recent';state.librarySelection=0;return true;}
+  const x=78,y=31,w=324,h=207;
+  if(pointInRect(p,x+7,y+20,76,19)){state.libraryTab='favorites';state.librarySelection=0;return true;}
+  if(pointInRect(p,x+87,y+20,61,19)){state.libraryTab='recent';state.librarySelection=0;return true;}
+  if(pointInRect(p,x+152,y+20,68,19)){state.libraryTab='scanned';state.librarySelection=0;return true;}
   for(let i=0;i<state.libraryRows.length;i++){
     const row=state.libraryRows[i];
-    if(p.x>=row.x&&p.x<=row.x+row.w&&p.y>=row.y&&p.y<=row.y+row.h){state.librarySelection=i;visit(row.name);return true;}
+    if(pointInRect(p,row.x,row.y,row.w,row.h)){state.librarySelection=i;visit(row.name);return true;}
+  }
+  for(const rect of state.libraryActionRects||[]){
+    if(!pointInRect(p,rect.x,rect.y,rect.w,rect.h)) continue;
+    if(rect.id==='export') exportCaptainLog();
+    else if(rect.id==='import') importCaptainLog();
+    else if(rect.id==='reset') resetExplorationData();
+    return true;
   }
   if(!(p.x>=x&&p.x<=x+w&&p.y>=y&&p.y<=y+h)){state.libraryOpen=false;return true;}
   return true;
@@ -1944,10 +2087,16 @@ window.addEventListener('keydown',ev=>{
     if(ev.key==='End'){ev.preventDefault();state.lifeScroll=state.lifeScrollMax;return;}
   }
   if(state.libraryOpen){
-    const items=libraryItems().slice(0,11);
-    if(ev.key.toLowerCase()==='l'){ev.preventDefault();state.libraryOpen=false;return;}
-    if(ev.key.toLowerCase()==='f'){ev.preventDefault();state.libraryTab='favorites';state.librarySelection=0;return;}
-    if(ev.key.toLowerCase()==='r'){ev.preventDefault();state.libraryTab='recent';state.librarySelection=0;return;}
+    const items=libraryItems().slice(0,8);
+    const key=ev.key.toLowerCase();
+    if(key==='l'){ev.preventDefault();state.libraryOpen=false;return;}
+    if(key==='f'){ev.preventDefault();state.libraryTab='favorites';state.librarySelection=0;return;}
+    if(key==='r'){ev.preventDefault();state.libraryTab='recent';state.librarySelection=0;return;}
+    if(key==='s'){ev.preventDefault();state.libraryTab='scanned';state.librarySelection=0;return;}
+    if(key==='e'){ev.preventDefault();exportCaptainLog();return;}
+    if(key==='i'){ev.preventDefault();importCaptainLog();return;}
+    if(key==='x'){ev.preventDefault();resetExplorationData();return;}
+    if(ev.key===' ' && items[state.librarySelection]){ev.preventDefault();visit(items[state.librarySelection]);return;}
     if(ev.key==='ArrowUp'){ev.preventDefault();state.librarySelection=clamp(state.librarySelection-1,0,Math.max(0,items.length-1));return;}
     if(ev.key==='ArrowDown'){ev.preventDefault();state.librarySelection=clamp(state.librarySelection+1,0,Math.max(0,items.length-1));return;}
   }

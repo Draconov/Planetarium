@@ -55,7 +55,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Planetarium-Windows
-          path: release/Planetarium-*-Windows-x64.exe
+          path: release/Planetarium-*.exe
           if-no-files-found: error
 
   release:
@@ -94,7 +94,7 @@ jobs:
         run: |
           mkdir -p release-assets
           VERSION="${{ steps.release_meta.outputs.version }}"
-          EXPECTED="Planetarium-${VERSION}-Windows-x64.exe"
+          EXPECTED="Planetarium-${VERSION}.exe"
           FOUND="$(find artifacts/windows -type f -name "${EXPECTED}" -print -quit)"
           if [[ -z "${FOUND}" ]]; then
             echo "Expected release executable ${EXPECTED} was not found." >&2

@@ -6,7 +6,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
 const targetDir = resolve(root, 'src-tauri', 'target', 'release');
 const releaseDir = resolve(root, 'release');
-const output = resolve(releaseDir, `Planetarium-${pkg.version}-Windows-x64.exe`);
+const output = resolve(releaseDir, `Planetarium-${pkg.version}.exe`);
 
 const candidates = ['planetarium.exe', 'Planetarium.exe'];
 let source = null;
