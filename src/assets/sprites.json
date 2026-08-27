@@ -1,0 +1,349 @@
+[
+  {
+    "name": "s_moon",
+    "width": 28,
+    "height": 28,
+    "origin": [
+      14,
+      14
+    ],
+    "frames": [
+      "s_moon_00.png",
+      "s_moon_01.png",
+      "s_moon_02.png",
+      "s_moon_03.png",
+      "s_moon_04.png",
+      "s_moon_05.png",
+      "s_moon_06.png",
+      "s_moon_07.png",
+      "s_moon_08.png",
+      "s_moon_09.png",
+      "s_moon_10.png",
+      "s_moon_11.png",
+      "s_moon_12.png",
+      "s_moon_13.png",
+      "s_moon_14.png",
+      "s_moon_15.png",
+      "s_moon_16.png"
+    ]
+  },
+  {
+    "name": "s_moon_shadow",
+    "width": 20,
+    "height": 20,
+    "origin": [
+      10,
+      10
+    ],
+    "frames": [
+      "s_moon_shadow_00.png",
+      "s_moon_shadow_01.png",
+      "s_moon_shadow_02.png",
+      "s_moon_shadow_03.png",
+      "s_moon_shadow_04.png",
+      "s_moon_shadow_05.png",
+      "s_moon_shadow_06.png",
+      "s_moon_shadow_07.png",
+      "s_moon_shadow_08.png",
+      "s_moon_shadow_09.png",
+      "s_moon_shadow_10.png"
+    ]
+  },
+  {
+    "name": "s_cloud",
+    "width": 8,
+    "height": 8,
+    "origin": [
+      4,
+      4
+    ],
+    "frames": [
+      "s_cloud_00.png",
+      "s_cloud_01.png",
+      "s_cloud_02.png",
+      "s_cloud_03.png",
+      "s_cloud_04.png",
+      "s_cloud_05.png",
+      "s_cloud_06.png",
+      "s_cloud_07.png",
+      "s_cloud_08.png",
+      "s_cloud_09.png",
+      "s_cloud_10.png",
+      "s_cloud_11.png"
+    ]
+  },
+  {
+    "name": "s_dust",
+    "width": 5,
+    "height": 5,
+    "origin": [
+      2,
+      2
+    ],
+    "frames": [
+      "s_dust_00.png",
+      "s_dust_01.png",
+      "s_dust_02.png",
+      "s_dust_03.png",
+      "s_dust_04.png",
+      "s_dust_05.png"
+    ]
+  },
+  {
+    "name": "s_cursor",
+    "width": 8,
+    "height": 8,
+    "origin": [
+      4,
+      4
+    ],
+    "frames": [
+      "s_cursor_00.png",
+      "s_cursor_01.png",
+      "s_cursor_02.png"
+    ]
+  },
+  {
+    "name": "s_cursor_ext",
+    "width": 8,
+    "height": 8,
+    "origin": [
+      4,
+      4
+    ],
+    "frames": [
+      "s_cursor_ext_00.png",
+      "s_cursor_ext_01.png",
+      "s_cursor_ext_02.png",
+      "s_cursor_ext_03.png"
+    ]
+  },
+  {
+    "name": "s_UI_slider_back",
+    "width": 162,
+    "height": 7,
+    "origin": [
+      1,
+      3
+    ],
+    "frames": [
+      "s_UI_slider_back_00.png"
+    ]
+  },
+  {
+    "name": "s_UI_seperator",
+    "width": 1,
+    "height": 15,
+    "origin": [
+      0,
+      7
+    ],
+    "frames": [
+      "s_UI_seperator_00.png"
+    ]
+  },
+  {
+    "name": "s_UI_slider_fill",
+    "width": 1,
+    "height": 5,
+    "origin": [
+      0,
+      2
+    ],
+    "frames": [
+      "s_UI_slider_fill_00.png",
+      "s_UI_slider_fill_01.png"
+    ]
+  },
+  {
+    "name": "s_UI_slider_front",
+    "width": 7,
+    "height": 13,
+    "origin": [
+      3,
+      6
+    ],
+    "frames": [
+      "s_UI_slider_front_00.png",
+      "s_UI_slider_front_01.png"
+    ]
+  },
+  {
+    "name": "s_rocket",
+    "width": 5,
+    "height": 5,
+    "origin": [
+      2,
+      2
+    ],
+    "frames": [
+      "s_rocket_00.png"
+    ]
+  },
+  {
+    "name": "s_UI_new_seed",
+    "width": 15,
+    "height": 15,
+    "origin": [
+      7,
+      7
+    ],
+    "frames": [
+      "s_UI_new_seed_00.png"
+    ]
+  },
+  {
+    "name": "s_UI_old_seed",
+    "width": 15,
+    "height": 15,
+    "origin": [
+      7,
+      7
+    ],
+    "frames": [
+      "s_UI_old_seed_00.png"
+    ]
+  },
+  {
+    "name": "s_UI_temp",
+    "width": 8,
+    "height": 10,
+    "origin": [
+      4,
+      5
+    ],
+    "frames": [
+      "s_UI_temp_00.png",
+      "s_UI_temp_01.png",
+      "s_UI_temp_02.png",
+      "s_UI_temp_03.png",
+      "s_UI_temp_04.png"
+    ]
+  },
+  {
+    "name": "s_UI_reverse",
+    "width": 11,
+    "height": 9,
+    "origin": [
+      5,
+      4
+    ],
+    "frames": [
+      "s_UI_reverse_00.png"
+    ]
+  },
+  {
+    "name": "s_UI_fastforward",
+    "width": 11,
+    "height": 9,
+    "origin": [
+      5,
+      4
+    ],
+    "frames": [
+      "s_UI_fastforward_00.png"
+    ]
+  },
+  {
+    "name": "s_UI_rocket",
+    "width": 11,
+    "height": 9,
+    "origin": [
+      5,
+      4
+    ],
+    "frames": [
+      "s_UI_rocket_00.png"
+    ]
+  },
+  {
+    "name": "s_UI_camera",
+    "width": 11,
+    "height": 9,
+    "origin": [
+      5,
+      4
+    ],
+    "frames": [
+      "s_UI_camera_00.png"
+    ]
+  },
+  {
+    "name": "s_UI_mute",
+    "width": 11,
+    "height": 9,
+    "origin": [
+      5,
+      4
+    ],
+    "frames": [
+      "s_UI_mute_00.png"
+    ]
+  },
+  {
+    "name": "s_UI_random",
+    "width": 11,
+    "height": 9,
+    "origin": [
+      5,
+      4
+    ],
+    "frames": [
+      "s_UI_random_00.png"
+    ]
+  },
+  {
+    "name": "s_ring",
+    "width": 8,
+    "height": 8,
+    "origin": [
+      4,
+      4
+    ],
+    "frames": [
+      "s_ring_00.png",
+      "s_ring_01.png",
+      "s_ring_02.png",
+      "s_ring_03.png"
+    ]
+  },
+  {
+    "name": "s_logo",
+    "width": 50,
+    "height": 50,
+    "origin": [
+      25,
+      25
+    ],
+    "frames": [
+      "s_logo_00.png",
+      "s_logo_01.png",
+      "s_logo_02.png",
+      "s_logo_03.png"
+    ]
+  },
+  {
+    "name": "s_name",
+    "width": 11,
+    "height": 26,
+    "origin": [
+      5,
+      18
+    ],
+    "frames": [
+      "s_name_00.png",
+      "s_name_01.png",
+      "s_name_02.png",
+      "s_name_03.png",
+      "s_name_04.png",
+      "s_name_05.png",
+      "s_name_06.png",
+      "s_name_07.png",
+      "s_name_08.png",
+      "s_name_09.png",
+      "s_name_10.png",
+      "s_name_11.png",
+      "s_name_12.png"
+    ]
+  }
+]

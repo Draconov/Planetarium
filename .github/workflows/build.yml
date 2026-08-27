@@ -1,0 +1,98 @@
+name: Build
+
+on:
+  push:
+    branches: ["main", "master"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: Web build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check source
+        run: npm run check
+      - name: Build web app
+        run: npm run build:web
+      - name: Package web release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          cd dist/web
+          zip -r "../Planetarium-${VERSION}-Web.zip" .
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Planetarium-web
+          path: |
+            dist/web
+            dist/Planetarium-*-Web.zip
+          if-no-files-found: error
+
+  windows:
+    name: Windows desktop build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Build Windows app
+        run: npm run build:win
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Planetarium-Windows
+          path: release/*
+          if-no-files-found: error
+
+  release:
+    name: GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [web, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download web build
+        uses: actions/download-artifact@v4
+        with:
+          name: Planetarium-web
+          path: artifacts/web
+
+      - name: Download Windows build
+        uses: actions/download-artifact@v4
+        with:
+          name: Planetarium-Windows
+          path: artifacts/windows
+
+      - name: Collect release assets
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          find artifacts -type f \( -name '*.zip' -o -name '*.exe' \) -exec cp {} release-assets/ \;
+          echo "Release assets:"
+          ls -lah release-assets
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            release-assets/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "Planetarium ${GITHUB_REF_NAME#v}" \
+            --generate-notes
