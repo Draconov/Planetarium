@@ -427,6 +427,7 @@ const state = {
   mouse:{x:-20,y:-20,down:false,inside:false,pointerType:'mouse'},
   draggingSlider:false, hovered:null, hoverBody:null, pinnedBody:null, moonHoverGrace:null, moonHoverUntil:0, rocket:null, probe:null, spaceLaunchSerial:0,
   history:[], historyPos:-1, favorites:[], libraryOpen:false, libraryTab:'favorites', librarySelection:0, libraryRows:[],
+  lifeScroll:0, lifeScrollMax:0, lifePanelRect:null, lifePanelFocused:false, lifePanelKey:'',
   info:null, infoTitle:null, toastText:'', toastUntil:0,
   lastTime:performance.now(), twinkle:0, cameraFlash:0,
   captureMode:null, cameraHold:null
@@ -692,6 +693,7 @@ function visit(name, addHistory=true){
   }
   state.name=name; state.input=''; state.enteringName=false; state.intro=false; state.phase=0; state.simDays=0;
   state.rocket=null; state.probe=null; state.spaceLaunchSerial=0; state.pinnedBody=null; state.hoverBody=null; state.moonHoverGrace=null; state.moonHoverUntil=0; state.libraryOpen=false;
+  state.lifeScroll=0; state.lifeScrollMax=0; state.lifePanelRect=null; state.lifePanelFocused=false; state.lifePanelKey='';
   planet=generatePlanet(state.name);
   normalizeViewModeForPlanet();
   document.title=`${planet.name} - Planetarium`;
@@ -913,20 +915,64 @@ function lifeProbeObservation(){
   ]);
   return `${relationship}. ${trait}.`;
 }
-function drawLifeProbeFact(x,y,maxPx=124,maxBottom=232){
-  const fact=lifeProbeObservation();
-  if(!fact || y>maxBottom-18) return false;
-  drawText('LIFE OBSERVED',x,y,C.green,1);
-  const all=wrapText(fact,maxPx,1);
-  const room=Math.max(1,Math.floor((maxBottom-(y+10))/8)+1);
-  const lines=all.slice(0,room);
-  if(all.length>lines.length && lines.length){
-    const last=lines.length-1;
-    lines[last]=(lines[last].replace(/[. ]+$/,'').slice(0,Math.max(1,lines[last].length-3))+'...');
-  }
-  lines.forEach((line,i)=>drawText(line,x,y+10+i*8,C.green,1));
+function lifePanelHovered(){
+  const r=state.lifePanelRect;
+  return !!r && state.mouse.inside && pointInRect(state.mouse,r.x,r.y,r.w,r.h);
+}
+function scrollLifePanel(delta){
+  if(!state.lifePanelRect || state.lifeScrollMax<=0) return false;
+  state.lifeScroll=clamp(state.lifeScroll+delta,0,state.lifeScrollMax);
   return true;
 }
+function drawLifeProbeFact(x,y,maxPx=124,maxBottom=232){
+  const fact=lifeProbeObservation();
+  state.lifePanelRect=null;
+  if(!fact || y>maxBottom-18) {
+    state.lifeScroll=0; state.lifeScrollMax=0; state.lifePanelFocused=false;
+    return false;
+  }
+  const key=`${planet.seed}:${tempBand()}:${weatherLabel()}:${lifeTypeLabel()}:${fact}`;
+  if(state.lifePanelKey!==key){
+    state.lifePanelKey=key;
+    state.lifeScroll=0;
+  }
+  const lineH=8, contentY=y+10;
+  const all=wrapText(fact,maxPx,1);
+  const visibleLines=Math.max(1,Math.floor((maxBottom-contentY)/lineH)+1);
+  state.lifeScrollMax=Math.max(0,all.length-visibleLines);
+  state.lifeScroll=clamp(state.lifeScroll,0,state.lifeScrollMax);
+  const panelW=maxPx+8;
+  state.lifePanelRect={x:x-3,y:y-4,w:panelW,h:maxBottom-y+8};
+  const active=lifePanelHovered()||state.lifePanelFocused;
+
+  drawText('LIFE OBSERVED',x,y,C.green,1);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x-1,contentY-1,maxPx+2,maxBottom-contentY+4);
+  ctx.clip();
+  const first=Math.floor(state.lifeScroll);
+  const frac=state.lifeScroll-first;
+  for(let i=0;i<visibleLines+1;i++){
+    const line=all[first+i];
+    if(line===undefined) break;
+    drawText(line,x,contentY+i*lineH-frac*lineH,C.green,1);
+  }
+  ctx.restore();
+
+  if(state.lifeScrollMax>0){
+    const trackX=x+maxPx+4, trackY=contentY, trackH=Math.max(8,maxBottom-contentY+2);
+    ctx.fillStyle=mixHex(C.green,C.black,.62);
+    for(let py=trackY;py<trackY+trackH;py+=3) ctx.fillRect(trackX,py,1,1);
+    const thumbH=Math.max(4,Math.round(trackH*(visibleLines/all.length)));
+    const travel=Math.max(0,trackH-thumbH);
+    const thumbY=trackY+Math.round(travel*(state.lifeScroll/state.lifeScrollMax));
+    ctx.fillStyle=active?C.green:C.purple;
+    ctx.fillRect(trackX,thumbY,2,thumbH);
+  }
+  if(active) drawFocusFrame(state.lifePanelRect.x,state.lifePanelRect.y,state.lifePanelRect.w,state.lifePanelRect.h);
+  return true;
+}
+
 function iceCoverPercent(){
   if(planet.solar){
     const t=tempC();
@@ -1674,6 +1720,7 @@ function render(t){
   const rotationRate=(24/planet.dayHours)*.035*planet.rotationDirection;
   state.phase=mod(state.phase+dt*rotationRate*speed*dir,1);
   const cleanCapture=state.captureMode==='clean';
+  state.lifePanelRect=null;
   drawStars(t);
   const intro=state.intro;
   if(intro && !cleanCapture){
@@ -1790,6 +1837,12 @@ canvas.addEventListener('pointerleave',()=>{state.mouse.inside=false;state.dragg
 canvas.addEventListener('pointerdown',ev=>{
   startAudio();canvas.focus();const p=getPoint(ev);state.mouse={...state.mouse,...p,down:true,inside:true,pointerType:ev.pointerType||'mouse'};
   if(state.intro){ ev.preventDefault(); return; }
+  if(state.lifePanelRect && pointInRect(p,state.lifePanelRect.x,state.lifePanelRect.y,state.lifePanelRect.w,state.lifePanelRect.h)){
+    state.lifePanelFocused=true;
+    ev.preventDefault();
+    return;
+  }
+  state.lifePanelFocused=false;
   if(handleLibraryPointer(p)){ev.preventDefault();return;}
   if(sliderHit(p)){state.draggingSlider=true;updateSliderFromPoint(p);ev.preventDefault();return;}
   const button=buttonAtPoint(p);
@@ -1818,6 +1871,11 @@ canvas.addEventListener('pointerup',()=>{
   if(hold?.active && !hold.triggered) takeScreenshot({full:false});
   state.cameraHold=null;
 });
+canvas.addEventListener('wheel',ev=>{
+  if(state.intro || !lifePanelHovered()) return;
+  const step=ev.deltaY===0?0:(ev.deltaY>0?1:-1);
+  if(step && scrollLifePanel(step)) ev.preventDefault();
+},{passive:false});
 canvas.addEventListener('dblclick',()=>toggleFullscreen());
 
 function historyMove(delta){
@@ -1850,6 +1908,7 @@ window.addEventListener('keydown',ev=>{
     const exitMessage='SO YOU WANT TO LEAVE ME?';
     if(state.infoTitle===exitMessage && closeDesktopApp()) return;
     state.libraryOpen=false;
+    state.lifePanelFocused=false;
     state.pinnedBody=null;
     state.input='';
     state.enteringName=false;
@@ -1872,7 +1931,16 @@ window.addEventListener('keydown',ev=>{
     state.libraryOpen=false;
     state.info=null;
     state.infoTitle=null;
+    state.lifePanelFocused=false;
     return;
+  }
+  if(!state.enteringName && state.lifePanelFocused && state.lifePanelRect){
+    if(ev.key==='ArrowUp'){ev.preventDefault();scrollLifePanel(-1);return;}
+    if(ev.key==='ArrowDown'){ev.preventDefault();scrollLifePanel(1);return;}
+    if(ev.key==='PageUp'){ev.preventDefault();scrollLifePanel(-5);return;}
+    if(ev.key==='PageDown'){ev.preventDefault();scrollLifePanel(5);return;}
+    if(ev.key==='Home'){ev.preventDefault();state.lifeScroll=0;return;}
+    if(ev.key==='End'){ev.preventDefault();state.lifeScroll=state.lifeScrollMax;return;}
   }
   if(state.libraryOpen){
     const items=libraryItems().slice(0,11);
@@ -1883,7 +1951,7 @@ window.addEventListener('keydown',ev=>{
     if(ev.key==='ArrowDown'){ev.preventDefault();state.librarySelection=clamp(state.librarySelection+1,0,Math.max(0,items.length-1));return;}
   }
   if(!state.enteringName && ev.key.toLowerCase()==='f'){ev.preventDefault();toggleFavorite();return;}
-  if(!state.enteringName && ev.key.toLowerCase()==='l'){ev.preventDefault();state.libraryOpen=!state.libraryOpen;state.librarySelection=0;return;}
+  if(!state.enteringName && ev.key.toLowerCase()==='l'){ev.preventDefault();state.libraryOpen=!state.libraryOpen;state.librarySelection=0;state.lifePanelFocused=false;return;}
   if(!state.enteringName && ev.key.toLowerCase()==='c'){ev.preventDefault();sharePlanet();return;}
   if(!state.enteringName && ev.key.toLowerCase()==='p'){ev.preventDefault();launchProbe(state.pinnedBody||state.hoverBody||{type:'planet'});return;}
   if(state.enteringName){
