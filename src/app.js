@@ -941,9 +941,10 @@ function drawLifeProbeFact(x,y,maxPx=124,maxBottom=232){
   const visibleLines=Math.max(1,Math.floor((maxBottom-contentY)/lineH)+1);
   state.lifeScrollMax=Math.max(0,all.length-visibleLines);
   state.lifeScroll=clamp(state.lifeScroll,0,state.lifeScrollMax);
-  const panelW=maxPx+8;
-  state.lifePanelRect={x:x-3,y:y-4,w:panelW,h:maxBottom-y+8};
-  const active=lifePanelHovered()||state.lifePanelFocused;
+  const panelW=maxPx+13;
+  state.lifePanelRect={x:x-8,y:y-4,w:panelW,h:maxBottom-y+8};
+  const hovered=lifePanelHovered();
+  const active=hovered||state.lifePanelFocused;
 
   drawText('LIFE OBSERVED',x,y,C.green,1);
   ctx.save();
@@ -959,8 +960,8 @@ function drawLifeProbeFact(x,y,maxPx=124,maxBottom=232){
   }
   ctx.restore();
 
-  if(state.lifeScrollMax>0){
-    const trackX=x+maxPx+4, trackY=contentY, trackH=Math.max(8,maxBottom-contentY+2);
+  if(state.lifeScrollMax>0 && hovered){
+    const trackX=x-6, trackY=contentY, trackH=Math.max(8,maxBottom-contentY+2);
     ctx.fillStyle=mixHex(C.green,C.black,.62);
     for(let py=trackY;py<trackY+trackH;py+=3) ctx.fillRect(trackX,py,1,1);
     const thumbH=Math.max(4,Math.round(trackH*(visibleLines/all.length)));
