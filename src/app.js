@@ -1895,31 +1895,55 @@ function drawProbeStatus(){
   else if(p.phase==='lost') drawText('PROBE LOST - CAUSE UNKNOWN',472,224,C.red,1,'right');
 }
 function drawLogButtonIcon(x,y,active=false){
-  ctx.fillStyle=active?C.green:C.purple;
-  ctx.fillRect(x+2,y+2,7,7);
+  const edge=active?C.green:C.purple;
+  const page=active?mixHex(C.green,C.white,.55):C.white;
+  const shade=active?mixHex(C.green,C.black,.35):C.blue;
+  ctx.fillStyle=edge;
+  ctx.fillRect(x+1,y+1,8,8);
   ctx.fillStyle=C.black;
-  ctx.fillRect(x+3,y+3,2,5); ctx.fillRect(x+6,y+3,2,5);
+  ctx.fillRect(x+2,y+2,6,6);
+  ctx.fillStyle=edge;
+  ctx.fillRect(x+2,y+2,2,6);
+  ctx.fillStyle=page;
+  ctx.fillRect(x+4,y+2,4,6);
+  ctx.fillStyle=shade;
+  ctx.fillRect(x+5,y+3,2,1);
+  ctx.fillRect(x+5,y+5,2,1);
+  ctx.fillRect(x+5,y+7,2,1);
   ctx.fillStyle=C.white;
-  ctx.fillRect(x+4,y+3,1,4); ctx.fillRect(x+5,y+3,1,4);
-  ctx.fillStyle=C.cyan;
-  ctx.fillRect(x+3,y+8,5,1);
+  ctx.fillRect(x+3,y+3,1,1);
 }
 function drawPauseButtonIcon(x,y,active=false){
-  ctx.fillStyle=active?C.green:C.white;
-  ctx.fillRect(x+3,y+2,2,7);
-  ctx.fillRect(x+7,y+2,2,7);
-  if(active){
-    ctx.fillStyle=C.purple;
-    ctx.fillRect(x+2,y+1,1,9); ctx.fillRect(x+9,y+1,1,9);
-  }
+  const edge=active?C.green:C.purple;
+  const fill=active?mixHex(C.green,C.white,.35):mixHex(C.white,C.black,.18);
+  ctx.fillStyle=edge;
+  ctx.fillRect(x+1,y+1,8,8);
+  ctx.fillStyle=C.black;
+  ctx.fillRect(x+2,y+2,6,6);
+  ctx.fillStyle=fill;
+  ctx.fillRect(x+3,y+3,2,4);
+  ctx.fillRect(x+6,y+3,2,4);
+  ctx.fillStyle=active?C.white:C.blue;
+  ctx.fillRect(x+3,y+7,2,1);
+  ctx.fillRect(x+6,y+7,2,1);
 }
 function drawProbeButtonIcon(x,y,active=false){
-  ctx.fillStyle=active?C.green:C.cyan;
-  ctx.fillRect(x+4,y+3,3,3);
+  const body=active?C.green:C.cyan;
+  const accent=active?C.white:C.purple;
+  ctx.fillStyle=body;
+  ctx.fillRect(x+4,y+4,2,2);
   ctx.fillStyle=C.white;
-  ctx.fillRect(x+1,y+4,2,1); ctx.fillRect(x+8,y+4,2,1); ctx.fillRect(x+5,y+1,1,2);
-  ctx.fillStyle=C.purple;
-  ctx.fillRect(x+2,y+2,1,5); ctx.fillRect(x+8,y+2,1,5);
+  ctx.fillRect(x+5,y+2,1,2);
+  ctx.fillRect(x+2,y+5,2,1);
+  ctx.fillRect(x+6,y+5,2,1);
+  ctx.fillRect(x+4,y+6,1,2);
+  ctx.fillStyle=accent;
+  ctx.fillRect(x+3,y+3,1,1);
+  ctx.fillRect(x+6,y+3,1,1);
+  ctx.fillRect(x+3,y+6,1,1);
+  ctx.fillRect(x+6,y+6,1,1);
+  ctx.fillRect(x+1,y+5,1,1);
+  ctx.fillRect(x+8,y+5,1,1);
 }
 function updateCameraHold(t){
   const h=state.cameraHold;
