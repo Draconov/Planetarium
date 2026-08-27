@@ -1,0 +1,24 @@
+[package]
+name = "planetarium"
+version = "1.1.0"
+description = "A tiny deterministic procedural planet generator."
+authors = ["Draconov"]
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "planetarium_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", default-features = false, features = [] }
+
+[dependencies]
+tauri = { version = "2.11.5", default-features = false, features = ["wry", "compression"] }
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "z"
+strip = true

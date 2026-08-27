@@ -4,6 +4,7 @@ node_modules/
 # Generated builds
 dist/
 release/
+src-tauri/target/
 
 # OS / editor noise
 .DS_Store

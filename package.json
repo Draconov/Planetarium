@@ -1,50 +1,22 @@
 {
   "name": "planetarium",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Reconstructed source for the Planetarium procedural planet generator.",
   "private": true,
-  "main": "desktop/main.cjs",
   "scripts": {
-    "check": "node --check src/app.js && node --check src/font_data.js && node --check desktop/main.cjs && node --check scripts/build-web.mjs && node --check scripts/serve.mjs && node scripts/check-assets.mjs",
+    "check": "node --check src/app.js && node --check src/font_data.js && node --check scripts/build-web.mjs && node --check scripts/serve.mjs && node --check scripts/collect-tauri-exe.mjs && node scripts/check-assets.mjs && node scripts/check-version.mjs",
     "dev:web": "node scripts/serve.mjs src",
+    "dev:desktop": "tauri dev",
     "preview": "npm run build:web && node scripts/serve.mjs dist/web",
-    "prestart": "npm run check && npm run build:web",
-    "start": "electron .",
+    "start": "npm run dev:desktop",
+    "tauri": "tauri",
     "build": "npm run build:web",
     "build:web": "node scripts/build-web.mjs",
-    "build:win": "npm run check && npm run build:web && electron-builder --win --x64 --publish never",
+    "build:win": "npm run check && tauri build --no-bundle && node scripts/collect-tauri-exe.mjs",
     "build:all": "npm run build:win"
   },
   "devDependencies": {
-    "electron": "37.2.6",
-    "electron-builder": "26.0.12"
-  },
-  "build": {
-    "appId": "com.planetarium.desktop",
-    "productName": "Planetarium",
-    "asar": true,
-    "directories": {
-      "output": "release",
-      "buildResources": "build"
-    },
-    "files": [
-      "desktop/**/*",
-      "dist/web/**/*",
-      "package.json",
-      "build/icon.ico"
-    ],
-    "win": {
-      "icon": "build/icon.ico",
-      "target": [
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "artifactName": "Planetarium-${version}-Windows-${arch}.${ext}"
-    }
+    "@tauri-apps/cli": "2.11.4"
   },
   "engines": {
     "node": ">=20"
