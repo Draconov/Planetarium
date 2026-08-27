@@ -425,7 +425,7 @@ const state = {
   input: '', temp: .50, viewMode:0, tempView:false, reverse:false, speedIndex:1, muted:false,
   phase:0, simDays:0, intro:!urlPlanet, introUntil: performance.now()+9000,
   mouse:{x:-20,y:-20,down:false,inside:false,pointerType:'mouse'},
-  draggingSlider:false, hovered:null, hoverBody:null, pinnedBody:null, moonHoverGrace:null, moonHoverUntil:0, rocket:null, probe:null,
+  draggingSlider:false, hovered:null, hoverBody:null, pinnedBody:null, moonHoverGrace:null, moonHoverUntil:0, rocket:null, probe:null, spaceLaunchSerial:0,
   history:[], historyPos:-1, favorites:[], libraryOpen:false, libraryTab:'favorites', librarySelection:0, libraryRows:[],
   info:null, infoTitle:null, toastText:'', toastUntil:0,
   lastTime:performance.now(), twinkle:0, cameraFlash:0,
@@ -466,7 +466,7 @@ function makePlanetScan(p){
   let nitrogen=Math.max(0,100-oxygen-co2-other);
   oxygen=Math.round(oxygen*10)/10; co2=Math.round(co2*10)/10; nitrogen=Math.round(nitrogen*10)/10;
   const complexity=p.populationBase<=3?'MICROBIAL':p.populationBase<=5?'SIMPLE':p.populationBase<=7?'COMPLEX':'INTELLIGENT';
-  const tech=complexity==='INTELLIGENT'?pick(r,['PRIMITIVE','PRE-INDUSTRIAL','INDUSTRIAL','EARLY SPACEFLIGHT']):'NONE';
+  const tech=complexity==='INTELLIGENT'?pick(r,['PRIMITIVE','PRE-INDUSTRIAL','INDUSTRIAL','INDUSTRIAL','EARLY SPACEFLIGHT','EARLY SPACEFLIGHT','ORBITAL','INTERPLANETARY']):'NONE';
   p.scan={
     ageBy:Math.round((.45+r()*10.6)*10)/10,
     pressureAtm:Math.round((pr[0]+r()*(pr[1]-pr[0]))*100)/100,
@@ -496,6 +496,44 @@ function makeMoonScan(p,m,index){
     lossRisk:r()<.035
   };
 }
+const SPACE_TECH_RANK={NONE:0,PRIMITIVE:0,'PRE-INDUSTRIAL':1,INDUSTRIAL:2,'EARLY SPACEFLIGHT':3,ORBITAL:4,INTERPLANETARY:5};
+function spaceTechRank(level){ return SPACE_TECH_RANK[level]||0; }
+function makeOrbitalObject(r,p,type,index,rank){
+  const base=p.radius+10;
+  const orbit=base+index*5+r()*(13+rank*2);
+  return {
+    type, orbit, flatten:.34+r()*.16, phase:r()*Math.PI*2,
+    periodDays:Math.max(2.2,7.8-rank*.72+r()*5.8), direction:r()<.14?-1:1,
+    tint:pick(r,[C.white,C.cyan,C.purple,C.blue])
+  };
+}
+function configureCivilization(p){
+  if(p.name==='KERBIN'){
+    p.scan.lifeTypePotential='INTELLIGENT';
+    p.scan.techPotential='EARLY SPACEFLIGHT';
+  }
+  const rank=spaceTechRank(p.scan?.techPotential);
+  if(rank<3){ p.civilization=null; return; }
+  const r=mulberry32((p.seed^0x5aace77d)>>>0);
+  let satelliteCount=rank===3?1+Math.floor(r()*3):rank===4?3+Math.floor(r()*4):5+Math.floor(r()*4);
+  let stationCount=rank===3?(r()<.55?1:0):rank===4?1+Math.floor(r()*2):2+Math.floor(r()*2);
+  let trafficCount=rank===3?1:rank===4?2+Math.floor(r()*2):3+Math.floor(r()*3);
+  if(p.name==='EARTH'){ satelliteCount=4; stationCount=1; trafficCount=2; }
+  const satellites=[],stations=[],traffic=[];
+  for(let i=0;i<satelliteCount;i++) satellites.push(makeOrbitalObject(r,p,'satellite',i,rank));
+  for(let i=0;i<stationCount;i++) stations.push(makeOrbitalObject(r,p,'station',i+2,rank));
+  for(let i=0;i<trafficCount;i++) traffic.push(makeOrbitalObject(r,p,'traffic',i+1,rank));
+  let moonMissionIndex=null;
+  if(p.moonData?.length && (rank>=5 || (rank===4&&r()<.70) || (rank===3&&r()<.28))) moonMissionIndex=Math.floor(r()*p.moonData.length);
+  if(p.name==='EARTH' && p.moonData?.length) moonMissionIndex=0;
+  const story=rank>=5
+    ? `MULTIPLE ORBITAL STATIONS, ${satelliteCount} ACTIVE SATELLITE GROUPS AND REGULAR MOON MISSIONS ARE DETECTED`
+    : rank===4
+      ? `${stationCount?'CREWED ORBITAL STATIONS AND ':''}${satelliteCount} ACTIVE SATELLITE GROUPS SUPPORT A BUSY SPACE PROGRAM`
+      : `${satelliteCount} SATELLITE GROUP${satelliteCount===1?'':'S'}${stationCount?' AND A SMALL CREWED STATION':''} MARK THE CIVILIZATION'S FIRST PERMANENT STEPS INTO SPACE`;
+  p.civilization={rank,satellites,stations,traffic,launched:[],moonMissionIndex,missionPhase:r(),missionPeriodDays:9+r()*16,story};
+}
+function canLaunchCivilizationRocket(){ return !!planet?.civilization && isAlive() && planet.civilization.rank>=3; }
 const ATMOS_DENSITY_STRENGTH={NONE:0,TRACE:.08,THIN:.28,NORMAL:.58,DENSE:.82,SUPERDENSE:1};
 function atmosphereStrength(p=planet){ return ATMOS_DENSITY_STRENGTH[p?.atmosDensity] ?? .5; }
 function configureWeatherSystems(p,r){
@@ -569,6 +607,7 @@ function generatePlanet(name){
       m.scan=makeMoonScan(p,m,i);
       Object.assign(m.scan,solar.moons[i].scan||{});
     });
+    configureCivilization(p);
     const saved=parseFloat(storageGet(tempStorageKey(p),''));
     state.temp=Number.isFinite(saved)?clamp(saved,0,1):tempStateFromC(solar.defaultTempC,p);
     state.info=INFO_CARDS[name] || null;
@@ -623,6 +662,7 @@ function generatePlanet(name){
   p.noLifeText = r()<.5 ? 'PRESENTLY, NO LIFE REMAINS.' : 'NO SIGNS OF LIFE ARE VISIBLE AT THIS TEMPERATURE.';
   makePlanetScan(p);
   p.moonData.forEach((m,i)=>{m.scan=makeMoonScan(p,m,i);});
+  configureCivilization(p);
   const saved=parseFloat(storageGet(tempStorageKey(p),''));
   state.temp=Number.isFinite(saved)?clamp(saved,0,1):(special?.cold?.12:special?.hot?.84:clamp(p.target+(r()-.5)*.4,0,1));
   state.info=INFO_CARDS[name] || null;
@@ -639,7 +679,7 @@ function visit(name, addHistory=true){
     storageSet('planetarium:history',JSON.stringify(state.history));
   }
   state.name=name; state.input=''; state.intro=false; state.phase=0; state.simDays=0;
-  state.rocket=null; state.probe=null; state.pinnedBody=null; state.hoverBody=null; state.moonHoverGrace=null; state.moonHoverUntil=0; state.libraryOpen=false;
+  state.rocket=null; state.probe=null; state.spaceLaunchSerial=0; state.pinnedBody=null; state.hoverBody=null; state.moonHoverGrace=null; state.moonHoverUntil=0; state.libraryOpen=false;
   planet=generatePlanet(state.name);
   document.title=`${planet.name} - Planetarium`;
   syncUrl();
@@ -840,8 +880,10 @@ function lifeProbeObservation(){
     const people=alienSpeciesName(r);
     const body=pick(r,env==='OCEAN'?['AQUATIC CEPHALOPODS','ARMOURED SWIMMERS','AMPHIBIOUS HEXAPODS']:env==='DENSE'?['WINGED HEXAPODS','FLOATING COLONIAL BEINGS','GAS-BLADDERED FLIERS']:env==='DRY'?['BURROWING HEXAPODS','ARMOURED BIPEDS','LONG-LIMBED DESERT DWELLERS']:env==='COLD'?['FUR-BEARING HEXAPODS','SUBGLACIAL AQUATIC BEINGS','STOCKY FOUR-ARMED BIPEDS']:['TOOL-USING HEXAPODS','FEATHERED BIPEDS','CEPHALOPOD-LIKE LAND DWELLERS','ARMOURED QUADRUPEDS','SOCIAL INSECTOID BEINGS','FOUR-ARMED BIPEDS']);
     const settlement=pick(r,env==='OCEAN'?['REEF CITIES','FLOATING SETTLEMENTS','SUBMERGED CITIES']:env==='DENSE'?['CLOUD COLONIES','SUSPENDED SETTLEMENTS','HIGH-ALTITUDE CITIES']:env==='DRY'?['CANYON SETTLEMENTS','SUBTERRANEAN CITIES','OASIS CITADELS']:env==='COLD'?['GEOTHERMAL CITIES','SUBGLACIAL SETTLEMENTS','INSULATED VALLEY CITIES']:['RIVER CITIES','TERRACED SETTLEMENTS','FOREST CITIES','COASTAL SETTLEMENTS','UNDERGROUND CITIES']);
-    const signal=techLevelLabel()==='EARLY SPACEFLIGHT'?'ORBITAL TRAFFIC AND RADIO EMISSIONS ARE DETECTED':techLevelLabel()==='INDUSTRIAL'?'RADIO EMISSIONS AND LARGE INDUSTRIAL SITES ARE DETECTED':techLevelLabel()==='PRE-INDUSTRIAL'?'LARGE ROAD NETWORKS AND AGRICULTURAL REGIONS ARE VISIBLE':'STONEWORK, TOOLS AND ORGANIZED SETTLEMENTS ARE VISIBLE';
-    return `THE ${people}, ${body}, BUILD ${settlement}. ${signal}.`;
+    const tech=techLevelLabel();
+    const signal=tech==='INTERPLANETARY'?'DENSE ORBITAL TRAFFIC, STATIONS AND REGULAR MOON MISSIONS ARE DETECTED':tech==='ORBITAL'?'MULTIPLE SATELLITES, CREWED STATIONS AND RADIO TRAFFIC SURROUND THE PLANET':tech==='EARLY SPACEFLIGHT'?'A SMALL SATELLITE NETWORK AND RADIO EMISSIONS ARE DETECTED':tech==='INDUSTRIAL'?'RADIO EMISSIONS AND LARGE INDUSTRIAL SITES ARE DETECTED':tech==='PRE-INDUSTRIAL'?'LARGE ROAD NETWORKS AND AGRICULTURAL REGIONS ARE VISIBLE':'STONEWORK, TOOLS AND ORGANIZED SETTLEMENTS ARE VISIBLE';
+    const space=planet.civilization?.story?` ${planet.civilization.story}.`:'';
+    return `THE ${people}, ${body}, BUILD ${settlement}. ${signal}.${space}`;
   }
   const a=lifeSpecies(r,env,'COMPLEX'), b=lifeSpecies(r,env,r()<.35?'SIMPLE':'COMPLEX');
   const relationship=pick(r,[
@@ -1150,8 +1192,46 @@ function drawMoons(cx,cy,t,front){
     } else { m.hitRadius=7;ctx.fillStyle=moonTintColor(m);ctx.fillRect(Math.round(pos.x),Math.round(pos.y),4,4); }
   }
 }
+function civilizationObjectPosition(o,cx,cy){
+  const ang=o.phase+(state.simDays/o.periodDays)*Math.PI*2*o.direction;
+  return {x:cx+Math.cos(ang)*o.orbit,y:cy+Math.sin(ang)*o.orbit*o.flatten,depth:Math.sin(ang)};
+}
+function drawCivilizationCraft(x,y,type,tint=C.white){
+  x=Math.round(x);y=Math.round(y);
+  if(type==='station'){
+    ctx.fillStyle=C.white;ctx.fillRect(x-1,y-1,3,3);
+    ctx.fillStyle=C.purple;ctx.fillRect(x-4,y,2,1);ctx.fillRect(x+3,y,2,1);
+    ctx.fillStyle=C.cyan;ctx.fillRect(x,y-3,1,2);
+  }else if(type==='traffic'){
+    ctx.fillStyle=tint;ctx.fillRect(x,y,2,1);ctx.fillStyle=C.white;ctx.fillRect(x-1,y,1,1);
+  }else{
+    ctx.fillStyle=C.white;ctx.fillRect(x,y,1,1);
+    ctx.fillStyle=tint;ctx.fillRect(x-2,y,1,1);ctx.fillRect(x+2,y,1,1);
+  }
+}
+function drawCivilizationOrbitObjects(cx,cy,front){
+  const civ=planet.civilization;
+  if(!civ || !isAlive()) return;
+  const groups=[civ.satellites,civ.stations,civ.traffic,civ.launched||[]];
+  for(const group of groups){
+    for(const o of group){
+      const pos=civilizationObjectPosition(o,cx,cy);
+      if((front&&pos.depth<0)||(!front&&pos.depth>=0)) continue;
+      drawCivilizationCraft(pos.x,pos.y,o.type,o.tint);
+    }
+  }
+}
+function drawCivilizationMoonMission(cx,cy){
+  const civ=planet.civilization;
+  if(!civ || !isAlive() || civ.moonMissionIndex==null) return;
+  const m=planet.moonData[civ.moonMissionIndex]; if(!m) return;
+  const q=mod(civ.missionPhase+state.simDays/civ.missionPeriodDays,1);
+  const u=q<.5?smooth(q*2):smooth((1-q)*2);
+  const x=lerp(cx,m.screenX,u), y=lerp(cy,m.screenY,u)-Math.sin(u*Math.PI)*10;
+  drawCivilizationCraft(x,y,'traffic',C.green);
+}
 function drawPlanet(cx,cy,t){
-  drawMoons(cx,cy,t,false); ringPoints(cx,cy,false); drawAtmosphereLimb(cx,cy);
+  drawCivilizationOrbitObjects(cx,cy,false); drawMoons(cx,cy,t,false); ringPoints(cx,cy,false); drawAtmosphereLimb(cx,cy);
   const minX=Math.floor(cx-planet.rx-1), maxX=Math.ceil(cx+planet.rx+1), minY=Math.floor(cy-planet.ry-1), maxY=Math.ceil(cy+planet.ry+1);
   const rot = state.phase;
   for(let y=minY;y<=maxY;y++){
@@ -1178,7 +1258,7 @@ function drawPlanet(cx,cy,t){
     else {ctx.fillStyle=C.white;ctx.fillRect(Math.round(px),Math.round(py),4,2);}
   }
   drawWeatherSystems(cx,cy);
-  ringPoints(cx,cy,true); drawMoons(cx,cy,t,true);
+  ringPoints(cx,cy,true); drawMoons(cx,cy,t,true); drawCivilizationOrbitObjects(cx,cy,true); drawCivilizationMoonMission(cx,cy);
 }
 
 function drawBaseLabel(cx,cy){
@@ -1348,8 +1428,9 @@ function drawButtons(){
     if(hover) state.hovered=b;
     let im=null;
     if(b.id==='temp' && state.viewMode!==2) im=asset['temp'+tempBand()]; else if(b.id!=='probe'&&b.id!=='temp') im=asset[b.id];
-    const active=(b.id==='probe'&&!!state.probe)||(b.id==='temp'&&state.viewMode!==0)||(b.id==='reverse'&&state.reverse)||(b.id==='mute'&&state.muted)||(b.id==='fast'&&state.speedIndex>1);
-    ctx.globalAlpha=active?1:(hover?.95:.72);
+    const active=(b.id==='probe'&&!!state.probe)||(b.id==='temp'&&state.viewMode!==0)||(b.id==='reverse'&&state.reverse)||(b.id==='mute'&&state.muted)||(b.id==='fast'&&state.speedIndex>1)||(b.id==='rocket'&&!!state.rocket);
+    const rocketLocked=b.id==='rocket'&&!canLaunchCivilizationRocket();
+    ctx.globalAlpha=rocketLocked?(hover?.52:.30):(active?1:(hover?.95:.72));
     if(b.id==='probe') drawProbeButtonIcon(b.x,UI.buttonY,active);
     else if(b.id==='temp' && state.viewMode===2) drawAtmosphereViewIcon(b.x,UI.buttonY);
     else if(im && im.complete && im.naturalWidth) ctx.drawImage(im,b.x,UI.buttonY);
@@ -1361,6 +1442,7 @@ function drawButtons(){
     const target=state.hovered.id==='probe'?(state.pinnedBody||state.hoverBody||{type:'planet'}):null;
     let tip=target?`LAUNCH PROBE: ${bodyName(target)}`:state.hovered.tip;
     if(state.hovered.id==='temp') tip=`VIEW ${viewModeName()} -> ${viewModeName((state.viewMode+1)%3)}`;
+    if(state.hovered.id==='rocket') tip=canLaunchCivilizationRocket()?'LAUNCH CIVILIZATION ROCKET':'ROCKET LOCKED: NO ACTIVE SPACEFLIGHT';
     if(state.hovered.id==='camera') tip='CLICK: PICTURE  HOLD 2S: FULL SCREENSHOT';
     if(state.cameraHold?.active && state.hovered.id==='camera' && !state.cameraHold.triggered){
       const left=Math.max(0,2-(performance.now()-state.cameraHold.startAt)/1000);
@@ -1379,13 +1461,45 @@ function drawEntry(t){
     drawText('CLICK THE QUESTION MARK (OR PRESS 0) TO GO TO A RANDOM PLANET',240,247,C.white,1,'center');
   }
 }
+function finishRocketMission(r){
+  const civ=planet.civilization;
+  if(r.mission==='moon') showToast(`MOON MISSION ARRIVED AT ${planet.moonData[r.moonIndex]?.name||'MOON'}`,2100);
+  else if(civ){
+    const rr=mulberry32(hashString(`${planet.seed}:LAUNCH:${state.spaceLaunchSerial}`));
+    civ.launched=civ.launched||[];
+    civ.launched.push(makeOrbitalObject(rr,planet,'satellite',civ.launched.length+7,civ.rank));
+    civ.launched=civ.launched.slice(-4);
+    showToast('SATELLITE DEPLOYED',1800);
+  }
+  state.rocket=null;
+}
 function drawRocket(t){
-  if(!state.rocket) return;
-  const age=(t-state.rocket.start)/1000; if(age>3){state.rocket=null;return;}
-  const p=age/3, x=state.rocket.x+state.rocket.vx*age*32, y=state.rocket.y+state.rocket.vy*age*32-age*age*12;
+  const r=state.rocket; if(!r) return;
+  const age=(t-r.start)/1000, duration=r.duration||4;
+  if(age>=duration){ finishRocketMission(r); return; }
+  const p=clamp(age/duration,0,1), e=smooth(p);
+  let x,y;
+  if(r.mission==='moon' && planet.moonData[r.moonIndex]){
+    const m=planet.moonData[r.moonIndex];
+    x=lerp(r.x,m.screenX,e); y=lerp(r.y,m.screenY,e)-Math.sin(p*Math.PI)*28;
+  }else{
+    const targetAngle=-.82;
+    const tx=150+Math.cos(targetAngle)*(planet.radius+30), ty=116+Math.sin(targetAngle)*(planet.radius+30)*.42;
+    x=lerp(r.x,tx,e); y=lerp(r.y,ty,e)-Math.sin(p*Math.PI)*24;
+  }
   const im=asset.rocketSprite;
-  if(im&&im.complete&&im.naturalWidth)ctx.drawImage(im,Math.round(x),Math.round(y)); else {ctx.fillStyle=C.white;ctx.fillRect(x,y,3,3);}
-  if((age*20|0)%2===0){ctx.fillStyle=C.red;ctx.fillRect(Math.round(x-2),Math.round(y+3),1,1);}
+  if(im&&im.complete&&im.naturalWidth)ctx.drawImage(im,Math.round(x),Math.round(y)); else {ctx.fillStyle=C.white;ctx.fillRect(Math.round(x),Math.round(y),3,3);}
+  if(p<.78 && (age*20|0)%2===0){ctx.fillStyle=C.red;ctx.fillRect(Math.round(x-2),Math.round(y+3),1,1);}
+}
+function launchCivilizationRocket(){
+  if(state.rocket){ showToast('ROCKET ALREADY IN FLIGHT'); return; }
+  if(!isAlive()){ showToast('NO ACTIVE SPACEFARING CIVILIZATION'); return; }
+  if(!planet.civilization || planet.civilization.rank<3){ showToast('CIVILIZATION HAS NO SPACEFLIGHT'); return; }
+  state.spaceLaunchSerial++;
+  const civ=planet.civilization;
+  const moonMission=civ.moonMissionIndex!=null && ((state.spaceLaunchSerial%3===0)||civ.rank>=5&&state.spaceLaunchSerial%2===0);
+  state.rocket={start:performance.now(),x:150+planet.rx*.45,y:116-planet.ry*.2,mission:moonMission?'moon':'orbit',moonIndex:moonMission?civ.moonMissionIndex:null,duration:moonMission?5.4:4.0};
+  showToast(moonMission?`MOON MISSION LAUNCHED TO ${planet.moonData[civ.moonMissionIndex]?.name||'MOON'}`:'ORBITAL LAUNCH',1700);
 }
 function probeTargetPosition(body,cx,cy){
   if(body?.type==='moon'){
@@ -1546,7 +1660,7 @@ function doAction(id){
     case 'temp': state.viewMode=(state.viewMode+1)%3; state.tempView=state.viewMode===1; showToast(`VIEW: ${viewModeName()}`); break;
     case 'reverse': state.reverse=!state.reverse; break;
     case 'fast': state.speedIndex=(state.speedIndex+1)%4; break;
-    case 'rocket': state.rocket={start:performance.now(),x:150+planet.rx*.45,y:116-planet.ry*.2,vx:1.5,vy:-1}; break;
+    case 'rocket': launchCivilizationRocket(); break;
     case 'camera': takeScreenshot({full:false}); break;
     case 'mute': toggleMute(); break;
     case 'random': randomVisit(); break;
