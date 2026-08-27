@@ -225,38 +225,48 @@ The application version lives in `package.json`:
 "version": "1.0.0"
 ```
 
-Version tags use the conventional `vX.Y.Z` format.
+The release tag is derived **only** from that version. For example, version `1.0.0` always uses the tag `v1.0.0`.
 
-### Create a release from GitHub
+### Automatic published releases
 
-You can publish a complete release without creating a tag locally:
+Every successful push to `main` or `master` automatically builds the Web and Windows editions and publishes them under **Releases**.
 
-1. Open **Actions** in the repository.
-2. Open the **Build** workflow.
-3. Select **Run workflow**.
-4. Choose the branch containing the version you want to release, normally `main`.
-5. Enable **Create or update a GitHub Release using the version in package.json**.
-6. Optionally enable **Mark a manually created release as a prerelease**.
-7. Select **Run workflow**.
+If `package.json` still contains the same version, the workflow **updates the existing release instead of creating another one**:
 
-The workflow reads the version from `package.json`, builds both editions, creates the matching `vX.Y.Z` tag when necessary, and publishes the generated files under **Releases**. If the release already exists, its generated build assets are replaced with the newly built files.
-
-### Create a release from Git
-
-Tagging is still supported and automatically creates the same release:
-
-```bash
-git tag v1.0.0
-git push origin v1.0.0
+```text
+package.json = 1.0.0
+push #1 -> v1.0.0 is created and published
+push #2 -> v1.0.0 is updated
+push #3 -> v1.0.0 is updated again
 ```
 
-For tagged releases, the tag must match the version in `package.json`. This prevents a `v1.0.1` tag from accidentally publishing binaries that still identify themselves as `1.0.0`.
+For an existing version, the workflow moves the same `vX.Y.Z` tag to the latest successful commit, replaces the generated `.exe` / `.zip` assets, refreshes the release notes and keeps that release published as the latest release.
+
+When you want a new release entry, change the version in `package.json` before pushing:
+
+```text
+1.0.0 -> v1.0.0
+1.0.1 -> v1.0.1
+1.1.0 -> v1.1.0
+```
 
 Recommended versioning:
 
 - `1.0.1` - bug fix
 - `1.1.0` - new backwards-compatible features
 - `2.0.0` - major redesign or incompatible changes
+
+### Rebuild a release manually from GitHub
+
+You can also refresh the current version without making another commit:
+
+1. Open **Actions** in the repository.
+2. Open the **Build** workflow.
+3. Select **Run workflow**.
+4. Choose the branch to build, normally `main`.
+5. Select **Run workflow**.
+
+The manual run uses the version currently stored in `package.json` and creates or updates that same published `vX.Y.Z` release.
 
 ## GitHub Actions
 
@@ -268,17 +278,18 @@ Runs on:
 
 - pushes to `main` / `master`
 - pull requests
-- `v*` version tags
 - manual workflow runs
 
-It validates and produces:
+Pull requests only validate/build the application. They do **not** publish releases.
+
+A successful push to `main` / `master`, or a manual workflow run, produces:
 
 | Artifact | Contents |
 | --- | --- |
-| `Planetarium-web` | Static browser build and, for releases, a packaged Web ZIP |
+| `Planetarium-web` | Static browser build and packaged Web ZIP |
 | `Planetarium-Windows` | Portable Windows `.exe` and ZIP |
 
-A `v*` tag automatically creates a GitHub Release. A manual workflow run can also create or update a release when the release option is enabled.
+After both build jobs succeed, the workflow automatically creates or updates the published GitHub Release matching the version in `package.json`.
 
 ### GitHub Pages
 
