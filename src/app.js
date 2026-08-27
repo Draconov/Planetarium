@@ -1185,6 +1185,13 @@ function pointNearMoonOrbit(p,m,cx,cy){
   if(nx*nx+ny*ny<.92) return false;
   return dist<=tolerance;
 }
+function moonVisualDiameter(m){
+  if(!m) return 3;
+  const planetVisualRadius=(planet.rx+planet.ry)*.5;
+  const physicalRatio=Math.max(0,(m.radiusKm||0)/Math.max(1,planet.radiusKm||1));
+  const physicalDiameter=planetVisualRadius*2*physicalRatio;
+  return clamp(Math.round(physicalDiameter),3,Math.round(planetVisualRadius*2*1.10));
+}
 function drawMoonOrbit(m,cx,cy,emphasis=false){
   if(!m) return;
   const rx=m.orbit, ry=m.orbit*.34;
@@ -1205,12 +1212,21 @@ function drawMoons(cx,cy,t,front){
     const pos=moonPosition(m,cx,cy); m.screenX=pos.x; m.screenY=pos.y; m.depth=pos.depth;
     if((front && pos.depth<0)||(!front && pos.depth>=0)) continue;
     const im=tintedMoonSprite(m.frame,moonTintColor(m));
-    const sc=m.size;
+    const targetDiameter=moonVisualDiameter(m);
     if(im && im.width){
-      const w=Math.round(im.width*sc),h=Math.round(im.height*sc);
-      m.hitRadius=Math.max(6,Math.max(w,h)*.55+3);
+      const base=Math.max(1,Math.max(im.width,im.height));
+      const sc=targetDiameter/base;
+      const w=Math.max(1,Math.round(im.width*sc)),h=Math.max(1,Math.round(im.height*sc));
+      m.visualDiameter=Math.max(w,h);
+      m.hitRadius=Math.max(5,m.visualDiameter*.55+3);
       ctx.drawImage(im,Math.round(pos.x-w/2),Math.round(pos.y-h/2),w,h);
-    } else { m.hitRadius=7;ctx.fillStyle=moonTintColor(m);ctx.fillRect(Math.round(pos.x),Math.round(pos.y),4,4); }
+    } else {
+      m.visualDiameter=targetDiameter;
+      m.hitRadius=Math.max(5,targetDiameter*.55+3);
+      ctx.fillStyle=moonTintColor(m);
+      const s=Math.max(2,targetDiameter);
+      ctx.fillRect(Math.round(pos.x-s/2),Math.round(pos.y-s/2),s,s);
+    }
   }
 }
 function civilizationObjectPosition(o,cx,cy){
