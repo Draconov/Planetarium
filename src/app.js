@@ -80,6 +80,40 @@ const SOLAR_MOON_COLORS = {
   MIRANDA:mixHex(C.white,C.blue,.18), ARIEL:C.cyan, UMBRIEL:mixHex(C.purple,C.black,.22), TITANIA:mixHex(C.cyan,C.blue,.22),
   PROTEUS:mixHex(C.brown,C.black,.18), TRITON:mixHex(C.cyan,C.purple,.18), NEREID:C.blue
 };
+
+const RING_STYLE_PROFILES = {
+  THIN:{bands:[0],density:.88,size:1},
+  WIDE:{bands:[-.070,-.035,0,.035,.070],density:.86,size:1},
+  DOUBLE:{bands:[-.070,.070],density:.90,size:1},
+  TRIPLE:{bands:[-.090,0,.090],density:.88,size:1},
+  DENSE:{bands:[-.125,-.085,-.045,0,.045,.085,.125],density:.94,size:1},
+  SPARSE:{bands:[0],density:.48,size:1},
+  DUST:{bands:[-.055,.005,.065],density:.34,size:1},
+  SHEPHERDED:{bands:[-.125,-.015,.120],density:.84,size:1},
+  DEBRIS:{bands:[-.085,-.015,.075],density:.50,size:2},
+  ICY:{bands:[-.100,-.050,0,.050,.100],density:.94,size:1},
+  DARK:{bands:[-.060,0,.060],density:.72,size:1},
+  MIXED:{bands:[-.120,-.060,.010,.085],density:.80,size:1}
+};
+const PROCEDURAL_RING_STYLES=['THIN','WIDE','DOUBLE','TRIPLE','DENSE','SPARSE','DUST','SHEPHERDED','DEBRIS','ICY','DARK','MIXED'];
+const RING_COLORS=[C.purple,C.blue,C.brown,C.yellow,C.cyan,mixHex(C.white,C.blue,.18),mixHex(C.red,C.brown,.28)];
+function configureProceduralRing(p,r){
+  if(!p.ring) return;
+  p.ringStyle=pick(r,PROCEDURAL_RING_STYLES);
+  p.ringScale=1.43+r()*.42;
+  p.ringFlatness=.15+r()*.18;
+  p.ringAlpha=.45+r()*.48;
+  p.ringColor=pick(r,RING_COLORS);
+  p.ringMaterial=p.ringStyle==='ICY'?'ICE':p.ringStyle==='DARK'?'ROCK':p.ringStyle==='DUST'?'DUST':p.ringStyle==='DEBRIS'?'ROCK / ICE':pick(r,['ICE / ROCK','ROCK','DUST / ICE']);
+  if(p.ringStyle==='ICY'){ p.ringColor=mixHex(C.white,C.cyan,.25); p.ringAlpha=.92; }
+  if(p.ringStyle==='DARK'){ p.ringColor=mixHex(C.brown,C.black,.28); p.ringAlpha=.64; }
+  if(p.ringStyle==='DUST') p.ringAlpha=.38;
+  if(p.ringStyle==='SPARSE') p.ringAlpha=.56;
+}
+function ringStyleLabel(p=planet){
+  if(!p?.ring) return 'NONE';
+  return ({DENSE:'DENSE MULTIBAND',SHEPHERDED:'SHEPHERDED',DEBRIS:'DEBRIS',DUST:'DUST',ICY:'ICY MULTIBAND',DARK:'DARK NARROW'}[p.ringStyle]||p.ringStyle||'SIMPLE');
+}
 const moonTintCache = new Map();
 function moonTintColor(m){
   if(SOLAR_MOON_COLORS[m?.name]) return SOLAR_MOON_COLORS[m.name];
@@ -287,7 +321,7 @@ const SOLAR_SYSTEM_PLANETS = {
       knownMoon('EUROPA',671100,3.551,1561,90,6,.70,{tempBias:-50,gravity:.13,surface:'ICE / ROCK',atmosphere:'TRACE',waterIce:'ABUNDANT',activity:'CRYOVOLCANIC',anomaly:'SUBSURFACE OCEAN LIKELY',lossRisk:false}),
       knownMoon('GANYMEDE',1070400,7.155,2634,104,9,.80,{tempBias:-40,gravity:.15,surface:'ICE / ROCK',atmosphere:'TRACE',waterIce:'ABUNDANT',activity:'TECTONIC',anomaly:'INTRINSIC MAGNETIC FIELD',lossRisk:false}),
       knownMoon('CALLISTO',1882700,16.689,2410,119,12,.78,{tempBias:-30,gravity:.13,surface:'ICE / ROCK',atmosphere:'TRACE',waterIce:'RICH',activity:'DORMANT',anomaly:'ANCIENT CRATERED SURFACE',lossRisk:false})
-    ], ring:false,
+    ], ring:true, ringStyle:'DUST', ringMaterial:'DUST / ROCK', ringTilt:-.04, ringScale:1.38, ringFlatness:.12, ringColor:mixHex(C.brown,C.black,.18), ringAlpha:.24,
     scan:{ageBy:4.6,pressureAtm:1,magField:'EXTREME',oxygen:0,nitrogen:.1,co2:.1,tectonics:'ATMOSPHERIC',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'RICH',carbon:'COMMON',uranium:'TRACE',anomaly:'CENTURIES-OLD ATMOSPHERIC STORM',lossRisk:false}
   },
   SATURN:{
@@ -300,7 +334,7 @@ const SOLAR_SYSTEM_PLANETS = {
       knownMoon('RHEA',527000,4.52,764,109,7,.65,{tempBias:-34,gravity:.03,surface:'ICE / ROCK',atmosphere:'TRACE',waterIce:'ABUNDANT',activity:'DORMANT',anomaly:'NONE',lossRisk:false}),
       knownMoon('TITAN',1221870,15.945,2575,123,11,.82,{tempBias:-39,gravity:.14,surface:'ICE / ROCK',atmosphere:'DENSE N2',waterIce:'RICH',activity:'DORMANT',anomaly:'LIQUID HYDROCARBON LAKES',lossRisk:false}),
       knownMoon('IAPETUS',3560820,79.32,735,138,13,.64,{tempBias:-43,gravity:.02,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'DORMANT',anomaly:'TWO-TONE SURFACE',lossRisk:false})
-    ], ring:true, ringTilt:-.08, ringScale:1.82, ringFlatness:.23, ringColor:C.yellow, ringAlpha:.92,
+    ], ring:true, ringStyle:'DENSE', ringMaterial:'ICE', ringTilt:-.08, ringScale:1.82, ringFlatness:.23, ringColor:mixHex(C.white,C.yellow,.18), ringAlpha:.94,
     scan:{ageBy:4.5,pressureAtm:1,magField:'STRONG',oxygen:0,nitrogen:.1,co2:.1,tectonics:'ATMOSPHERIC',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'COMMON',carbon:'RICH',uranium:'TRACE',anomaly:'HEXAGONAL POLAR STORM',lossRisk:false}
   },
   URANUS:{
@@ -313,7 +347,7 @@ const SOLAR_SYSTEM_PLANETS = {
       knownMoon('ARIEL',190900,2.52,579,82,4,.62,{tempBias:-18,gravity:.03,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'ABUNDANT',activity:'CRYOVOLCANIC',anomaly:'YOUNG FRACTURED TERRAIN',lossRisk:false}),
       knownMoon('UMBRIEL',266000,4.144,585,95,8,.62,{tempBias:-19,gravity:.03,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'DORMANT',anomaly:'DARK ANCIENT SURFACE',lossRisk:false}),
       knownMoon('TITANIA',436300,8.706,789,109,10,.68,{tempBias:-8,gravity:.04,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'TECTONIC',anomaly:'CANYON NETWORKS',lossRisk:false})
-    ], ring:true, ringTilt:1.28, ringScale:1.52, ringFlatness:.16, ringColor:C.blue, ringAlpha:.55,
+    ], ring:true, ringStyle:'DARK', ringMaterial:'ROCK', ringTilt:1.28, ringScale:1.52, ringFlatness:.16, ringColor:mixHex(C.brown,C.black,.30), ringAlpha:.62,
     scan:{ageBy:4.5,pressureAtm:1,magField:'STRONG',oxygen:0,nitrogen:.1,co2:.1,tectonics:'ATMOSPHERIC',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'COMMON',carbon:'RICH',uranium:'TRACE',anomaly:'EXTREME AXIAL TILT',lossRisk:false}
   },
   NEPTUNE:{
@@ -325,7 +359,7 @@ const SOLAR_SYSTEM_PLANETS = {
       knownMoon('PROTEUS',117647,1.122,210,68,3,.54,{tempBias:-22,gravity:.01,surface:'DARK ROCK / ICE',atmosphere:'NONE',waterIce:'RICH',activity:'DORMANT',anomaly:'IRREGULAR CRATERED SHAPE',lossRisk:false}),
       knownMoon('TRITON',354759,5.877,1353,84,6,.73,{direction:-1,tempBias:-35,gravity:.08,surface:'N2 ICE / ROCK',atmosphere:'TRACE',waterIce:'ABUNDANT',activity:'CRYOVOLCANIC',anomaly:'NITROGEN GEYSERS',lossRisk:false}),
       knownMoon('NEREID',5513400,360.14,170,103,16,.52,{tempBias:-20,gravity:.01,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'DORMANT',anomaly:'HIGHLY ECCENTRIC ORBIT',lossRisk:false})
-    ], ring:true, ringTilt:.12, ringScale:1.46, ringFlatness:.18, ringColor:C.blue, ringAlpha:.35,
+    ], ring:true, ringStyle:'SPARSE', ringMaterial:'DUST / ICE', ringTilt:.12, ringScale:1.46, ringFlatness:.18, ringColor:C.blue, ringAlpha:.42,
     scan:{ageBy:4.5,pressureAtm:1,magField:'STRONG',oxygen:0,nitrogen:.1,co2:.1,tectonics:'ATMOSPHERIC',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'COMMON',carbon:'RICH',uranium:'TRACE',anomaly:'SUPERSONIC WINDS AND DARK STORMS',lossRisk:false}
   }
 };
@@ -477,6 +511,8 @@ function generatePlanet(name){
     p.ringFlatness=solar.ringFlatness;
     p.ringColor=solar.ringColor;
     p.ringAlpha=solar.ringAlpha;
+    p.ringStyle=solar.ringStyle||'THIN';
+    p.ringMaterial=solar.ringMaterial||'ROCK / ICE';
     p.radiusKm=solar.radiusKm;
     p.radiusEarth=p.radiusKm/6371;
     p.gravity=solar.gravity;
@@ -524,6 +560,7 @@ function generatePlanet(name){
   p.moons = Math.min(4, Math.floor(r()*4.1));
   p.ring = r()<.15 || ['SATURN','MAGRATHEA','SINGULARITY'].includes(name);
   p.ringTilt = -.34+r()*.68;
+  configureProceduralRing(p,r);
   p.radiusKm=Math.round(1600+p.radius*100+r()*2400);
   p.radiusEarth=p.radiusKm/6371;
   p.density=.72+r()*.72;
@@ -815,20 +852,39 @@ function surfaceColor(lon,lat,normY,nx,z){
 }
 function ringPoints(cx,cy,front){
   if(!planet.ring) return;
-  const a=planet.rx*(planet.ringScale||1.52), b=Math.max(7,planet.ry*(planet.ringFlatness||.27)), rot=planet.ringTilt;
-  ctx.fillStyle=planet.ringColor || (planet.special?.dark?C.red:C.purple);
-  ctx.globalAlpha=planet.ringAlpha??1;
-  for(let i=0;i<240;i++){
-    const th=i/240*Math.PI*2;
-    const ysign=Math.sin(th);
-    if((front && ysign<0)||(!front && ysign>=0)) continue;
-    if((i+Math.floor(planet.seed%13))%5===0) continue;
-    const ex=Math.cos(th)*a, ey=Math.sin(th)*b;
-    const x=cx+ex*Math.cos(rot)-ey*Math.sin(rot), y=cy+ex*Math.sin(rot)+ey*Math.cos(rot);
-    if(i%2===0) ctx.fillRect(Math.round(x),Math.round(y),1,1);
+  const style=RING_STYLE_PROFILES[planet.ringStyle]||RING_STYLE_PROFILES.THIN;
+  const baseA=planet.rx*(planet.ringScale||1.52), baseB=Math.max(5,planet.ry*(planet.ringFlatness||.27)), rot=planet.ringTilt||0;
+  const baseColor=planet.ringColor || (planet.special?.dark?C.red:C.purple);
+  for(let bi=0;bi<style.bands.length;bi++){
+    const offset=style.bands[bi];
+    const a=baseA*(1+offset), b=baseB*(1+offset*.72);
+    const circumference=Math.PI*(3*(a+b)-Math.sqrt(Math.max(1,(3*a+b)*(a+3*b))));
+    const steps=Math.max(90,Math.round(circumference*1.42));
+    const bandColor=planet.ringStyle==='MIXED'
+      ? [baseColor,C.yellow,C.blue,C.brown][bi%4]
+      : (planet.ringStyle==='ICY' ? mixHex(baseColor,C.white,bi%2?.18:.05) : mixHex(baseColor,C.black,bi%2?.10:0));
+    ctx.fillStyle=bandColor;
+    ctx.globalAlpha=(planet.ringAlpha??1)*(planet.ringStyle==='DUST'?.78:1);
+    for(let i=0;i<steps;i++){
+      const th=i/steps*Math.PI*2;
+      const ysign=Math.sin(th);
+      if((front && ysign<0)||(!front && ysign>=0)) continue;
+      const noise=h2(i+bi*997,bi+17,(planet.seed^0x51ed270b)>>>0);
+      if(noise>style.density) continue;
+      if(planet.ringStyle==='SPARSE' && ((i+bi*11)%13)<6) continue;
+      if(planet.name==='NEPTUNE' && ((Math.floor(th*10)+bi*3)%7)<3) continue;
+      const jitter=(h2(i,bi,(planet.seed^0xa5315a9d)>>>0)-.5)*(planet.ringStyle==='DEBRIS'?3.1:planet.ringStyle==='DUST'?1.8:.75);
+      const aa=a+jitter, bb=b+jitter*.36;
+      const ex=Math.cos(th)*aa, ey=Math.sin(th)*bb;
+      const x=cx+ex*Math.cos(rot)-ey*Math.sin(rot), y=cy+ex*Math.sin(rot)+ey*Math.cos(rot);
+      const chunk=style.size>1 && h2(i,bi,(planet.seed^0x8da6b343)>>>0)>.70;
+      ctx.fillRect(Math.round(x),Math.round(y),chunk?2:1,1);
+      if(chunk && h2(i+9,bi,(planet.seed^0x1b873593)>>>0)>.58) ctx.fillRect(Math.round(x),Math.round(y)+1,1,1);
+    }
   }
   ctx.globalAlpha=1;
 }
+
 function moonPosition(m,cx,cy){
   const ang=m.phase+(state.simDays/m.periodDays)*Math.PI*2*m.direction;
   return {ang,x:cx+Math.cos(ang)*m.orbit,y:cy+Math.sin(ang)*m.orbit*.34,depth:Math.sin(ang)};
@@ -972,17 +1028,19 @@ function drawPlanetHover(cx,cy){
   drawText(`DAY        ${planet.dayHours.toFixed(1)} H`,x,y+85,C.white,1);
   drawText(`YEAR       ${planet.yearDays} D`,x,y+94,C.white,1);
   drawText(`${planet.solar&&['JUPITER','SATURN','URANUS','NEPTUNE'].includes(planet.name)?'MAJOR MOONS':'MOONS      '} ${planet.moons}`,x,y+103,C.purple,1);
+  const ringOffset=planet.ring?9:0;
+  if(planet.ring) drawText(`RING       ${ringStyleLabel()}`,x,y+112,planet.ringColor||C.purple,1);
   const scanned=isScanned({type:'planet'});
   if(scanned){
     drawPlanetDeepScan(x+130,y);
   }else{
-    drawText('PROBE DATA LOCKED',x,y+116,C.purple,1);
+    drawText('PROBE DATA LOCKED',x,y+116+ringOffset,C.purple,1);
     const txt=planet.special?.text || (isAlive()?planet.lifeText:planet.noLifeText);
     if(txt){
-      drawText('OBSERVATION',x,y+130,C.purple,1);
+      drawText('OBSERVATION',x,y+130+ringOffset,C.purple,1);
       const maxPx=Math.min(128,W-x-5), lines=wrapText(txt,maxPx,1), visible=lines.slice(0,8);
-      visible.forEach((line,i)=>drawText(line,x,y+140+i*8,isAlive()?C.green:C.brown,1));
-      if(lines.length>visible.length) drawText('...',x,y+140+visible.length*8,C.purple,1);
+      visible.forEach((line,i)=>drawText(line,x,y+140+ringOffset+i*8,isAlive()?C.green:C.brown,1));
+      if(lines.length>visible.length) drawText('...',x,y+140+ringOffset+visible.length*8,C.purple,1);
     }
   }
 }
