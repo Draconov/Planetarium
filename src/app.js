@@ -1498,6 +1498,12 @@ function drawEntry(t){
 }
 function drawTitleCard(t){
   const blink=((t/560)|0)%2===0;
+  // Keep briefing copy completely clear of the procedural star field.
+  ctx.fillStyle=C.black;
+  ctx.fillRect(42,20,396,230);
+  ctx.strokeStyle=mixHex(C.purple,C.black,.32);
+  ctx.strokeRect(42.5,20.5,395,229);
+
   drawText('PLANETARIUM',240,34,C.white,2,'center');
   drawText("CAPTAIN'S BRIEFING",240,65,C.purple,1,'center');
 
@@ -1512,7 +1518,7 @@ function drawTitleCard(t){
   drawText('LAUNCH PROBES TO REVEAL DEEPER SECRETS',240,187,C.purple,1,'center');
   drawText('MORE CONTROLS REVEAL THEMSELVES ON HOVER',240,199,C.brown,1,'center');
 
-  if(blink) drawText('ENTER -> TYPE A NAME -> ENTER',240,231,C.white,1,'center');
+  if(blink) drawText('PRESS ANY KEY TO CONTINUE',240,231,C.white,1,'center');
 }
 function finishRocketMission(r){
   const civ=planet.civilization;
@@ -1832,6 +1838,13 @@ function toggleFullscreen(){
 }
 window.addEventListener('keydown',ev=>{
   startAudio();
+  if(state.intro){
+    ev.preventDefault();
+    state.intro=false;
+    state.enteringName=false;
+    state.input='';
+    return;
+  }
   if(ev.key==='Escape'){
     ev.preventDefault();
     const exitMessage='SO YOU WANT TO LEAVE ME?';
@@ -1861,7 +1874,6 @@ window.addEventListener('keydown',ev=>{
     state.infoTitle=null;
     return;
   }
-  if(state.intro) return;
   if(state.libraryOpen){
     const items=libraryItems().slice(0,11);
     if(ev.key.toLowerCase()==='l'){ev.preventDefault();state.libraryOpen=false;return;}
