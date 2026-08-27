@@ -16,6 +16,7 @@ const UI = {
   sliderX: 8, sliderY: 254, sliderW: 162,
   buttonY: 251,
   buttons: [
+    { id:'log', x:306, key:'L', icon:null, tip:"CAPTAIN'S LOG" },
     { id:'probe', x:326, key:'P', icon:null, tip:'LAUNCH PROBE' },
     { id:'temp', x:346, key:'TAB', icon:'s_UI_temp', tip:'TEMPERATURE VIEW' },
     { id:'reverse', x:366, key:'1', icon:'s_UI_reverse', tip:'REVERSE TIME' },
@@ -1339,12 +1340,18 @@ function pointNearMoonOrbit(p,m,cx,cy){
   if(nx*nx+ny*ny<.92) return false;
   return dist<=tolerance;
 }
+const MOON_SPRITE_VISIBLE_DIAMETERS=[22,18,16,14,12,10,8,8,6,6,6,4,4,4,2,2,2];
 function moonVisualDiameter(m){
   if(!m) return 3;
   const planetVisualRadius=(planet.rx+planet.ry)*.5;
+  // radiusKm is a physical radius, so moon/planet radius ratio is also the
+  // correct on-screen diameter ratio. Keep only a tiny visibility floor.
   const physicalRatio=Math.max(0,(m.radiusKm||0)/Math.max(1,planet.radiusKm||1));
   const physicalDiameter=planetVisualRadius*2*physicalRatio;
   return clamp(Math.round(physicalDiameter),3,Math.round(planetVisualRadius*2*1.10));
+}
+function moonSpriteVisibleDiameter(frame){
+  return MOON_SPRITE_VISIBLE_DIAMETERS[clamp(Math.round(frame||0),0,MOON_SPRITE_VISIBLE_DIAMETERS.length-1)]||22;
 }
 function drawMoonOrbit(m,cx,cy,emphasis=false){
   if(!m) return;
@@ -1368,11 +1375,15 @@ function drawMoons(cx,cy,t,front){
     const im=tintedMoonSprite(m.frame,moonTintColor(m));
     const targetDiameter=moonVisualDiameter(m);
     if(im && im.width){
-      const base=Math.max(1,Math.max(im.width,im.height));
-      const sc=targetDiameter/base;
+      // The original moon frames all live on 28x28 transparent canvases, but
+      // their actual visible discs range from 22px down to 2px. Scale from
+      // the visible disc, not from the transparent canvas, so radiusKm is
+      // genuinely reflected by the rendered moon size.
+      const visibleBase=Math.max(1,moonSpriteVisibleDiameter(m.frame));
+      const sc=targetDiameter/visibleBase;
       const w=Math.max(1,Math.round(im.width*sc)),h=Math.max(1,Math.round(im.height*sc));
-      m.visualDiameter=Math.max(w,h);
-      m.hitRadius=Math.max(5,m.visualDiameter*.55+3);
+      m.visualDiameter=targetDiameter;
+      m.hitRadius=Math.max(5,targetDiameter*.55+3);
       ctx.drawImage(im,Math.round(pos.x-w/2),Math.round(pos.y-h/2),w,h);
     } else {
       m.visualDiameter=targetDiameter;
@@ -1647,11 +1658,12 @@ function drawButtons(){
     const hover=state.mouse.inside && state.mouse.x>=b.x-3 && state.mouse.x<=b.x+14 && state.mouse.y>=UI.buttonY-4 && state.mouse.y<=UI.buttonY+14;
     if(hover) state.hovered=b;
     let im=null;
-    if(b.id==='temp' && state.viewMode!==2) im=asset['temp'+tempBand()]; else if(b.id!=='probe'&&b.id!=='temp') im=asset[b.id];
-    const active=(b.id==='probe'&&!!state.probe)||(b.id==='temp'&&state.viewMode!==0)||(b.id==='reverse'&&state.reverse)||(b.id==='mute'&&state.muted)||(b.id==='fast'&&state.speedIndex>1)||(b.id==='rocket'&&!!state.rocket);
+    if(b.id==='temp' && state.viewMode!==2) im=asset['temp'+tempBand()]; else if(b.id!=='probe'&&b.id!=='temp'&&b.id!=='log') im=asset[b.id];
+    const active=(b.id==='log'&&state.libraryOpen)||(b.id==='probe'&&!!state.probe)||(b.id==='temp'&&state.viewMode!==0)||(b.id==='reverse'&&state.reverse)||(b.id==='mute'&&state.muted)||(b.id==='fast'&&state.speedIndex>1)||(b.id==='rocket'&&!!state.rocket);
     const rocketLocked=b.id==='rocket'&&!canLaunchCivilizationRocket();
     ctx.globalAlpha=rocketLocked?(hover?.52:.30):(active?1:(hover?.95:.72));
-    if(b.id==='probe') drawProbeButtonIcon(b.x,UI.buttonY,active);
+    if(b.id==='log') drawLogButtonIcon(b.x,UI.buttonY,active);
+    else if(b.id==='probe') drawProbeButtonIcon(b.x,UI.buttonY,active);
     else if(b.id==='temp' && state.viewMode===2 && hasAtmosphereView()) drawAtmosphereViewIcon(b.x,UI.buttonY);
     else if(im && im.complete && im.naturalWidth) ctx.drawImage(im,b.x,UI.buttonY);
     else {ctx.fillStyle=C.white;ctx.fillRect(b.x,UI.buttonY,9,9);}
@@ -1821,6 +1833,16 @@ function drawProbeStatus(){
   else if(p.phase==='complete') drawText('PROBE DATA RECEIVED',472,224,C.green,1,'right');
   else if(p.phase==='lost') drawText('PROBE LOST - CAUSE UNKNOWN',472,224,C.red,1,'right');
 }
+function drawLogButtonIcon(x,y,active=false){
+  ctx.fillStyle=active?C.green:C.purple;
+  ctx.fillRect(x+2,y+2,7,7);
+  ctx.fillStyle=C.black;
+  ctx.fillRect(x+3,y+3,2,5); ctx.fillRect(x+6,y+3,2,5);
+  ctx.fillStyle=C.white;
+  ctx.fillRect(x+4,y+3,1,4); ctx.fillRect(x+5,y+3,1,4);
+  ctx.fillStyle=C.cyan;
+  ctx.fillRect(x+3,y+8,5,1);
+}
 function drawProbeButtonIcon(x,y,active=false){
   ctx.fillStyle=active?C.green:C.cyan;
   ctx.fillRect(x+4,y+3,3,3);
@@ -1904,6 +1926,7 @@ function toggleMute(){ state.muted=!state.muted; audio.muted=state.muted; startA
 function doAction(id){
   startAudio(); state.intro=false;
   switch(id){
+    case 'log': state.libraryOpen=!state.libraryOpen; state.librarySelection=0; state.lifePanelFocused=false; break;
     case 'probe': launchProbe(); break;
     case 'temp': state.viewMode=nextViewMode(); state.tempView=state.viewMode===1; showToast(`VIEW: ${viewModeName()}`); break;
     case 'reverse': state.reverse=!state.reverse; break;
