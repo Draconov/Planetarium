@@ -16,10 +16,11 @@ const UI = {
   sliderX: 8, sliderY: 254, sliderW: 162,
   buttonY: 251,
   buttons: [
-    { id:'log', x:306, key:'L', icon:null, tip:"CAPTAIN'S LOG" },
-    { id:'probe', x:326, key:'P', icon:null, tip:'LAUNCH PROBE' },
-    { id:'temp', x:346, key:'TAB', icon:'s_UI_temp', tip:'TEMPERATURE VIEW' },
-    { id:'reverse', x:366, key:'1', icon:'s_UI_reverse', tip:'REVERSE TIME' },
+    { id:'log', x:286, key:'L', icon:null, tip:"CAPTAIN'S LOG" },
+    { id:'probe', x:306, key:'P', icon:null, tip:'LAUNCH PROBE' },
+    { id:'temp', x:326, key:'TAB', icon:'s_UI_temp', tip:'TEMPERATURE VIEW' },
+    { id:'reverse', x:346, key:'1', icon:'s_UI_reverse', tip:'REVERSE TIME' },
+    { id:'pause', x:366, key:'SPACE', icon:null, tip:'PAUSE TIME' },
     { id:'fast', x:386, key:'2', icon:'s_UI_fastforward', tip:'TIME SPEED' },
     { id:'rocket', x:406, key:'3', icon:'s_UI_rocket', tip:'LAUNCH ROCKET' },
     { id:'camera', x:426, key:'4', icon:'s_UI_camera', tip:'TAKE PICTURE' },
@@ -41,7 +42,7 @@ const assetNames = {
 };
 for (let i=0;i<5;i++) assetNames['temp'+i] = `s_UI_temp_0${i}.png`;
 for (let i=0;i<12;i++) assetNames['cloud'+i] = `s_cloud_${String(i).padStart(2,'0')}.png`;
-for (let i=0;i<17;i++) assetNames['moon'+i] = `s_moon_${String(i).padStart(2,'0')}.png`;
+for (let i=0;i<25;i++) assetNames['moon'+i] = `s_moon_${String(i).padStart(2,'0')}.png`;
 for (const [k,fn] of Object.entries(assetNames)) {
   const im = new Image(); im.src = 'assets/sprites/' + fn; asset[k] = im;
 }
@@ -444,10 +445,10 @@ function clearPlanetariumStorage(){
 
 const state = {
   name: urlPlanet || storageGet('planetarium:lastName','PLANET'),
-  input: '', enteringName:false, temp: .50, viewMode:0, tempView:false, reverse:false, speedIndex:1, muted:false,
+  input: '', enteringName:false, temp: .50, viewMode:0, tempView:false, reverse:false, paused:false, speedIndex:1, muted:false,
   phase:0, simDays:0, intro:!urlPlanet, introUntil: Infinity,
   mouse:{x:-20,y:-20,down:false,inside:false,pointerType:'mouse'},
-  draggingSlider:false, hovered:null, hoverBody:null, pinnedBody:null, moonHoverGrace:null, moonHoverUntil:0, rocket:null, probe:null, spaceLaunchSerial:0,
+  draggingSlider:false, hovered:null, hoverBody:null, pinnedBody:null, moonHoverGrace:null, moonHoverUntil:0, moonInspect:null, rocket:null, probe:null, spaceLaunchSerial:0,
   history:[], historyPos:-1, favorites:[], scannedWorlds:[], libraryOpen:false, libraryTab:'favorites', librarySelection:0, libraryRows:[], libraryActionRects:[], resetConfirmUntil:0,
   lifeScroll:0, lifeScrollMax:0, lifePanelRect:null, lifePanelFocused:false, lifePanelKey:'',
   info:null, infoTitle:null, toastText:'', toastUntil:0,
@@ -733,7 +734,7 @@ function visit(name, addHistory=true){
     storageSet('planetarium:history',JSON.stringify(state.history));
   }
   state.name=name; state.input=''; state.enteringName=false; state.intro=false; state.phase=0; state.simDays=0;
-  state.rocket=null; state.probe=null; state.spaceLaunchSerial=0; state.pinnedBody=null; state.hoverBody=null; state.moonHoverGrace=null; state.moonHoverUntil=0; state.libraryOpen=false;
+  state.rocket=null; state.probe=null; state.spaceLaunchSerial=0; state.pinnedBody=null; state.hoverBody=null; state.moonHoverGrace=null; state.moonHoverUntil=0; state.moonInspect=null; state.libraryOpen=false;
   state.lifeScroll=0; state.lifeScrollMax=0; state.lifePanelRect=null; state.lifePanelFocused=false; state.lifePanelKey='';
   planet=generatePlanet(state.name);
   normalizeViewModeForPlanet();
@@ -1183,22 +1184,36 @@ function solarSurfaceColor(lon,lat,normY,nx,z){
   }
   const kind=planet.renderer, t=tempC();
   if(kind==='jupiter'||kind==='saturn'||kind==='uranus'||kind==='neptune'){
-    const wobble=valueNoise(lon*14,lat*8,planet.terrainSeed,64)-.5;
-    const band=Math.sin((lat*18+wobble*.7)*Math.PI);
+    // Special gas/ice giants use the same chunky, multi-scale pixel texture language
+    // as procedural worlds instead of perfectly smooth horizontal stripes.
+    const coarse=valueNoise(lon*13,lat*9,planet.terrainSeed^0x51e2,64)-.5;
+    const streak=valueNoise(lon*42,lat*26,planet.terrainSeed^0xa931,64)-.5;
+    const grain=valueNoise(lon*88,lat*48,planet.terrainSeed^0x2c47,32)-.5;
+    const wave=Math.sin(lon*Math.PI*6+coarse*2.2)*.035;
+    const bandLat=lat+wave+coarse*.026;
+    const band=Math.sin((bandLat*18+streak*.34)*Math.PI);
     let col;
     if(kind==='jupiter'){
       col=band>.52?C.white:band>.02?C.yellow:band>-.55?C.brown:mixHex(C.red,C.yellow,.34);
       const spot=(lonDistance(lon,.72)/.085)**2+((lat-.62)/.055)**2;
       if(spot<1) col=spot<.46?C.red:mixHex(C.red,C.yellow,.35);
+      else if(grain>.36 && Math.abs(band)<.60) col=mixHex(col,C.white,.12);
+      else if(grain<-.38) col=mixHex(col,C.black,.10);
     }else if(kind==='saturn'){
       col=band>.52?C.white:band>-.08?C.yellow:mixHex(C.brown,C.white,.48);
+      if(grain>.34) col=mixHex(col,C.white,.14);
+      else if(grain<-.40) col=mixHex(col,C.brown,.14);
     }else if(kind==='uranus'){
-      col=band>.58?C.white:band<-.60?C.blue:C.cyan;
+      col=band>.62?C.white:band<-.62?C.blue:C.cyan;
       col=mixHex(col,C.white,.12);
+      if(grain>.40) col=mixHex(col,C.white,.10);
+      else if(grain<-.43) col=mixHex(col,C.blue,.10);
     }else{
       col=band>.58?C.cyan:band<-.50?C.blue:mixHex(C.blue,C.cyan,.24);
       const spot=(lonDistance(lon,.66)/.095)**2+((lat-.43)/.065)**2;
       if(spot<1) col=mixHex(C.blue,C.black,.42);
+      else if(grain>.34) col=mixHex(col,C.cyan,.12);
+      else if(grain<-.38) col=mixHex(col,C.black,.12);
     }
     return surfaceShade(col,nx,z);
   }
@@ -1229,9 +1244,13 @@ function solarSurfaceColor(lon,lat,normY,nx,z){
     else if(q.n<.35) col=mixHex(C.brown,C.black,.22);
     else col=mixHex(C.brown,C.white,.28);
   }else if(kind==='venus'){
-    const sw=Math.sin((lat*12+(q.n-.5)*1.4)*Math.PI);
+    const cloudWarp=valueNoise(lon*16,lat*11,planet.terrainSeed^0x77b1,64)-.5;
+    const cloudGrain=valueNoise(lon*54,lat*37,planet.terrainSeed^0x09ed,32)-.5;
+    const sw=Math.sin((lat*12+(q.n-.5)*1.05+cloudWarp*.55)*Math.PI);
     col=sw>.45?C.white:sw>-.25?C.yellow:mixHex(C.yellow,C.red,.34);
-    if(q.ridge>.84) col=mixHex(col,C.brown,.22);
+    if(cloudGrain>.35) col=mixHex(col,C.white,.12);
+    else if(cloudGrain<-.40) col=mixHex(col,C.brown,.10);
+    if(q.ridge>.84) col=mixHex(col,C.brown,.18);
   }
   return surfaceShade(col,nx,z);
 }
@@ -1325,9 +1344,35 @@ function ringPoints(cx,cy,front){
   ctx.globalAlpha=1;
 }
 
+function normalMoonAngle(m){
+  return m.phase+(state.simDays/m.periodDays)*Math.PI*2*m.direction;
+}
+function inspectedMoonAngle(m){
+  const inspect=state.moonInspect;
+  if(!inspect || planet.moonData[inspect.index]!==m) return normalMoonAngle(m);
+  const elapsed=state.simDays-inspect.startSimDays;
+  return inspect.startAngle+(elapsed/m.periodDays)*Math.PI*2*m.direction*.06;
+}
 function moonPosition(m,cx,cy){
-  const ang=m.phase+(state.simDays/m.periodDays)*Math.PI*2*m.direction;
+  const ang=inspectedMoonAngle(m);
   return {ang,x:cx+Math.cos(ang)*m.orbit,y:cy+Math.sin(ang)*m.orbit*.34,depth:Math.sin(ang)};
+}
+function beginMoonInspection(index){
+  const m=planet.moonData[index];
+  if(!m) return;
+  if(state.moonInspect?.index===index) return;
+  releaseMoonInspection();
+  state.moonInspect={index,startSimDays:state.simDays,startAngle:normalMoonAngle(m)};
+}
+function releaseMoonInspection(){
+  const inspect=state.moonInspect;
+  if(!inspect) return;
+  const m=planet.moonData[inspect.index];
+  if(m){
+    const current=inspect.startAngle+((state.simDays-inspect.startSimDays)/m.periodDays)*Math.PI*2*m.direction*.06;
+    m.phase=current-(state.simDays/m.periodDays)*Math.PI*2*m.direction;
+  }
+  state.moonInspect=null;
 }
 function pointNearMoonOrbit(p,m,cx,cy){
   if(!p || !m) return false;
@@ -1340,15 +1385,31 @@ function pointNearMoonOrbit(p,m,cx,cy){
   if(nx*nx+ny*ny<.92) return false;
   return dist<=tolerance;
 }
-const MOON_SPRITE_VISIBLE_DIAMETERS=[22,18,16,14,12,10,8,8,6,6,6,4,4,4,2,2,2];
+const MOON_SPRITE_VISIBLE_DIAMETERS=[22,18,16,14,12,10,8,8,6,6,6,4,4,4,2,2,2,24,26,28,30,32,34,36,40];
+const MOON_NATIVE_SIZE_FRAMES=[
+  {frame:14,diameter:2},{frame:11,diameter:4},{frame:8,diameter:6},{frame:6,diameter:8},
+  {frame:5,diameter:10},{frame:4,diameter:12},{frame:3,diameter:14},{frame:2,diameter:16},
+  {frame:1,diameter:18},{frame:0,diameter:22},{frame:17,diameter:24},{frame:18,diameter:26},
+  {frame:19,diameter:28},{frame:20,diameter:30},{frame:21,diameter:32},{frame:22,diameter:34},
+  {frame:23,diameter:36},{frame:24,diameter:40}
+];
 function moonVisualDiameter(m){
   if(!m) return 3;
   const planetVisualRadius=(planet.rx+planet.ry)*.5;
-  // radiusKm is a physical radius, so moon/planet radius ratio is also the
-  // correct on-screen diameter ratio. Keep only a tiny visibility floor.
+  // radiusKm is the source of truth. We calculate the physically proportional
+  // diameter, then select the closest native pixel sprite instead of scaling a
+  // tiny moon frame into a blurry/blocky giant.
   const physicalRatio=Math.max(0,(m.radiusKm||0)/Math.max(1,planet.radiusKm||1));
   const physicalDiameter=planetVisualRadius*2*physicalRatio;
-  return clamp(Math.round(physicalDiameter),3,Math.round(planetVisualRadius*2*1.10));
+  return clamp(Math.round(physicalDiameter),2,40);
+}
+function moonNativeFrame(targetDiameter){
+  let best=MOON_NATIVE_SIZE_FRAMES[0], bestDelta=Infinity;
+  for(const entry of MOON_NATIVE_SIZE_FRAMES){
+    const delta=Math.abs(entry.diameter-targetDiameter);
+    if(delta<bestDelta){ best=entry; bestDelta=delta; }
+  }
+  return best;
 }
 function moonSpriteVisibleDiameter(frame){
   return MOON_SPRITE_VISIBLE_DIAMETERS[clamp(Math.round(frame||0),0,MOON_SPRITE_VISIBLE_DIAMETERS.length-1)]||22;
@@ -1372,25 +1433,24 @@ function drawMoons(cx,cy,t,front){
   for(const m of planet.moonData){
     const pos=moonPosition(m,cx,cy); m.screenX=pos.x; m.screenY=pos.y; m.depth=pos.depth;
     if((front && pos.depth<0)||(!front && pos.depth>=0)) continue;
-    const im=tintedMoonSprite(m.frame,moonTintColor(m));
-    const targetDiameter=moonVisualDiameter(m);
+    const requestedDiameter=moonVisualDiameter(m);
+    const native=moonNativeFrame(requestedDiameter);
+    const im=tintedMoonSprite(native.frame,moonTintColor(m));
+    const renderedDiameter=native.diameter;
+    m.renderFrame=native.frame;
     if(im && im.width){
-      // The original moon frames all live on 28x28 transparent canvases, but
-      // their actual visible discs range from 22px down to 2px. Scale from
-      // the visible disc, not from the transparent canvas, so radiusKm is
-      // genuinely reflected by the rendered moon size.
-      const visibleBase=Math.max(1,moonSpriteVisibleDiameter(m.frame));
-      const sc=targetDiameter/visibleBase;
-      const w=Math.max(1,Math.round(im.width*sc)),h=Math.max(1,Math.round(im.height*sc));
-      m.visualDiameter=targetDiameter;
-      m.hitRadius=Math.max(5,targetDiameter*.55+3);
-      ctx.drawImage(im,Math.round(pos.x-w/2),Math.round(pos.y-h/2),w,h);
+      // Draw the native-size moon 1:1. No runtime upscaling means the circular
+      // pixel silhouette stays clean and transparent padding cannot balloon
+      // into a giant square.
+      m.visualDiameter=renderedDiameter;
+      m.hitRadius=Math.max(5,renderedDiameter*.55+3);
+      ctx.drawImage(im,Math.round(pos.x-im.width/2),Math.round(pos.y-im.height/2));
     } else {
-      m.visualDiameter=targetDiameter;
-      m.hitRadius=Math.max(5,targetDiameter*.55+3);
+      m.visualDiameter=renderedDiameter;
+      m.hitRadius=Math.max(5,renderedDiameter*.55+3);
       ctx.fillStyle=moonTintColor(m);
-      const s=Math.max(2,targetDiameter);
-      ctx.fillRect(Math.round(pos.x-s/2),Math.round(pos.y-s/2),s,s);
+      const s=Math.max(2,renderedDiameter);
+      ctx.beginPath();ctx.arc(Math.round(pos.x),Math.round(pos.y),s*.5,0,Math.PI*2);ctx.fill();
     }
   }
 }
@@ -1658,11 +1718,12 @@ function drawButtons(){
     const hover=state.mouse.inside && state.mouse.x>=b.x-3 && state.mouse.x<=b.x+14 && state.mouse.y>=UI.buttonY-4 && state.mouse.y<=UI.buttonY+14;
     if(hover) state.hovered=b;
     let im=null;
-    if(b.id==='temp' && state.viewMode!==2) im=asset['temp'+tempBand()]; else if(b.id!=='probe'&&b.id!=='temp'&&b.id!=='log') im=asset[b.id];
-    const active=(b.id==='log'&&state.libraryOpen)||(b.id==='probe'&&!!state.probe)||(b.id==='temp'&&state.viewMode!==0)||(b.id==='reverse'&&state.reverse)||(b.id==='mute'&&state.muted)||(b.id==='fast'&&state.speedIndex>1)||(b.id==='rocket'&&!!state.rocket);
+    if(b.id==='temp' && state.viewMode!==2) im=asset['temp'+tempBand()]; else if(b.id!=='probe'&&b.id!=='temp'&&b.id!=='log'&&b.id!=='pause') im=asset[b.id];
+    const active=(b.id==='log'&&state.libraryOpen)||(b.id==='probe'&&!!state.probe)||(b.id==='temp'&&state.viewMode!==0)||(b.id==='reverse'&&state.reverse)||(b.id==='pause'&&state.paused)||(b.id==='mute'&&state.muted)||(b.id==='fast'&&state.speedIndex>1)||(b.id==='rocket'&&!!state.rocket);
     const rocketLocked=b.id==='rocket'&&!canLaunchCivilizationRocket();
     ctx.globalAlpha=rocketLocked?(hover?.52:.30):(active?1:(hover?.95:.72));
     if(b.id==='log') drawLogButtonIcon(b.x,UI.buttonY,active);
+    else if(b.id==='pause') drawPauseButtonIcon(b.x,UI.buttonY,active);
     else if(b.id==='probe') drawProbeButtonIcon(b.x,UI.buttonY,active);
     else if(b.id==='temp' && state.viewMode===2 && hasAtmosphereView()) drawAtmosphereViewIcon(b.x,UI.buttonY);
     else if(im && im.complete && im.naturalWidth) ctx.drawImage(im,b.x,UI.buttonY);
@@ -1843,6 +1904,15 @@ function drawLogButtonIcon(x,y,active=false){
   ctx.fillStyle=C.cyan;
   ctx.fillRect(x+3,y+8,5,1);
 }
+function drawPauseButtonIcon(x,y,active=false){
+  ctx.fillStyle=active?C.green:C.white;
+  ctx.fillRect(x+3,y+2,2,7);
+  ctx.fillRect(x+7,y+2,2,7);
+  if(active){
+    ctx.fillStyle=C.purple;
+    ctx.fillRect(x+2,y+1,1,9); ctx.fillRect(x+9,y+1,1,9);
+  }
+}
 function drawProbeButtonIcon(x,y,active=false){
   ctx.fillStyle=active?C.green:C.cyan;
   ctx.fillRect(x+4,y+3,3,3);
@@ -1871,7 +1941,7 @@ function flash(){ state.cameraFlash=performance.now()+100; }
 
 function render(t){
   const dt=Math.min(.05,(t-state.lastTime)/1000||0); state.lastTime=t;
-  const dir=state.reverse?-1:1, speeds=[.20,.55,1.7,4.2], speed=speeds[state.speedIndex];
+  const dir=state.reverse?-1:1, speeds=[.20,.55,1.7,4.2], speed=state.paused?0:speeds[state.speedIndex];
   state.simDays += dt*1.15*speed*dir;
   updateProbe(dt,speed,t);
   updateCameraHold(t);
@@ -1930,6 +2000,7 @@ function doAction(id){
     case 'probe': launchProbe(); break;
     case 'temp': state.viewMode=nextViewMode(); state.tempView=state.viewMode===1; showToast(`VIEW: ${viewModeName()}`); break;
     case 'reverse': state.reverse=!state.reverse; break;
+    case 'pause': state.paused=!state.paused; showToast(state.paused?'TIME PAUSED':'TIME RESUMED'); break;
     case 'fast': state.speedIndex=(state.speedIndex+1)%4; break;
     case 'rocket': launchCivilizationRocket(); break;
     case 'camera': takeScreenshot({full:false}); break;
@@ -2022,11 +2093,20 @@ canvas.addEventListener('pointerdown',ev=>{
   const intro=state.intro;
   const body=bodyAtPoint(p,intro?240:150,intro?111:116);
   if(body){
-    state.pinnedBody=sameBody(state.pinnedBody,body)?null:body;
+    const wasSame=sameBody(state.pinnedBody,body);
+    if(wasSame){
+      releaseMoonInspection();
+      state.pinnedBody=null;
+    }else{
+      releaseMoonInspection();
+      state.pinnedBody=bodyRef(body);
+      if(body.type==='moon') beginMoonInspection(body.index);
+    }
     state.moonHoverGrace=body.type==='moon'?bodyRef(body):null;
     state.moonHoverUntil=body.type==='moon'?performance.now()+3000:0;
     ev.preventDefault(); return;
   }
+  releaseMoonInspection();
   state.pinnedBody=null;
   state.moonHoverGrace=null;
   state.moonHoverUntil=0;
@@ -2076,6 +2156,7 @@ window.addEventListener('keydown',ev=>{
     if(state.infoTitle===exitMessage && closeDesktopApp()) return;
     state.libraryOpen=false;
     state.lifePanelFocused=false;
+    releaseMoonInspection();
     state.pinnedBody=null;
     state.input='';
     state.enteringName=false;
@@ -2127,6 +2208,7 @@ window.addEventListener('keydown',ev=>{
   if(!state.enteringName && ev.key.toLowerCase()==='l'){ev.preventDefault();state.libraryOpen=!state.libraryOpen;state.librarySelection=0;state.lifePanelFocused=false;return;}
   if(!state.enteringName && ev.key.toLowerCase()==='c'){ev.preventDefault();sharePlanet();return;}
   if(!state.enteringName && ev.key.toLowerCase()==='p'){ev.preventDefault();launchProbe(state.pinnedBody||state.hoverBody||{type:'planet'});return;}
+  if(!state.enteringName && ev.key===' '){ev.preventDefault();doAction('pause');return;}
   if(state.enteringName){
     if(ev.key==='ArrowUp'){ev.preventDefault();historyMove(-1);return;}
     if(ev.key==='ArrowDown'){ev.preventDefault();historyMove(1);return;}
