@@ -536,6 +536,18 @@ function configureCivilization(p){
 function canLaunchCivilizationRocket(){ return !!planet?.civilization && isAlive() && planet.civilization.rank>=3; }
 const ATMOS_DENSITY_STRENGTH={NONE:0,TRACE:.08,THIN:.28,NORMAL:.58,DENSE:.82,SUPERDENSE:1};
 function atmosphereStrength(p=planet){ return ATMOS_DENSITY_STRENGTH[p?.atmosDensity] ?? .5; }
+function hasAtmosphereView(p=planet){
+  return !!p && p.atmosDensity!=='NONE' && p.atmosChemistry!=='NONE' && atmosphereStrength(p)>.02;
+}
+function nextViewMode(mode=state.viewMode,p=planet){
+  const modes=hasAtmosphereView(p)?[0,1,2]:[0,1];
+  const at=modes.indexOf(mode);
+  return modes[(at<0?0:at+1)%modes.length];
+}
+function normalizeViewModeForPlanet(){
+  if(state.viewMode===2 && !hasAtmosphereView(planet)) state.viewMode=0;
+  state.tempView=state.viewMode===1;
+}
 function configureWeatherSystems(p,r){
   const strength=atmosphereStrength(p); p.weatherSystems=[];
   if(strength<=.08) return;
@@ -681,11 +693,13 @@ function visit(name, addHistory=true){
   state.name=name; state.input=''; state.intro=false; state.phase=0; state.simDays=0;
   state.rocket=null; state.probe=null; state.spaceLaunchSerial=0; state.pinnedBody=null; state.hoverBody=null; state.moonHoverGrace=null; state.moonHoverUntil=0; state.libraryOpen=false;
   planet=generatePlanet(state.name);
+  normalizeViewModeForPlanet();
   document.title=`${planet.name} - Planetarium`;
   syncUrl();
 }
 function randomVisit(){ visit(randomPlanetName()); }
 planet=generatePlanet(state.name);
+normalizeViewModeForPlanet();
 state.name=planet.name;
 if(Number.isFinite(urlTempC)){ state.temp=tempStateFromC(urlTempC,planet); storageSet(tempStorageKey(planet),String(state.temp)); }
 if(urlPlanet){
@@ -899,12 +913,19 @@ function lifeProbeObservation(){
   ]);
   return `${relationship}. ${trait}.`;
 }
-function drawLifeProbeFact(x,y,maxPx=124){
+function drawLifeProbeFact(x,y,maxPx=124,maxBottom=232){
   const fact=lifeProbeObservation();
-  if(!fact) return;
+  if(!fact || y>maxBottom-18) return false;
   drawText('LIFE OBSERVED',x,y,C.green,1);
-  const lines=wrapText(fact,maxPx,1).slice(0,6);
+  const all=wrapText(fact,maxPx,1);
+  const room=Math.max(1,Math.floor((maxBottom-(y+10))/8)+1);
+  const lines=all.slice(0,room);
+  if(all.length>lines.length && lines.length){
+    const last=lines.length-1;
+    lines[last]=(lines[last].replace(/[. ]+$/,'').slice(0,Math.max(1,lines[last].length-3))+'...');
+  }
   lines.forEach((line,i)=>drawText(line,x,y+10+i*8,C.green,1));
+  return true;
 }
 function iceCoverPercent(){
   if(planet.solar){
@@ -999,7 +1020,7 @@ function earthLandValue(lon,lat,q){
   return v+(q.n-.5)*.65+(q.ridge-.5)*.08;
 }
 function solarSurfaceColor(lon,lat,normY,nx,z){
-  if(state.viewMode===2) return atmosphereViewColor(lon,lat,nx,z);
+  if(state.viewMode===2 && hasAtmosphereView()) return atmosphereViewColor(lon,lat,nx,z);
   if(state.viewMode===1){
     const heat=clamp(state.temp-Math.abs(lat-.5)*.18,0,1);
     const c=heat<.2?C.blue:heat<.4?C.cyan:heat<.6?C.green:heat<.8?C.yellow:C.red;
@@ -1073,7 +1094,7 @@ function surfaceColor(lon,lat,normY,nx,z){
   else if(tempLocal>.72) col=C.yellow;
   else col=C.green;
 
-  if(state.viewMode===2) return atmosphereViewColor(lon,lat,nx,z);
+  if(state.viewMode===2 && hasAtmosphereView()) return atmosphereViewColor(lon,lat,nx,z);
   if(state.viewMode===1){
     const heat=clamp(tempLocal,0,1);
     col = heat<.2?C.blue : heat<.4?C.cyan : heat<.6?C.green : heat<.8?C.yellow : C.red;
@@ -1081,7 +1102,7 @@ function surfaceColor(lon,lat,normY,nx,z){
   return surfaceShade(col,nx,z);
 }
 function drawAtmosphereLimb(cx,cy){
-  if(state.viewMode!==2) return;
+  if(state.viewMode!==2 || !hasAtmosphereView()) return;
   const strength=atmosphereStrength(planet); if(strength<=.02) return;
   const col=atmosphereAccentColor(), layers=strength>.8?3:strength>.35?2:1; ctx.fillStyle=col;
   for(let layer=0;layer<layers;layer++){
@@ -1309,7 +1330,6 @@ function drawPlanetDeepScan(x,y){
     drawText('ANOMALY',x,anomalyY,C.purple,1);
     const lines=wrapText(d.anomaly,Math.max(72,W-x-6),1).slice(0,6);
     lines.forEach((line,i)=>drawText(line,x,ay+i*8,d.anomaly==='NONE'?C.brown:C.yellow,1));
-    drawLifeProbeFact(x,ay+lines.length*8+11,Math.max(72,W-x-6));
     return;
   }
   drawText(`AGE      ${d.ageBy.toFixed(1)} BY`,x,y+12,C.white,1); drawText(`PRESS    ${d.pressureAtm.toFixed(2)} ATM`,x,y+21,C.white,1); drawText(`MAG      ${d.magField}`,x,y+30,C.cyan,1);
@@ -1319,7 +1339,6 @@ function drawPlanetDeepScan(x,y){
   drawText(`TECH     ${techLevelLabel()}`,x,y+120,C.purple,1); drawText(`FE ${d.iron}  C ${d.carbon}`,x,y+129,C.brown,1); drawText(`U  ${d.uranium}`,x,y+138,C.brown,1); drawText('ANOMALY',x,y+150,C.purple,1);
   const lines=wrapText(d.anomaly,Math.max(72,W-x-6),1).slice(0,4);
   lines.forEach((line,i)=>drawText(line,x,y+160+i*8,d.anomaly==='NONE'?C.brown:C.yellow,1));
-  drawLifeProbeFact(x,y+160+lines.length*8+11,Math.max(72,W-x-6));
 }
 function drawPlanetHover(cx,cy){
   const x=clamp(Math.round(cx+planet.rx+18),202,220),y=38;
@@ -1328,7 +1347,10 @@ function drawPlanetHover(cx,cy){
   drawText(`WEATHER    ${weatherLabel()}`,x,y+67,atmosphereAccentColor(),1); drawText(`BIOSPHERE  ${lifeLabel()}`,x,y+76,isAlive()?C.green:C.brown,1); drawText(`POPULATION ${populationLabel()}`,x,y+85,isAlive()?C.green:C.brown,1);
   drawText(`DAY        ${planet.dayHours.toFixed(1)} H`,x,y+94,C.white,1); drawText(`YEAR       ${planet.yearDays} D`,x,y+103,C.white,1); drawText(`${planet.solar&&['JUPITER','SATURN','URANUS','NEPTUNE'].includes(planet.name)?'SHOWN MOONS':'MOONS      '} ${planet.moons}`,x,y+112,C.purple,1);
   const ringOffset=planet.ring?9:0; if(planet.ring)drawText(`RING       ${ringStyleLabel()}`,x,y+121,planet.ringColor||C.purple,1); const scanned=isScanned({type:'planet'});
-  if(scanned) drawPlanetDeepScan(x+130,y); else drawText('PROBE DATA LOCKED',x,y+125+ringOffset,C.purple,1);
+  if(scanned){
+    drawPlanetDeepScan(x+130,y);
+    drawLifeProbeFact(x,y+132+ringOffset,124,232);
+  }else drawText('PROBE DATA LOCKED',x,y+125+ringOffset,C.purple,1);
 }
 function drawMoonDeepScan(m,x,y){
   const d=m.scan;
@@ -1408,7 +1430,7 @@ function drawSlider(){
   if(back && back.complete && back.naturalWidth) ctx.drawImage(back,x,y);
   else {ctx.fillStyle=mixHex(C.white,C.black,.55);ctx.fillRect(x,y+2,UI.sliderW,3);}
   const fill=Math.round(state.temp*(UI.sliderW-7));
-  ctx.fillStyle = state.viewMode===1 ? (tempBand()<2?C.blue:tempBand()<3?C.green:tempBand()<4?C.yellow:C.red) : state.viewMode===2 ? atmosphereAccentColor() : C.purple;
+  ctx.fillStyle = state.viewMode===1 ? (tempBand()<2?C.blue:tempBand()<3?C.green:tempBand()<4?C.yellow:C.red) : (state.viewMode===2&&hasAtmosphereView()) ? atmosphereAccentColor() : C.purple;
   ctx.fillRect(x+2,y+3,Math.max(1,fill),1);
   const knob=state.draggingSlider?asset.sliderFrontAlt:asset.sliderFront;
   const kx=x+Math.round(state.temp*(UI.sliderW-7));
@@ -1432,7 +1454,7 @@ function drawButtons(){
     const rocketLocked=b.id==='rocket'&&!canLaunchCivilizationRocket();
     ctx.globalAlpha=rocketLocked?(hover?.52:.30):(active?1:(hover?.95:.72));
     if(b.id==='probe') drawProbeButtonIcon(b.x,UI.buttonY,active);
-    else if(b.id==='temp' && state.viewMode===2) drawAtmosphereViewIcon(b.x,UI.buttonY);
+    else if(b.id==='temp' && state.viewMode===2 && hasAtmosphereView()) drawAtmosphereViewIcon(b.x,UI.buttonY);
     else if(im && im.complete && im.naturalWidth) ctx.drawImage(im,b.x,UI.buttonY);
     else {ctx.fillStyle=C.white;ctx.fillRect(b.x,UI.buttonY,9,9);}
     ctx.globalAlpha=1;
@@ -1441,7 +1463,7 @@ function drawButtons(){
   if(state.hovered){
     const target=state.hovered.id==='probe'?(state.pinnedBody||state.hoverBody||{type:'planet'}):null;
     let tip=target?`LAUNCH PROBE: ${bodyName(target)}`:state.hovered.tip;
-    if(state.hovered.id==='temp') tip=`VIEW ${viewModeName()} -> ${viewModeName((state.viewMode+1)%3)}`;
+    if(state.hovered.id==='temp') tip=`VIEW ${viewModeName()} -> ${viewModeName(nextViewMode())}`;
     if(state.hovered.id==='rocket') tip=canLaunchCivilizationRocket()?'LAUNCH CIVILIZATION ROCKET':'ROCKET LOCKED: NO ACTIVE SPACEFLIGHT';
     if(state.hovered.id==='camera') tip='CLICK: PICTURE  HOLD 2S: FULL SCREENSHOT';
     if(state.cameraHold?.active && state.hovered.id==='camera' && !state.cameraHold.triggered){
@@ -1657,7 +1679,7 @@ function doAction(id){
   startAudio(); state.intro=false;
   switch(id){
     case 'probe': launchProbe(); break;
-    case 'temp': state.viewMode=(state.viewMode+1)%3; state.tempView=state.viewMode===1; showToast(`VIEW: ${viewModeName()}`); break;
+    case 'temp': state.viewMode=nextViewMode(); state.tempView=state.viewMode===1; showToast(`VIEW: ${viewModeName()}`); break;
     case 'reverse': state.reverse=!state.reverse; break;
     case 'fast': state.speedIndex=(state.speedIndex+1)%4; break;
     case 'rocket': launchCivilizationRocket(); break;
