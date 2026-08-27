@@ -69,6 +69,35 @@ function mixHex(hex, toward, amount) {
   for(let i=0;i<3;i++) out.push(Math.round(lerp(parseInt(a.slice(i*2,i*2+2),16),parseInt(b.slice(i*2,i*2+2),16),amount)));
   return '#'+out.map(v=>v.toString(16).padStart(2,'0')).join('');
 }
+const MOON_COLORS = [
+  C.white, C.yellow, C.brown, C.cyan, C.blue,
+  mixHex(C.green,C.white,.32), mixHex(C.purple,C.white,.22), mixHex(C.red,C.white,.24)
+];
+const SOLAR_MOON_COLORS = {
+  MOON: mixHex(C.white,C.brown,.20), PHOBOS:C.brown, DEIMOS:mixHex(C.brown,C.white,.24),
+  IO:C.yellow, EUROPA:mixHex(C.white,C.yellow,.25), GANYMEDE:mixHex(C.brown,C.white,.18), CALLISTO:mixHex(C.brown,C.purple,.18),
+  ENCELADUS:C.cyan, RHEA:mixHex(C.white,C.blue,.15), TITAN:mixHex(C.yellow,C.red,.28), IAPETUS:mixHex(C.brown,C.white,.12),
+  MIRANDA:mixHex(C.white,C.blue,.18), ARIEL:C.cyan, UMBRIEL:mixHex(C.purple,C.black,.22), TITANIA:mixHex(C.cyan,C.blue,.22),
+  PROTEUS:mixHex(C.brown,C.black,.18), TRITON:mixHex(C.cyan,C.purple,.18), NEREID:C.blue
+};
+const moonTintCache = new Map();
+function moonTintColor(m){
+  if(SOLAR_MOON_COLORS[m?.name]) return SOLAR_MOON_COLORS[m.name];
+  const key=`${planet?.seed||0}:${m?.name||'MOON'}:${m?.frame||0}`;
+  return MOON_COLORS[hashString(key)%MOON_COLORS.length];
+}
+function tintedMoonSprite(frame,color){
+  const im=asset['moon'+frame];
+  if(!im || !im.complete || !im.naturalWidth) return im;
+  const key=`${frame}:${color}`;
+  if(moonTintCache.has(key)) return moonTintCache.get(key);
+  const c=document.createElement('canvas'); c.width=im.naturalWidth; c.height=im.naturalHeight;
+  const g=c.getContext('2d'); g.imageSmoothingEnabled=false;
+  g.drawImage(im,0,0);
+  g.globalCompositeOperation='source-in'; g.fillStyle=color; g.fillRect(0,0,c.width,c.height);
+  g.globalCompositeOperation='source-over';
+  moonTintCache.set(key,c); return c;
+}
 function hashString(s) {
   let h = 2166136261 >>> 0;
   for (let i=0;i<s.length;i++) { h ^= s.charCodeAt(i); h = Math.imul(h,16777619); }
@@ -834,13 +863,13 @@ function drawMoons(cx,cy,t,front){
   for(const m of planet.moonData){
     const pos=moonPosition(m,cx,cy); m.screenX=pos.x; m.screenY=pos.y; m.depth=pos.depth;
     if((front && pos.depth<0)||(!front && pos.depth>=0)) continue;
-    const im=asset['moon'+m.frame];
+    const im=tintedMoonSprite(m.frame,moonTintColor(m));
     const sc=m.size;
-    if(im && im.complete && im.naturalWidth){
+    if(im && im.width){
       const w=Math.round(im.width*sc),h=Math.round(im.height*sc);
       m.hitRadius=Math.max(6,Math.max(w,h)*.55+3);
       ctx.drawImage(im,Math.round(pos.x-w/2),Math.round(pos.y-h/2),w,h);
-    } else { m.hitRadius=7;ctx.fillStyle=C.white;ctx.fillRect(Math.round(pos.x),Math.round(pos.y),4,4); }
+    } else { m.hitRadius=7;ctx.fillStyle=moonTintColor(m);ctx.fillRect(Math.round(pos.x),Math.round(pos.y),4,4); }
   }
 }
 function drawPlanet(cx,cy,t){
@@ -1273,15 +1302,35 @@ function historyMove(delta){
   state.historyPos=clamp((state.historyPos<0?state.history.length:state.historyPos)+delta,0,state.history.length-1);
   state.input=state.history[state.historyPos]||'';
 }
+function closeDesktopApp(){
+  try{
+    const getCurrentWindow=window.__TAURI__?.window?.getCurrentWindow;
+    if(typeof getCurrentWindow!=='function') return false;
+    getCurrentWindow().close().catch(()=>{});
+    return true;
+  }catch{return false;}
+}
 function toggleFullscreen(){
   if(document.fullscreenElement) document.exitFullscreen?.(); else document.documentElement.requestFullscreen?.().catch?.(()=>{});
 }
 window.addEventListener('keydown',ev=>{
   startAudio();
+  if(ev.key==='Escape'){
+    ev.preventDefault();
+    const exitMessage='SO YOU WANT TO LEAVE ME?';
+    if(state.infoTitle===exitMessage && closeDesktopApp()) return;
+    state.libraryOpen=false;
+    state.pinnedBody=null;
+    state.input='';
+    state.info=INFO_CARDS[exitMessage];
+    state.infoTitle=exitMessage;
+    state.intro=false;
+    return;
+  }
   if(ev.altKey && ev.key==='Enter'){ev.preventDefault();toggleFullscreen();return;}
   if(state.libraryOpen){
     const items=libraryItems().slice(0,11);
-    if(ev.key==='Escape'||ev.key.toLowerCase()==='l'){ev.preventDefault();state.libraryOpen=false;return;}
+    if(ev.key.toLowerCase()==='l'){ev.preventDefault();state.libraryOpen=false;return;}
     if(ev.key.toLowerCase()==='f'){ev.preventDefault();state.libraryTab='favorites';state.librarySelection=0;return;}
     if(ev.key.toLowerCase()==='r'){ev.preventDefault();state.libraryTab='recent';state.librarySelection=0;return;}
     if(ev.key==='ArrowUp'){ev.preventDefault();state.librarySelection=clamp(state.librarySelection-1,0,Math.max(0,items.length-1));return;}
@@ -1303,10 +1352,6 @@ window.addEventListener('keydown',ev=>{
     ev.preventDefault();if(state.input.trim())visit(state.input);else state.intro=false;return;
   }
   if(ev.key==='Backspace'){ev.preventDefault();state.input=state.input.slice(0,-1);return;}
-  if(ev.key==='Escape'){
-    if(state.pinnedBody){state.pinnedBody=null;return;}
-    state.input='';state.info=INFO_CARDS['SO YOU WANT TO LEAVE ME?'];state.infoTitle='SO YOU WANT TO LEAVE ME?';state.intro=false;return;
-  }
   if(ev.key==='0' && !state.input){ev.preventDefault();doAction('random');return;}
   if(ev.key==='1' && !state.input){ev.preventDefault();doAction('reverse');return;}
   if(ev.key==='2' && !state.input){ev.preventDefault();doAction('fast');return;}
