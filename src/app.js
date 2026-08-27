@@ -421,7 +421,8 @@ const state = {
   draggingSlider:false, hovered:null, hoverBody:null, pinnedBody:null, rocket:null, probe:null,
   history:[], historyPos:-1, favorites:[], libraryOpen:false, libraryTab:'favorites', librarySelection:0, libraryRows:[],
   info:null, infoTitle:null, toastText:'', toastUntil:0,
-  lastTime:performance.now(), twinkle:0, cameraFlash:0
+  lastTime:performance.now(), twinkle:0, cameraFlash:0,
+  captureMode:null, cameraHold:null
 };
 try { state.history = JSON.parse(storageGet('planetarium:history','[]')) || []; } catch { state.history=[]; }
 try { state.favorites = JSON.parse(storageGet('planetarium:favorites','[]')) || []; } catch { state.favorites=[]; }
@@ -1147,8 +1148,13 @@ function drawButtons(){
   }
   if(state.hovered){
     const target=state.hovered.id==='probe'?(state.pinnedBody||state.hoverBody||{type:'planet'}):null;
-    const tip=target?`LAUNCH PROBE: ${bodyName(target)}`:state.hovered.tip;
-    drawText(`${tip} [${state.hovered.key}]`,472,239,C.white,1,'right');
+    let tip=target?`LAUNCH PROBE: ${bodyName(target)}`:state.hovered.tip;
+    if(state.hovered.id==='camera') tip='CLICK: PICTURE  HOLD 2S: FULL SCREENSHOT';
+    if(state.cameraHold?.active && state.hovered.id==='camera' && !state.cameraHold.triggered){
+      const left=Math.max(0,2-(performance.now()-state.cameraHold.startAt)/1000);
+      tip=`HOLD FOR FULL SCREENSHOT ${left.toFixed(1)}S`;
+    }
+    drawText(`${tip}${state.hovered.id==='camera'?'':` [${state.hovered.key}]`}`,472,239,C.white,1,'right');
   }
 }
 function drawEntry(t){
@@ -1256,6 +1262,15 @@ function drawProbeButtonIcon(x,y,active=false){
   ctx.fillStyle=C.purple;
   ctx.fillRect(x+2,y+2,1,5); ctx.fillRect(x+8,y+2,1,5);
 }
+function updateCameraHold(t){
+  const h=state.cameraHold;
+  if(!h || !h.active || h.triggered) return;
+  if(!state.mouse.down) return;
+  if(t-h.startAt>=2000){
+    h.triggered=true;
+    takeScreenshot({full:true});
+  }
+}
 
 function drawCursor(){
   if(!state.mouse.inside)return;
@@ -1270,8 +1285,10 @@ function render(t){
   const dir=state.reverse?-1:1, speeds=[.20,.55,1.7,4.2], speed=speeds[state.speedIndex];
   state.simDays += dt*1.15*speed*dir;
   updateProbe(dt,speed,t);
+  updateCameraHold(t);
   const rotationRate=(24/planet.dayHours)*.035*planet.rotationDirection;
   state.phase=mod(state.phase+dt*rotationRate*speed*dir,1);
+  const cleanCapture=state.captureMode==='clean';
   drawStars(t);
   const intro=state.intro && t<state.introUntil && !state.input;
   const cx=intro?240:150, cy=intro?111:116;
@@ -1282,13 +1299,17 @@ function render(t){
     const hovered=!state.libraryOpen&&state.mouse.inside?bodyAtPoint(state.mouse,cx,cy):null;
     state.hoverBody=hovered;
     const body=hovered || state.pinnedBody;
-    if(body?.type==='moon') drawMoonOrbit(planet.moonData[body.index],cx,cy,true);
-    if(!state.info && body?.type!=='planet') drawBaseLabel(cx,cy);
-    if(state.info) drawHelpCard(); else if(!state.libraryOpen) drawContextInfo(body,cx,cy);
+    if(!cleanCapture && body?.type==='moon') drawMoonOrbit(planet.moonData[body.index],cx,cy,true);
+    if(!cleanCapture && !state.info && body?.type!=='planet') drawBaseLabel(cx,cy);
+    if(!cleanCapture){
+      if(state.info) drawHelpCard(); else if(!state.libraryOpen) drawContextInfo(body,cx,cy);
+    }
   }
-  drawSlider(); drawButtons(); drawEntry(t); drawProbeStatus(); drawLibraryOverlay(); drawToast(t);
+  if(!cleanCapture){
+    drawSlider(); drawButtons(); drawEntry(t); drawProbeStatus(); drawLibraryOverlay(); drawToast(t);
+  }
   if(state.cameraFlash>t){ctx.globalAlpha=.45;ctx.fillStyle=C.white;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;}
-  drawCursor();
+  if(!cleanCapture) drawCursor();
   requestAnimationFrame(render);
 }
 
@@ -1303,20 +1324,39 @@ function doAction(id){
     case 'reverse': state.reverse=!state.reverse; break;
     case 'fast': state.speedIndex=(state.speedIndex+1)%4; break;
     case 'rocket': state.rocket={start:performance.now(),x:150+planet.rx*.45,y:116-planet.ry*.2,vx:1.5,vy:-1}; break;
-    case 'camera': takeScreenshot(); break;
+    case 'camera': takeScreenshot({full:false}); break;
     case 'mute': toggleMute(); break;
     case 'random': randomVisit(); break;
   }
 }
-function takeScreenshot(){
-  let png='';
-  try{ png=canvas.toDataURL('image/png'); }catch{}
-  flash();
+function downloadScreenshot(png,full=false){
+  try{
+    const a=document.createElement('a');
+    const safe=planet.name.replace(/[^A-Z0-9_-]+/g,'_').replace(/^_+|_+$/g,'')||'planet';
+    const suffix=full?'-full':'';
+    a.download=`planetarium-${safe.toLowerCase()}${suffix}.png`;
+    a.href=png || canvas.toDataURL('image/png');
+    a.click();
+  }catch{}
+}
+function takeScreenshot(options={}){
+  const full=!!options.full;
+  if(full){
+    let png='';
+    try{ png=canvas.toDataURL('image/png'); }catch{}
+    flash();
+    requestAnimationFrame(()=>downloadScreenshot(png,true));
+    return;
+  }
+  state.captureMode='clean';
   requestAnimationFrame(()=>{
-    try{
-      const a=document.createElement('a'); const safe=planet.name.replace(/[^A-Z0-9_-]+/g,'_').replace(/^_+|_+$/g,'')||'planet';
-      a.download=`planetarium-${safe.toLowerCase()}.png`; a.href=png || canvas.toDataURL('image/png'); a.click();
-    }catch{}
+    requestAnimationFrame(()=>{
+      let png='';
+      try{ png=canvas.toDataURL('image/png'); }catch{}
+      state.captureMode=null;
+      flash();
+      requestAnimationFrame(()=>downloadScreenshot(png,false));
+    });
   });
 }
 function handleLibraryPointer(p){
@@ -1336,14 +1376,26 @@ function getPoint(ev){
 }
 function sliderHit(p){ return p.x>=UI.sliderX-5&&p.x<=UI.sliderX+UI.sliderW+5&&p.y>=UI.sliderY-8&&p.y<=UI.sliderY+12; }
 function updateSliderFromPoint(p){ setTemp((p.x-UI.sliderX)/(UI.sliderW-7)); }
-canvas.addEventListener('pointermove',ev=>{ const p=getPoint(ev);state.mouse={...state.mouse,...p,inside:true,pointerType:ev.pointerType||'mouse'};if(state.draggingSlider)updateSliderFromPoint(p); });
+function buttonAtPoint(p){
+  for(const b of UI.buttons){
+    if(p.x>=b.x-4&&p.x<=b.x+15&&p.y>=UI.buttonY-5&&p.y<=UI.buttonY+15) return b;
+  }
+  return null;
+}
+canvas.addEventListener('pointermove',ev=>{ const p=getPoint(ev);state.mouse={...state.mouse,...p,inside:true,pointerType:ev.pointerType||'mouse'};if(state.draggingSlider)updateSliderFromPoint(p); if(state.cameraHold && state.cameraHold.active && (!buttonAtPoint(p) || buttonAtPoint(p).id!=='camera')) state.cameraHold=null; });
 canvas.addEventListener('pointerenter',ev=>{const p=getPoint(ev);state.mouse={...state.mouse,...p,inside:true,pointerType:ev.pointerType||'mouse'};});
-canvas.addEventListener('pointerleave',()=>{state.mouse.inside=false;state.draggingSlider=false;state.mouse.down=false;if(state.mouse.pointerType==='mouse')state.hoverBody=null;});
+canvas.addEventListener('pointerleave',()=>{state.mouse.inside=false;state.draggingSlider=false;state.mouse.down=false;state.cameraHold=null;if(state.mouse.pointerType==='mouse')state.hoverBody=null;});
 canvas.addEventListener('pointerdown',ev=>{
   startAudio();canvas.focus();const p=getPoint(ev);state.mouse={...state.mouse,...p,down:true,inside:true,pointerType:ev.pointerType||'mouse'};
   if(handleLibraryPointer(p)){ev.preventDefault();return;}
   if(sliderHit(p)){state.draggingSlider=true;updateSliderFromPoint(p);ev.preventDefault();return;}
-  for(const b of UI.buttons){if(p.x>=b.x-4&&p.x<=b.x+15&&p.y>=UI.buttonY-5&&p.y<=UI.buttonY+15){doAction(b.id);ev.preventDefault();return;}}
+  const button=buttonAtPoint(p);
+  if(button){
+    if(button.id==='camera') state.cameraHold={active:true,startAt:performance.now(),triggered:false};
+    else doAction(button.id);
+    ev.preventDefault();
+    return;
+  }
   const intro=state.intro && performance.now()<state.introUntil && !state.input;
   const body=bodyAtPoint(p,intro?240:150,intro?111:116);
   if(body){
@@ -1352,7 +1404,12 @@ canvas.addEventListener('pointerdown',ev=>{
   }
   if(ev.pointerType && ev.pointerType!=='mouse'){ state.pinnedBody=null; ev.preventDefault(); }
 });
-canvas.addEventListener('pointerup',()=>{state.mouse.down=false;state.draggingSlider=false;});
+canvas.addEventListener('pointerup',()=>{
+  const hold=state.cameraHold;
+  state.mouse.down=false;state.draggingSlider=false;
+  if(hold?.active && !hold.triggered) takeScreenshot({full:false});
+  state.cameraHold=null;
+});
 canvas.addEventListener('dblclick',()=>toggleFullscreen());
 
 function historyMove(delta){
