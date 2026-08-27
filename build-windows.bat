@@ -7,4 +7,4 @@ if not exist node_modules\.bin\electron-builder.cmd (
 )
 call npm run build:win || exit /b 1
 echo.
-echo Windows builds created in release\
+echo Windows executable created in release\

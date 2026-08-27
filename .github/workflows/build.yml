@@ -26,20 +26,11 @@ jobs:
         run: npm run check
       - name: Build web app
         run: npm run build:web
-      - name: Package web release
-        if: github.event_name != 'pull_request'
-        shell: bash
-        run: |
-          VERSION="$(node -p "require('./package.json').version")"
-          cd dist/web
-          zip -r "../Planetarium-${VERSION}-Web.zip" .
       - name: Upload web artifact
         uses: actions/upload-artifact@v4
         with:
           name: Planetarium-web
-          path: |
-            dist/web
-            dist/Planetarium-*-Web.zip
+          path: dist/web
           if-no-files-found: error
 
   windows:
@@ -58,7 +49,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Planetarium-Windows
-          path: release/*
+          path: release/Planetarium-*-Windows-x64.exe
           if-no-files-found: error
 
   release:
@@ -85,11 +76,6 @@ jobs:
           echo "Release version: ${VERSION}"
           echo "Release tag: ${TAG}"
 
-      - name: Download web build
-        uses: actions/download-artifact@v4
-        with:
-          name: Planetarium-web
-          path: artifacts/web
 
       - name: Download Windows build
         uses: actions/download-artifact@v4
@@ -97,12 +83,25 @@ jobs:
           name: Planetarium-Windows
           path: artifacts/windows
 
-      - name: Collect release assets
+      - name: Collect release executable
         shell: bash
         run: |
           mkdir -p release-assets
-          find artifacts -type f \( -name '*.zip' -o -name '*.exe' \) -exec cp {} release-assets/ \;
-          echo "Release assets:"
+          VERSION="${{ steps.release_meta.outputs.version }}"
+          EXPECTED="Planetarium-${VERSION}-Windows-x64.exe"
+          FOUND="$(find artifacts/windows -type f -name "${EXPECTED}" -print -quit)"
+          if [[ -z "${FOUND}" ]]; then
+            echo "Expected release executable ${EXPECTED} was not found." >&2
+            find artifacts/windows -maxdepth 4 -type f -print >&2 || true
+            exit 1
+          fi
+          cp "${FOUND}" "release-assets/${EXPECTED}"
+          COUNT="$(find release-assets -maxdepth 1 -type f | wc -l)"
+          if [[ "${COUNT}" -ne 1 ]]; then
+            echo "Release must contain exactly one custom asset; found ${COUNT}." >&2
+            exit 1
+          fi
+          echo "Release asset:"
           ls -lah release-assets
 
       - name: Ensure existing release can be refreshed
@@ -140,6 +139,25 @@ jobs:
               "repos/${GITHUB_REPOSITORY}/git/refs" \
               -f ref="refs/tags/${RELEASE_TAG}" \
               -f sha="${GITHUB_SHA}" >/dev/null
+          fi
+
+      - name: Remove old custom release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release_meta.outputs.tag }}
+        shell: bash
+        run: |
+          if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            while IFS= read -r ASSET; do
+              [[ -z "${ASSET}" ]] && continue
+              echo "Removing old release asset: ${ASSET}"
+              gh release delete-asset "${RELEASE_TAG}" "${ASSET}" \
+                --repo "${GITHUB_REPOSITORY}" \
+                --yes
+            done < <(gh release view "${RELEASE_TAG}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --json assets \
+              --jq '.assets[].name')
           fi
 
       - name: Create or update published GitHub Release

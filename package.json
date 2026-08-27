@@ -41,12 +41,6 @@
           "arch": [
             "x64"
           ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64"
-          ]
         }
       ],
       "artifactName": "Planetarium-${version}-Windows-${arch}.${ext}"
