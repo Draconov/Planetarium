@@ -425,7 +425,7 @@ const state = {
   input: '', temp: .50, viewMode:0, tempView:false, reverse:false, speedIndex:1, muted:false,
   phase:0, simDays:0, intro:!urlPlanet, introUntil: performance.now()+9000,
   mouse:{x:-20,y:-20,down:false,inside:false,pointerType:'mouse'},
-  draggingSlider:false, hovered:null, hoverBody:null, pinnedBody:null, rocket:null, probe:null,
+  draggingSlider:false, hovered:null, hoverBody:null, pinnedBody:null, moonHoverGrace:null, moonHoverUntil:0, rocket:null, probe:null,
   history:[], historyPos:-1, favorites:[], libraryOpen:false, libraryTab:'favorites', librarySelection:0, libraryRows:[],
   info:null, infoTitle:null, toastText:'', toastUntil:0,
   lastTime:performance.now(), twinkle:0, cameraFlash:0,
@@ -639,7 +639,7 @@ function visit(name, addHistory=true){
     storageSet('planetarium:history',JSON.stringify(state.history));
   }
   state.name=name; state.input=''; state.intro=false; state.phase=0; state.simDays=0;
-  state.rocket=null; state.probe=null; state.pinnedBody=null; state.hoverBody=null; state.libraryOpen=false;
+  state.rocket=null; state.probe=null; state.pinnedBody=null; state.hoverBody=null; state.moonHoverGrace=null; state.moonHoverUntil=0; state.libraryOpen=false;
   planet=generatePlanet(state.name);
   document.title=`${planet.name} - Planetarium`;
   syncUrl();
@@ -770,6 +770,60 @@ function populationLabel(){
 }
 function lifeTypeLabel(){ return isAlive()?planet.scan.lifeTypePotential:'NONE'; }
 function techLevelLabel(){ return isAlive()?planet.scan.techPotential:'NONE'; }
+function lifeEnvironmentKey(){
+  const t=tempC(), water=surfaceWaterPercent(), ice=iceCoverPercent(), strength=atmosphereStrength(planet);
+  if(ice>=45 || t<-22) return 'COLD';
+  if(water>=62) return 'OCEAN';
+  if(water<=12 || t>=48) return 'DRY';
+  if(strength>=1.25 || planet.atmosDensity==='SUPERDENSE') return 'DENSE';
+  if((planet.atmosChemistry||'').includes('WATER') || water>=28) return 'WET';
+  return 'TEMPERATE';
+}
+function lifeProbeObservation(){
+  if(!isAlive()) return '';
+  const env=lifeEnvironmentKey();
+  const r=mulberry32(hashString(`${planet.seed}:${env}:${lifeLabel()}:${populationLabel()}`)^0x4c494645);
+  const facts={
+    COLD:[
+      'BENEATH THE ICE, SLOW-GROWING COLONIES CLING TO POCKETS OF LIQUID WATER.',
+      'DARK ORGANISMS SHELTER BELOW GLACIERS AND EMERGE DURING BRIEF WARM PERIODS.',
+      'THE COLDEST REGIONS SUPPORT PALE, HARDY LIFE AROUND GEOTHERMAL CRACKS.'
+    ],
+    OCEAN:[
+      'THE OCEANS CONTAIN VAST MOVING BLOOMS OF LIFE, WITH LARGER CREATURES FOLLOWING THE CURRENTS.',
+      'SHALLOW SEAS SUPPORT DENSE REEFS WHILE DEEP WATER HOSTS SLOW BIOLUMINESCENT ORGANISMS.',
+      'MOST LIFE IS MARINE; COASTLINES BECOME TEMPORARY NURSERIES DURING WARM SEASONS.'
+    ],
+    DRY:[
+      'HARDY LIFE CLUSTERS IN SHADED CANYONS, DEEP SOIL AND THE FEW PLACES WHERE MOISTURE COLLECTS.',
+      'SMALL ORGANISMS REMAIN DORMANT THROUGH LONG DRY PERIODS AND BLOOM QUICKLY AFTER RAIN.',
+      'DESERT LIFE IS SPARSE BUT EXTREMELY RESILIENT, WITH MOST ACTIVITY OCCURRING BELOW GROUND.'
+    ],
+    DENSE:[
+      'THE THICK ATMOSPHERE SUPPORTS LARGE FLOATING COLONIES THAT DRIFT BETWEEN CLOUD LAYERS.',
+      'AERIAL ORGANISMS USE STRONG WINDS TO MIGRATE AROUND THE PLANET WITHOUT TOUCHING THE SURFACE.',
+      'LIFE IS CONCENTRATED IN STABLE ATMOSPHERIC LAYERS ABOVE A HOSTILE LOWER SURFACE.'
+    ],
+    WET:[
+      'WET LOWLANDS ARE CROWDED WITH FAST-GROWING LIFE THAT FOLLOWS RIVERS AND SEASONAL FLOODS.',
+      'DENSE VEGETATION-LIKE COLONIES COVER HUMID REGIONS, SUPPORTING MANY SMALLER ORGANISMS.',
+      'LIFE IS MOST ACTIVE AROUND LAKES, DELTAS AND STORM-FED BASINS.'
+    ],
+    TEMPERATE:[
+      'THE TEMPERATE REGIONS SUPPORT DIVERSE ECOSYSTEMS WITH ACTIVE PREDATORS, GRAZERS AND COLONIES.',
+      'LIFE IS WIDESPREAD ACROSS THE MILD BELTS, WITH REGIONAL SPECIES ADAPTED TO LOCAL SEASONS.',
+      'THE BIOSPHERE IS STABLE AND VARIED, WITH COMPLEX FOOD WEBS ACROSS LAND AND WATER.'
+    ]
+  };
+  return pick(r,facts[env]||facts.TEMPERATE);
+}
+function drawLifeProbeFact(x,y,maxPx=124){
+  const fact=lifeProbeObservation();
+  if(!fact) return;
+  drawText('LIFE OBSERVED',x,y,C.green,1);
+  const lines=wrapText(fact,maxPx,1).slice(0,6);
+  lines.forEach((line,i)=>drawText(line,x,y+10+i*8,C.green,1));
+}
 function iceCoverPercent(){
   if(planet.solar){
     const t=tempC();
@@ -1131,15 +1185,21 @@ function drawPlanetDeepScan(x,y){
     drawText(`ATMOS    ${compactAtmosphereChemistry()}`,x,y+57,C.yellow,1); drawText(`WEATHER  ${compactWeatherLabel()}`,x,y+66,atmosphereAccentColor(),1);
     drawText(`ROTATION ${planet.dayHours.toFixed(2)} H`,x,y+75,C.white,1); drawText(`YEAR     ${planet.yearDays} D`,x,y+84,C.white,1);
     if(planet.ring) drawText(`RINGS    ${ringStyleLabel().replace(' MULTIBAND','')}`,x,y+93,planet.ringColor||C.purple,1);
-    drawText('ANOMALY',x,y+(planet.ring?105:96),C.purple,1); const ay=y+(planet.ring?115:106),lines=wrapText(d.anomaly,Math.max(72,W-x-6),1).slice(0,6);
-    lines.forEach((line,i)=>drawText(line,x,ay+i*8,d.anomaly==='NONE'?C.brown:C.yellow,1)); return;
+    const anomalyY=y+(planet.ring?105:96), ay=y+(planet.ring?115:106);
+    drawText('ANOMALY',x,anomalyY,C.purple,1);
+    const lines=wrapText(d.anomaly,Math.max(72,W-x-6),1).slice(0,6);
+    lines.forEach((line,i)=>drawText(line,x,ay+i*8,d.anomaly==='NONE'?C.brown:C.yellow,1));
+    drawLifeProbeFact(x,ay+lines.length*8+11,Math.max(72,W-x-6));
+    return;
   }
   drawText(`AGE      ${d.ageBy.toFixed(1)} BY`,x,y+12,C.white,1); drawText(`PRESS    ${d.pressureAtm.toFixed(2)} ATM`,x,y+21,C.white,1); drawText(`MAG      ${d.magField}`,x,y+30,C.cyan,1);
   drawText(`O2       ${d.oxygen.toFixed(1)}%`,x,y+39,C.green,1); drawText(`N2       ${d.nitrogen.toFixed(1)}%`,x,y+48,C.blue,1); drawText(`CO2      ${d.co2.toFixed(1)}%`,x,y+57,C.yellow,1);
   drawText(`WEATHER  ${compactWeatherLabel()}`,x,y+66,atmosphereAccentColor(),1); drawText(`TECTONIC ${d.tectonics}`,x,y+75,C.white,1); drawText(`VOLCANIC ${d.volcanism}`,x,y+84,C.red,1);
   drawText(`OCEAN    ${d.oceanDepthKm.toFixed(1)} KM`,x,y+93,C.cyan,1); drawText(`ICE      ${iceCoverPercent()}%`,x,y+102,C.white,1); drawText(`LIFE     ${lifeTypeLabel()}`,x,y+111,isAlive()?C.green:C.brown,1);
   drawText(`TECH     ${techLevelLabel()}`,x,y+120,C.purple,1); drawText(`FE ${d.iron}  C ${d.carbon}`,x,y+129,C.brown,1); drawText(`U  ${d.uranium}`,x,y+138,C.brown,1); drawText('ANOMALY',x,y+150,C.purple,1);
-  const lines=wrapText(d.anomaly,Math.max(72,W-x-6),1).slice(0,4); lines.forEach((line,i)=>drawText(line,x,y+160+i*8,d.anomaly==='NONE'?C.brown:C.yellow,1));
+  const lines=wrapText(d.anomaly,Math.max(72,W-x-6),1).slice(0,4);
+  lines.forEach((line,i)=>drawText(line,x,y+160+i*8,d.anomaly==='NONE'?C.brown:C.yellow,1));
+  drawLifeProbeFact(x,y+160+lines.length*8+11,Math.max(72,W-x-6));
 }
 function drawPlanetHover(cx,cy){
   const x=clamp(Math.round(cx+planet.rx+18),202,220),y=38;
@@ -1148,7 +1208,7 @@ function drawPlanetHover(cx,cy){
   drawText(`WEATHER    ${weatherLabel()}`,x,y+67,atmosphereAccentColor(),1); drawText(`BIOSPHERE  ${lifeLabel()}`,x,y+76,isAlive()?C.green:C.brown,1); drawText(`POPULATION ${populationLabel()}`,x,y+85,isAlive()?C.green:C.brown,1);
   drawText(`DAY        ${planet.dayHours.toFixed(1)} H`,x,y+94,C.white,1); drawText(`YEAR       ${planet.yearDays} D`,x,y+103,C.white,1); drawText(`${planet.solar&&['JUPITER','SATURN','URANUS','NEPTUNE'].includes(planet.name)?'SHOWN MOONS':'MOONS      '} ${planet.moons}`,x,y+112,C.purple,1);
   const ringOffset=planet.ring?9:0; if(planet.ring)drawText(`RING       ${ringStyleLabel()}`,x,y+121,planet.ringColor||C.purple,1); const scanned=isScanned({type:'planet'});
-  if(scanned) drawPlanetDeepScan(x+130,y); else { drawText('PROBE DATA LOCKED',x,y+125+ringOffset,C.purple,1); const txt=planet.special?.text||(isAlive()?planet.lifeText:planet.noLifeText); if(txt){drawText('OBSERVATION',x,y+139+ringOffset,C.purple,1);const maxPx=Math.min(128,W-x-5),lines=wrapText(txt,maxPx,1),visible=lines.slice(0,7);visible.forEach((line,i)=>drawText(line,x,y+149+ringOffset+i*8,isAlive()?C.green:C.brown,1));if(lines.length>visible.length)drawText('...',x,y+149+ringOffset+visible.length*8,C.purple,1);}}
+  if(scanned) drawPlanetDeepScan(x+130,y); else drawText('PROBE DATA LOCKED',x,y+125+ringOffset,C.purple,1);
 }
 function drawMoonDeepScan(m,x,y){
   const d=m.scan;
@@ -1296,7 +1356,7 @@ function probeTargetPosition(body,cx,cy){
 }
 function launchProbe(targetOverride=null){
   if(state.probe && !['complete','lost'].includes(state.probe.phase)){ showToast('PROBE ALREADY IN FLIGHT'); return; }
-  const target=bodyRef(targetOverride||state.hoverBody||state.pinnedBody||{type:'planet'});
+  const target=bodyRef(targetOverride||state.pinnedBody||state.hoverBody||{type:'planet'});
   if(isScanned(target)){
     state.pinnedBody=target; showToast('PROBE DATA ALREADY AVAILABLE'); return;
   }
@@ -1408,9 +1468,20 @@ function render(t){
   drawProbe(cx,cy);
   drawRocket(t);
   if(!intro){
-    const hovered=!state.libraryOpen&&state.mouse.inside?bodyAtPoint(state.mouse,cx,cy):null;
+    let hovered=!state.libraryOpen&&state.mouse.inside?bodyAtPoint(state.mouse,cx,cy):null;
+    if(hovered?.type==='moon'){
+      state.moonHoverGrace=bodyRef(hovered);
+      state.moonHoverUntil=t+3000;
+    }else if(hovered?.type==='planet'){
+      state.moonHoverGrace=null;
+      state.moonHoverUntil=0;
+    }else if(!hovered && state.moonHoverGrace && t<state.moonHoverUntil){
+      hovered=state.moonHoverGrace;
+    }else if(t>=state.moonHoverUntil){
+      state.moonHoverGrace=null;
+    }
     state.hoverBody=hovered;
-    const body=hovered || state.pinnedBody;
+    const body=state.pinnedBody || hovered;
     if(!cleanCapture && body?.type==='moon') drawMoonOrbit(planet.moonData[body.index],cx,cy,true);
     if(!cleanCapture && !state.info && body?.type!=='planet') drawBaseLabel(cx,cy);
     if(!cleanCapture){
@@ -1496,7 +1567,7 @@ function buttonAtPoint(p){
 }
 canvas.addEventListener('pointermove',ev=>{ const p=getPoint(ev);state.mouse={...state.mouse,...p,inside:true,pointerType:ev.pointerType||'mouse'};if(state.draggingSlider)updateSliderFromPoint(p); if(state.cameraHold && state.cameraHold.active && (!buttonAtPoint(p) || buttonAtPoint(p).id!=='camera')) state.cameraHold=null; });
 canvas.addEventListener('pointerenter',ev=>{const p=getPoint(ev);state.mouse={...state.mouse,...p,inside:true,pointerType:ev.pointerType||'mouse'};});
-canvas.addEventListener('pointerleave',()=>{state.mouse.inside=false;state.draggingSlider=false;state.mouse.down=false;state.cameraHold=null;if(state.mouse.pointerType==='mouse')state.hoverBody=null;});
+canvas.addEventListener('pointerleave',()=>{state.mouse.inside=false;state.draggingSlider=false;state.mouse.down=false;state.cameraHold=null;if(state.mouse.pointerType==='mouse' && !state.moonHoverGrace)state.hoverBody=null;});
 canvas.addEventListener('pointerdown',ev=>{
   startAudio();canvas.focus();const p=getPoint(ev);state.mouse={...state.mouse,...p,down:true,inside:true,pointerType:ev.pointerType||'mouse'};
   if(handleLibraryPointer(p)){ev.preventDefault();return;}
@@ -1512,9 +1583,14 @@ canvas.addEventListener('pointerdown',ev=>{
   const body=bodyAtPoint(p,intro?240:150,intro?111:116);
   if(body){
     state.pinnedBody=sameBody(state.pinnedBody,body)?null:body;
+    state.moonHoverGrace=body.type==='moon'?bodyRef(body):null;
+    state.moonHoverUntil=body.type==='moon'?performance.now()+3000:0;
     ev.preventDefault(); return;
   }
-  if(ev.pointerType && ev.pointerType!=='mouse'){ state.pinnedBody=null; ev.preventDefault(); }
+  state.pinnedBody=null;
+  state.moonHoverGrace=null;
+  state.moonHoverUntil=0;
+  if(ev.pointerType && ev.pointerType!=='mouse') ev.preventDefault();
 });
 canvas.addEventListener('pointerup',()=>{
   const hold=state.cameraHold;
@@ -1567,7 +1643,7 @@ window.addEventListener('keydown',ev=>{
   if(!state.input && ev.key.toLowerCase()==='f'){ev.preventDefault();toggleFavorite();return;}
   if(!state.input && ev.key.toLowerCase()==='l'){ev.preventDefault();state.libraryOpen=!state.libraryOpen;state.librarySelection=0;return;}
   if(!state.input && ev.key.toLowerCase()==='c'){ev.preventDefault();sharePlanet();return;}
-  if(!state.input && ev.key.toLowerCase()==='p'){ev.preventDefault();launchProbe(state.hoverBody||state.pinnedBody||{type:'planet'});return;}
+  if(!state.input && ev.key.toLowerCase()==='p'){ev.preventDefault();launchProbe(state.pinnedBody||state.hoverBody||{type:'planet'});return;}
   if(ev.key==='Tab'){ev.preventDefault();doAction('temp');return;}
   if(ev.key==='ArrowLeft'){ev.preventDefault();setTemp(state.temp-.0125);state.intro=false;return;}
   if(ev.key==='ArrowRight'){ev.preventDefault();setTemp(state.temp+.0125);state.intro=false;return;}
