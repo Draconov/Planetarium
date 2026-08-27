@@ -422,8 +422,8 @@ function storageSet(key,v){ try { localStorage.setItem(key,v); } catch {} }
 
 const state = {
   name: urlPlanet || storageGet('planetarium:lastName','PLANET'),
-  input: '', temp: .50, viewMode:0, tempView:false, reverse:false, speedIndex:1, muted:false,
-  phase:0, simDays:0, intro:!urlPlanet, introUntil: performance.now()+9000,
+  input: '', enteringName:false, temp: .50, viewMode:0, tempView:false, reverse:false, speedIndex:1, muted:false,
+  phase:0, simDays:0, intro:!urlPlanet, introUntil: Infinity,
   mouse:{x:-20,y:-20,down:false,inside:false,pointerType:'mouse'},
   draggingSlider:false, hovered:null, hoverBody:null, pinnedBody:null, moonHoverGrace:null, moonHoverUntil:0, rocket:null, probe:null, spaceLaunchSerial:0,
   history:[], historyPos:-1, favorites:[], libraryOpen:false, libraryTab:'favorites', librarySelection:0, libraryRows:[],
@@ -690,7 +690,7 @@ function visit(name, addHistory=true){
     state.history=state.history.slice(-40); state.historyPos=state.history.length;
     storageSet('planetarium:history',JSON.stringify(state.history));
   }
-  state.name=name; state.input=''; state.intro=false; state.phase=0; state.simDays=0;
+  state.name=name; state.input=''; state.enteringName=false; state.intro=false; state.phase=0; state.simDays=0;
   state.rocket=null; state.probe=null; state.spaceLaunchSerial=0; state.pinnedBody=null; state.hoverBody=null; state.moonHoverGrace=null; state.moonHoverUntil=0; state.libraryOpen=false;
   planet=generatePlanet(state.name);
   normalizeViewModeForPlanet();
@@ -1490,14 +1490,29 @@ function drawButtons(){
   }
 }
 function drawEntry(t){
-  if(state.input){
+  if(state.enteringName){
     const caret=((t/430)|0)%2===0?'_':'';
     const s=`> ${state.input}${caret}`;
     drawText(s,240,238,C.white,1,'center');
-  } else if(state.intro && t<state.introUntil){
-    drawText('TYPE IN A NAME AND PRESS ENTER TO VISIT THAT PLANET',240,235,C.white,1,'center');
-    drawText('CLICK THE QUESTION MARK (OR PRESS 0) TO GO TO A RANDOM PLANET',240,247,C.white,1,'center');
   }
+}
+function drawTitleCard(t){
+  const blink=((t/560)|0)%2===0;
+  drawText('PLANETARIUM',240,34,C.white,2,'center');
+  drawText("CAPTAIN'S BRIEFING",240,65,C.purple,1,'center');
+
+  drawText('YOU ARE THE CAPTAIN OF A DEEP-SPACE',240,89,C.white,1,'center');
+  drawText('EXPLORATION SHIP CROSSING AN INFINITE',240,99,C.white,1,'center');
+  drawText('GALAXY IN SEARCH OF NEW WORLDS, LIFE,',240,109,C.white,1,'center');
+  drawText('ANOMALIES AND OTHER SURPRISES.',240,119,C.white,1,'center');
+
+  drawText('EVERY NAME IS A DESTINATION.',240,141,C.green,1,'center');
+  drawText('PRESS ENTER TO OPEN DESTINATION ENTRY',240,163,C.cyan,1,'center');
+  drawText('HOVER WORLDS AND MOONS TO INSPECT THEM',240,175,C.blue,1,'center');
+  drawText('LAUNCH PROBES TO REVEAL DEEPER SECRETS',240,187,C.purple,1,'center');
+  drawText('MORE CONTROLS REVEAL THEMSELVES ON HOVER',240,199,C.brown,1,'center');
+
+  if(blink) drawText('ENTER -> TYPE A NAME -> ENTER',240,231,C.white,1,'center');
 }
 function finishRocketMission(r){
   const civ=planet.civilization;
@@ -1654,8 +1669,14 @@ function render(t){
   state.phase=mod(state.phase+dt*rotationRate*speed*dir,1);
   const cleanCapture=state.captureMode==='clean';
   drawStars(t);
-  const intro=state.intro && t<state.introUntil && !state.input;
-  const cx=intro?240:150, cy=intro?111:116;
+  const intro=state.intro;
+  if(intro && !cleanCapture){
+    drawTitleCard(t);
+    drawCursor();
+    requestAnimationFrame(render);
+    return;
+  }
+  const cx=150, cy=116;
   drawPlanet(cx,cy,t);
   drawProbe(cx,cy);
   drawRocket(t);
@@ -1762,6 +1783,7 @@ canvas.addEventListener('pointerenter',ev=>{const p=getPoint(ev);state.mouse={..
 canvas.addEventListener('pointerleave',()=>{state.mouse.inside=false;state.draggingSlider=false;state.mouse.down=false;state.cameraHold=null;if(state.mouse.pointerType==='mouse' && !state.moonHoverGrace)state.hoverBody=null;});
 canvas.addEventListener('pointerdown',ev=>{
   startAudio();canvas.focus();const p=getPoint(ev);state.mouse={...state.mouse,...p,down:true,inside:true,pointerType:ev.pointerType||'mouse'};
+  if(state.intro){ ev.preventDefault(); return; }
   if(handleLibraryPointer(p)){ev.preventDefault();return;}
   if(sliderHit(p)){state.draggingSlider=true;updateSliderFromPoint(p);ev.preventDefault();return;}
   const button=buttonAtPoint(p);
@@ -1771,7 +1793,7 @@ canvas.addEventListener('pointerdown',ev=>{
     ev.preventDefault();
     return;
   }
-  const intro=state.intro && performance.now()<state.introUntil && !state.input;
+  const intro=state.intro;
   const body=bodyAtPoint(p,intro?240:150,intro?111:116);
   if(body){
     state.pinnedBody=sameBody(state.pinnedBody,body)?null:body;
@@ -1817,12 +1839,29 @@ window.addEventListener('keydown',ev=>{
     state.libraryOpen=false;
     state.pinnedBody=null;
     state.input='';
+    state.enteringName=false;
     state.info=INFO_CARDS[exitMessage];
     state.infoTitle=exitMessage;
     state.intro=false;
     return;
   }
   if(ev.altKey && ev.key==='Enter'){ev.preventDefault();toggleFullscreen();return;}
+  if(ev.key==='Enter'){
+    ev.preventDefault();
+    if(state.enteringName){
+      if(state.input.trim()) visit(state.input);
+      return;
+    }
+    state.intro=false;
+    state.enteringName=true;
+    state.input='';
+    state.historyPos=-1;
+    state.libraryOpen=false;
+    state.info=null;
+    state.infoTitle=null;
+    return;
+  }
+  if(state.intro) return;
   if(state.libraryOpen){
     const items=libraryItems().slice(0,11);
     if(ev.key.toLowerCase()==='l'){ev.preventDefault();state.libraryOpen=false;return;}
@@ -1830,32 +1869,30 @@ window.addEventListener('keydown',ev=>{
     if(ev.key.toLowerCase()==='r'){ev.preventDefault();state.libraryTab='recent';state.librarySelection=0;return;}
     if(ev.key==='ArrowUp'){ev.preventDefault();state.librarySelection=clamp(state.librarySelection-1,0,Math.max(0,items.length-1));return;}
     if(ev.key==='ArrowDown'){ev.preventDefault();state.librarySelection=clamp(state.librarySelection+1,0,Math.max(0,items.length-1));return;}
-    if(ev.key==='Enter'&&items[state.librarySelection]){ev.preventDefault();visit(items[state.librarySelection]);return;}
   }
-  if(!state.input && ev.key.toLowerCase()==='f'){ev.preventDefault();toggleFavorite();return;}
-  if(!state.input && ev.key.toLowerCase()==='l'){ev.preventDefault();state.libraryOpen=!state.libraryOpen;state.librarySelection=0;return;}
-  if(!state.input && ev.key.toLowerCase()==='c'){ev.preventDefault();sharePlanet();return;}
-  if(!state.input && ev.key.toLowerCase()==='p'){ev.preventDefault();launchProbe(state.pinnedBody||state.hoverBody||{type:'planet'});return;}
-  if(ev.key==='Tab'){ev.preventDefault();doAction('temp');return;}
-  if(ev.key==='ArrowLeft'){ev.preventDefault();setTemp(state.temp-.0125);state.intro=false;return;}
-  if(ev.key==='ArrowRight'){ev.preventDefault();setTemp(state.temp+.0125);state.intro=false;return;}
-  if(ev.key==='ArrowDown' && !state.input){ev.preventDefault();setTemp(state.temp-.0125);state.intro=false;return;}
-  if(ev.key==='ArrowUp' && !state.input){ev.preventDefault();setTemp(state.temp+.0125);state.intro=false;return;}
-  if(ev.key==='ArrowUp' && state.input){ev.preventDefault();historyMove(-1);return;}
-  if(ev.key==='ArrowDown' && state.input){ev.preventDefault();historyMove(1);return;}
-  if(ev.key==='Enter'){
-    ev.preventDefault();if(state.input.trim())visit(state.input);else state.intro=false;return;
+  if(!state.enteringName && ev.key.toLowerCase()==='f'){ev.preventDefault();toggleFavorite();return;}
+  if(!state.enteringName && ev.key.toLowerCase()==='l'){ev.preventDefault();state.libraryOpen=!state.libraryOpen;state.librarySelection=0;return;}
+  if(!state.enteringName && ev.key.toLowerCase()==='c'){ev.preventDefault();sharePlanet();return;}
+  if(!state.enteringName && ev.key.toLowerCase()==='p'){ev.preventDefault();launchProbe(state.pinnedBody||state.hoverBody||{type:'planet'});return;}
+  if(state.enteringName){
+    if(ev.key==='ArrowUp'){ev.preventDefault();historyMove(-1);return;}
+    if(ev.key==='ArrowDown'){ev.preventDefault();historyMove(1);return;}
   }
-  if(ev.key==='Backspace'){ev.preventDefault();state.input=state.input.slice(0,-1);return;}
-  if(ev.key==='0' && !state.input){ev.preventDefault();doAction('random');return;}
-  if(ev.key==='1' && !state.input){ev.preventDefault();doAction('reverse');return;}
-  if(ev.key==='2' && !state.input){ev.preventDefault();doAction('fast');return;}
-  if(ev.key==='3' && !state.input){ev.preventDefault();doAction('rocket');return;}
-  if(ev.key==='4' && !state.input){ev.preventDefault();doAction('camera');return;}
-  if(ev.key==='5' && !state.input){ev.preventDefault();doAction('mute');return;}
-  if(ev.key==='?' && !state.input){ev.preventDefault();doAction('random');return;}
-  if(!ev.ctrlKey&&!ev.metaKey&&!ev.altKey&&ev.key.length===1 && /[ -~]/.test(ev.key)){
-    ev.preventDefault();state.input=(state.input+ev.key).slice(0,60).toUpperCase();state.intro=false;
+  if(!state.enteringName && ev.key==='Tab'){ev.preventDefault();doAction('temp');return;}
+  if(!state.enteringName && ev.key==='ArrowLeft'){ev.preventDefault();setTemp(state.temp-.0125);state.intro=false;return;}
+  if(!state.enteringName && ev.key==='ArrowRight'){ev.preventDefault();setTemp(state.temp+.0125);state.intro=false;return;}
+  if(ev.key==='ArrowDown' && !state.enteringName){ev.preventDefault();setTemp(state.temp-.0125);state.intro=false;return;}
+  if(ev.key==='ArrowUp' && !state.enteringName){ev.preventDefault();setTemp(state.temp+.0125);state.intro=false;return;}
+  if(ev.key==='Backspace' && state.enteringName){ev.preventDefault();state.input=state.input.slice(0,-1);return;}
+  if(ev.key==='0' && !state.enteringName){ev.preventDefault();doAction('random');return;}
+  if(ev.key==='1' && !state.enteringName){ev.preventDefault();doAction('reverse');return;}
+  if(ev.key==='2' && !state.enteringName){ev.preventDefault();doAction('fast');return;}
+  if(ev.key==='3' && !state.enteringName){ev.preventDefault();doAction('rocket');return;}
+  if(ev.key==='4' && !state.enteringName){ev.preventDefault();doAction('camera');return;}
+  if(ev.key==='5' && !state.enteringName){ev.preventDefault();doAction('mute');return;}
+  if(ev.key==='?' && !state.enteringName){ev.preventDefault();doAction('random');return;}
+  if(state.enteringName && !ev.ctrlKey&&!ev.metaKey&&!ev.altKey&&ev.key.length===1 && /[ -~]/.test(ev.key)){
+    ev.preventDefault();state.input=(state.input+ev.key).slice(0,60).toUpperCase();
   }
 });
 
