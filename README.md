@@ -67,6 +67,14 @@ This repository is a source reconstruction of the original Planetarium project a
 - Moon motion derived from its generated orbital period and the time controls
 - Hover planet details: class, temperature, radius, gravity, water, atmosphere, life, day and year
 - Hover moon details: name, orbit distance, orbital period and moon radius
+- Contextual probe targeting: click a planet or moon to pin it as the probe target
+- Launch Probe button and **P** shortcut
+- Visible probe flight and scanning sequence with ETA affected by the time-speed control
+- Persistent deep-scan unlocks stored locally per planet and moon
+- Planet deep scans: age, atmospheric pressure and gases, magnetic field, tectonics, volcanism, ocean depth, ice cover, life type, technology level and resource abundance
+- Moon deep scans: temperature, gravity, surface type, atmosphere, water ice, activity and anomalies
+- Deterministic anomalies and discoveries, including rare first-mission probe loss events
+- Word-based life population levels from **TRACE** through **MASSIVE**
 - Touch/tap object inspection on devices without hover
 - Favorites and recent-planet library stored locally
 - Shareable planet URLs containing planet name and temperature
@@ -101,6 +109,8 @@ This repository is a source reconstruction of the original Planetarium project a
 | **F** | Add/remove the current planet from Favorites |
 | **L** | Open/close the Favorites and Recent library |
 | **C** | Copy a shareable link for the current planet |
+| **P** | Launch a probe at the hovered/pinned body, or the planet by default |
+| Click planet/moon | Pin/unpin it as the probe target |
 | Hover planet | Show generated planet information |
 | Hover moon | Show moon name, orbit and orbital period |
 | Tap planet/moon | Pin/unpin its information on touch devices |
@@ -115,9 +125,21 @@ Version 1.1.0 keeps the original minimalist single-planet view and adds depth wi
 
 ### Contextual object information
 
-Planet information appears only while the pointer is over the planet. The generated values include world class, temperature, Earth-relative radius, gravity, surface water, atmosphere, life level, day length and year length. The compact always-visible label remains limited to the planet name and radius.
+Planet information appears only while the pointer is over the planet. The generated values include world class, temperature, Earth-relative radius, gravity, surface water, atmosphere, biosphere level, word-based population amount, day length and year length. The compact always-visible label remains limited to the planet name and radius. Deep-scan data stays hidden until a probe mission succeeds.
 
 Every generated moon now has a deterministic name, physical orbit distance, moon radius and orbital period. Hovering a moon reveals those values beside that moon. Moon movement is derived from its orbital period, and reverse/fast-forward controls affect the orbital simulation. On touch devices, tapping a planet or moon pins the same contextual information until another object or empty space is tapped.
+
+### Launch Probe and deep scans
+
+The bottom control bar includes a **Launch Probe** control. Press **P** or click the probe button to launch toward the currently hovered or pinned celestial body; if no moon is selected, the planet is targeted.
+
+Probe missions are intentionally lightweight rather than a separate upgrade/game system. A tiny probe visibly flies toward the target, reports an ETA, enters a scanning phase and then unlocks persistent deep-scan information. The existing time-speed control accelerates probe missions, while reverse time does not rewind a launched probe.
+
+Planet deep scans reveal generated scientific details such as age, atmospheric pressure and major gases, magnetic field, tectonics, volcanism, ocean depth, ice coverage, life type, population, technology level, resource abundance and a possible anomaly. Moon scans reveal temperature, gravity, composition, atmosphere, water ice, geological activity and a possible anomaly.
+
+A small number of targets can deterministically lose the first probe with **PROBE LOST - CAUSE UNKNOWN**. The loss is remembered locally, so a second mission can still complete the scan. Completed scans are also remembered locally and are regenerated deterministically whenever that named planet is revisited.
+
+The normal interface remains intentionally minimal: basic information appears on hover, while the additional scientific data only appears after the relevant body has been scanned.
 
 ### Favorites and recent planets
 
@@ -363,9 +385,8 @@ Planetarium/
 |   `-- workflows/
 |       |-- build.yml          # CI, desktop/web builds and releases
 |       `-- pages.yml          # GitHub Pages deployment
-|-- build/
-|   `-- icon.ico               # Windows packaging icon
 |-- src-tauri/
+|   |-- icons/                 # Windows application icon
 |   |-- src/                   # Minimal Rust/Tauri desktop shell
 |   |-- capabilities/          # Tauri permissions
 |   |-- Cargo.toml             # Rust dependencies and size-optimized release profile
@@ -385,7 +406,7 @@ Planetarium/
 |-- build-windows.bat
 |-- run-dev.bat
 |-- run-desktop.bat
-|-- package.json
+|-- package.json              # Version, scripts and Tauri CLI dependency
 |-- preview.png
 `-- README.md
 ```

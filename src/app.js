@@ -16,6 +16,7 @@ const UI = {
   sliderX: 8, sliderY: 254, sliderW: 162,
   buttonY: 251,
   buttons: [
+    { id:'probe', x:326, key:'P', icon:null, tip:'LAUNCH PROBE' },
     { id:'temp', x:346, key:'TAB', icon:'s_UI_temp', tip:'TEMPERATURE VIEW' },
     { id:'reverse', x:366, key:'1', icon:'s_UI_reverse', tip:'REVERSE TIME' },
     { id:'fast', x:386, key:'2', icon:'s_UI_fastforward', tip:'TIME SPEED' },
@@ -33,6 +34,7 @@ const assetNames = {
   sliderFrontAlt: 's_UI_slider_front_01.png',
   rocketSprite: 's_rocket_00.png',
   cursor0: 's_cursor_00.png', cursor1: 's_cursor_01.png', cursor2: 's_cursor_02.png',
+  focusTL: 's_cursor_ext_00.png', focusTR: 's_cursor_ext_01.png', focusBR: 's_cursor_ext_02.png', focusBL: 's_cursor_ext_03.png',
   reverse: 's_UI_reverse_00.png', fast: 's_UI_fastforward_00.png', rocket: 's_UI_rocket_00.png',
   camera: 's_UI_camera_00.png', mute: 's_UI_mute_00.png', random: 's_UI_random_00.png'
 };
@@ -139,6 +141,26 @@ function drawParagraph(text,x,y,maxPx,color=C.white,scale=1,lineH=8){
   return y+lines.length*lineH;
 }
 
+function hoverActive(){ return state.mouse.inside && state.mouse.pointerType!=='touch'; }
+function pointInRect(p,x,y,w,h){ return !!p && p.x>=x && p.x<=x+w && p.y>=y && p.y<=y+h; }
+function drawFocusFrame(x,y,w,h){
+  x=Math.round(x); y=Math.round(y); w=Math.max(5,Math.round(w)); h=Math.max(5,Math.round(h));
+  const tl=asset.focusTL, tr=asset.focusTR, br=asset.focusBR, bl=asset.focusBL;
+  if([tl,tr,br,bl].every(im=>im&&im.complete&&im.naturalWidth)){
+    ctx.drawImage(tl,x-1,y-1);
+    ctx.drawImage(tr,x+w-7,y-1);
+    ctx.drawImage(br,x+w-7,y+h-7);
+    ctx.drawImage(bl,x-1,y+h-7);
+    return;
+  }
+  ctx.fillStyle=C.white;
+  const arm=3;
+  ctx.fillRect(x,y,arm,1); ctx.fillRect(x,y,1,arm);
+  ctx.fillRect(x+w-arm,y,arm,1); ctx.fillRect(x+w-1,y,1,arm);
+  ctx.fillRect(x,y+h-1,arm,1); ctx.fillRect(x,y+h-arm,1,arm);
+  ctx.fillRect(x+w-arm,y+h-1,arm,1); ctx.fillRect(x+w-1,y+h-arm,1,arm);
+}
+
 const syllA=['AR','BEL','CA','DA','EL','FEN','GA','HEL','IO','JAR','KA','LUM','MER','NO','OR','PHA','QUA','RAN','SOL','TA','UR','VEL','WY','XAN','YOR','ZEN'];
 const syllB=['A','AE','ARA','EN','ER','IA','ION','IS','ON','ORA','OS','UM','US','YR'];
 const suffix=['',' PRIME',' II',' III',' IV',' V',' MINOR',' MAJOR',' OMICRON',' BETA'];
@@ -209,7 +231,7 @@ const SPECIALS = {
   'TERRA': { text:'THE BIRTHPLACE OF THE HUMAN RACE, BEFORE THEY FLED TO SARDONIA AND BEYOND. IS THAT BOB? HI, BOB!', life:true },
 };
 const INFO_CARDS = {
-  'WHAT DO I DO?': 'CLICK AND DRAG THE SLIDER (OR PRESS LEFT AND RIGHT) TO CHANGE THE HEAT OF THE PLANET. TYPE IN NEW PLACES TO VISIT, OR PRESS ? / 0 FOR A RANDOM PLANET. HOVER A PLANET OR MOON FOR DETAILS. PRESS F FOR FAVORITES, L FOR THE PLANET LIBRARY, AND C TO COPY A SHAREABLE LINK. THERE IS NO PURPOSE, SO JUST HAVE FUN!',
+  'WHAT DO I DO?': 'CLICK AND DRAG THE SLIDER (OR PRESS LEFT AND RIGHT) TO CHANGE THE HEAT OF THE PLANET. TYPE IN NEW PLACES TO VISIT, OR PRESS ? / 0 FOR A RANDOM PLANET. HOVER A PLANET OR MOON FOR DETAILS. CLICK A BODY TO TARGET IT, THEN PRESS P OR THE PROBE BUTTON FOR A DEEP SCAN. PRESS F FOR FAVORITES, L FOR THE PLANET LIBRARY, AND C TO COPY A SHAREABLE LINK. THERE IS NO PURPOSE, SO JUST HAVE FUN!',
   'SO YOU WANT TO LEAVE ME?': 'PRESS ESCAPE, ALT+F4, OR BETTER YET JUST STAY HERE AND SIT AMONG THE STARS!',
   "SO WHAT'S ALL THIS THEN?": 'THIS THING WAS MADE BY DANIEL LINSSEN WITH MUSIC BY DUBMOOD AS A SIDE PROJECT FOR HIS OWN AMUSEMENT. THIS RECONSTRUCTION USES NEW CODE AND THE ASSETS RECOVERED FROM YOUR COPY.',
   'WHERE CAN I GO FOR MORE?': 'THE ORIGINAL PLANETARIUM WAS MADE BY DANIEL LINSSEN. VISIT MANAGORE.ITCH.IO FOR HIS GAMES.'
@@ -223,7 +245,7 @@ const state = {
   input: '', temp: .50, tempView:false, reverse:false, speedIndex:1, muted:false,
   phase:0, simDays:0, intro:!urlPlanet, introUntil: performance.now()+9000,
   mouse:{x:-20,y:-20,down:false,inside:false,pointerType:'mouse'},
-  draggingSlider:false, hovered:null, hoverBody:null, pinnedBody:null, rocket:null,
+  draggingSlider:false, hovered:null, hoverBody:null, pinnedBody:null, rocket:null, probe:null,
   history:[], historyPos:-1, favorites:[], libraryOpen:false, libraryTab:'favorites', librarySelection:0, libraryRows:[],
   info:null, infoTitle:null, toastText:'', toastUntil:0,
   lastTime:performance.now(), twinkle:0, cameraFlash:0
@@ -235,6 +257,61 @@ state.favorites=[...new Set(state.favorites.filter(v=>typeof v==='string').map(v
 
 let planet=null;
 function pick(r, arr){ return arr[Math.floor(r()*arr.length)]; }
+
+const POPULATION_WORDS=['NONE','TRACE','VERY FEW','FEW','SOME','MANY','VERY MANY','ABUNDANT','MASSIVE'];
+const RESOURCE_LEVELS=['TRACE','POOR','COMMON','RICH','ABUNDANT'];
+const PLANET_ANOMALIES=[
+  'NONE','NONE','NONE','ARTIFICIAL RADIO SIGNAL','ANCIENT RUINS','MASSIVE CRYSTALLINE FORMATIONS',
+  'SUBSURFACE OCEAN','UNUSUAL MAGNETIC ACTIVITY','ABANDONED STRUCTURES','ORBITAL DEBRIS OF UNKNOWN ORIGIN',
+  'MEGAFAUNA MIGRATION','IMPOSSIBLE GEOLOGICAL FORMATIONS','ARTIFICIAL SATELLITE','SUBSURFACE MICROBIAL LIFE'
+];
+const MOON_ANOMALIES=[
+  'NONE','NONE','NONE','NONE','HOLLOW REGION','SUBSURFACE OCEAN','UNUSUAL MAGNETIC FIELD',
+  'ARTIFICIAL REFLECTOR','ANCIENT IMPACT STRUCTURE','CRYSTALLINE CAVES','RADIO ECHO'
+];
+function makePlanetScan(p){
+  const r=mulberry32((p.seed^0x74c2e317)>>>0);
+  p.populationBase=2+Math.floor(r()*7);
+  const pressureRanges={TRACE:[.01,.12],THIN:[.18,.78],NORMAL:[.78,1.68],DENSE:[1.7,6.8]};
+  const pr=pressureRanges[p.atmosDensity]||[.5,1.5];
+  let oxygen=(p.populationBase>=4?10+r()*19:r()*4);
+  if(p.atmosChemistry==='METHANE'||p.atmosChemistry==='SULFUR'||p.atmosChemistry==='EXOTIC') oxygen*=.16;
+  let co2=p.atmosChemistry==='CO2 RICH'?(18+r()*47):(0.1+r()*5.5);
+  if(p.atmosChemistry==='METHANE') co2*=.45;
+  const other=5+r()*14;
+  let nitrogen=Math.max(0,100-oxygen-co2-other);
+  oxygen=Math.round(oxygen*10)/10; co2=Math.round(co2*10)/10; nitrogen=Math.round(nitrogen*10)/10;
+  const complexity=p.populationBase<=3?'MICROBIAL':p.populationBase<=5?'SIMPLE':p.populationBase<=7?'COMPLEX':'INTELLIGENT';
+  const tech=complexity==='INTELLIGENT'?pick(r,['PRIMITIVE','PRE-INDUSTRIAL','INDUSTRIAL','EARLY SPACEFLIGHT']):'NONE';
+  p.scan={
+    ageBy:Math.round((.45+r()*10.6)*10)/10,
+    pressureAtm:Math.round((pr[0]+r()*(pr[1]-pr[0]))*100)/100,
+    magField:pick(r,['NONE','WEAK','MODERATE','STRONG','EXTREME']),
+    oxygen,nitrogen,co2,
+    tectonics:pick(r,['DORMANT','LOW','ACTIVE','ACTIVE','VIOLENT']),
+    volcanism:pick(r,['NONE','LOW','LOW','MODERATE','HIGH']),
+    oceanDepthKm:Math.round((.15+p.water*7.4+r()*2.1)*10)/10,
+    lifeTypePotential:complexity,
+    techPotential:tech,
+    iron:pick(r,RESOURCE_LEVELS), carbon:pick(r,RESOURCE_LEVELS), uranium:pick(r,RESOURCE_LEVELS),
+    anomaly:pick(r,PLANET_ANOMALIES),
+    lossRisk:r()<.045
+  };
+}
+function makeMoonScan(p,m,index){
+  const r=mulberry32(hashString(`${p.name}|MOON|${index}|DEEP-SCAN`));
+  const rel=m.radiusKm/1737;
+  return {
+    gravity:Math.round(clamp(rel*(.08+r()*.22),.01,.52)*100)/100,
+    tempBias:-38-Math.round(r()*105)-index*7,
+    surface:pick(r,['ROCK / ICE','BASALT','SILICATE','ICE / ROCK','METALLIC','DUST']),
+    atmosphere:pick(r,['NONE','NONE','NONE','TRACE','TRACE','THIN']),
+    waterIce:pick(r,['NONE','TRACE','COMMON','RICH','ABUNDANT']),
+    activity:pick(r,['DORMANT','DORMANT','TECTONIC','CRYOVOLCANIC','VOLCANIC']),
+    anomaly:pick(r,MOON_ANOMALIES),
+    lossRisk:r()<.035
+  };
+}
 function generatePlanet(name){
   name=(name || 'PLANET').trim().toUpperCase().slice(0,60) || 'PLANET';
   const seed=hashString(name), r=mulberry32(seed);
@@ -280,6 +357,8 @@ function generatePlanet(name){
   const loc=pick(r,Object.keys(locationParts));
   p.lifeText=`THE ${pick(r,locationParts[loc])} ARE HOME TO ${pick(r,quant)} ${pick(r,looks)} ${pick(r,build)} ${pick(r,creatures)}. SOME OF THEM APPEAR TO BE ${pick(r,behaviours)}.`;
   p.noLifeText = r()<.5 ? 'PRESENTLY, NO LIFE REMAINS.' : 'NO SIGNS OF LIFE ARE VISIBLE AT THIS TEMPERATURE.';
+  makePlanetScan(p);
+  p.moonData.forEach((m,i)=>{m.scan=makeMoonScan(p,m,i);});
   const saved=parseFloat(storageGet('planetarium:temp:'+seed,''));
   state.temp=Number.isFinite(saved)?clamp(saved,0,1):(special?.cold?.12:special?.hot?.84:clamp(p.target+(r()-.5)*.4,0,1));
   state.info=INFO_CARDS[name] || null;
@@ -297,7 +376,7 @@ function visit(name, addHistory=true){
     storageSet('planetarium:history',JSON.stringify(state.history));
   }
   state.name=name.toUpperCase(); state.input=''; state.intro=false; state.phase=0; state.simDays=0;
-  state.rocket=null; state.pinnedBody=null; state.hoverBody=null; state.libraryOpen=false;
+  state.rocket=null; state.probe=null; state.pinnedBody=null; state.hoverBody=null; state.libraryOpen=false;
   planet=generatePlanet(state.name);
   document.title=`${planet.name} - Planetarium`;
   syncUrl();
@@ -340,6 +419,27 @@ function lifeLabel(){
   const d=Math.abs(state.temp-planet.target)/Math.max(.001,planet.variance);
   return d<.30?'ABUNDANT':d<.68?'ACTIVE':'SPARSE';
 }
+function populationLabel(){
+  if(!isAlive()) return 'NONE';
+  const d=Math.abs(state.temp-planet.target)/Math.max(.001,planet.variance);
+  const penalty=d<.22?0:d<.48?1:d<.74?2:3;
+  return POPULATION_WORDS[clamp(planet.populationBase-penalty,1,POPULATION_WORDS.length-1)];
+}
+function lifeTypeLabel(){ return isAlive()?planet.scan.lifeTypePotential:'NONE'; }
+function techLevelLabel(){ return isAlive()?planet.scan.techPotential:'NONE'; }
+function iceCoverPercent(){
+  const cold=clamp((.43-state.temp)/.43,0,1);
+  return Math.round(clamp(cold*(34+planet.water*66)+(1-planet.water)*4,0,98));
+}
+function bodyRef(body){ return body?.type==='moon'?{type:'moon',index:body.index}:{type:'planet'}; }
+function bodyId(body){ return body?.type==='moon'?`moon-${body.index}`:'planet'; }
+function bodyName(body){ return body?.type==='moon'?(planet.moonData[body.index]?.name||'MOON'):planet.name; }
+function scanStorageKey(body){ return `planetarium:probe-scan:${planet.seed}:${bodyId(body)}`; }
+function probeLossStorageKey(body){ return `planetarium:probe-loss:${planet.seed}:${bodyId(body)}`; }
+function isScanned(body){ return storageGet(scanStorageKey(body),'0')==='1'; }
+function markScanned(body){ storageSet(scanStorageKey(body),'1'); }
+function scanForBody(body){ return body?.type==='moon'?planet.moonData[body.index]?.scan:planet.scan; }
+function moonTemperatureC(m){ return Math.round(tempC()+m.scan.tempBias); }
 function planetShareUrl(){
   const u=new URL(window.location.href);
   u.search='';
@@ -434,6 +534,32 @@ function moonPosition(m,cx,cy){
   const ang=m.phase+(state.simDays/m.periodDays)*Math.PI*2*m.direction;
   return {ang,x:cx+Math.cos(ang)*m.orbit,y:cy+Math.sin(ang)*m.orbit*.34,depth:Math.sin(ang)};
 }
+function pointNearMoonOrbit(p,m,cx,cy){
+  if(!p || !m) return false;
+  const rx=Math.max(8,m.orbit), ry=Math.max(4,m.orbit*.34);
+  const ang=Math.atan2((p.y-cy)/ry,(p.x-cx)/rx);
+  const ox=cx+Math.cos(ang)*rx, oy=cy+Math.sin(ang)*ry;
+  const dist=Math.hypot(p.x-ox,p.y-oy);
+  const tolerance=clamp(Math.round(rx*.045),3,7);
+  const nx=(p.x-cx)/Math.max(1,planet.rx), ny=(p.y-cy)/Math.max(1,planet.ry);
+  if(nx*nx+ny*ny<.92) return false;
+  return dist<=tolerance;
+}
+function drawMoonOrbit(m,cx,cy,emphasis=false){
+  if(!m) return;
+  const rx=m.orbit, ry=m.orbit*.34;
+  const circumference=Math.PI*(3*(rx+ry)-Math.sqrt((3*rx+ry)*(rx+3*ry)));
+  const spacing=clamp(Math.round(rx*.16),6,12);
+  const dots=Math.max(18,Math.round(circumference/spacing));
+  ctx.fillStyle=emphasis?C.purple:C.blue;
+  ctx.globalAlpha=emphasis?.95:.62;
+  for(let i=0;i<dots;i++){
+    const th=i/dots*Math.PI*2;
+    const x=cx+Math.cos(th)*rx, y=cy+Math.sin(th)*ry;
+    ctx.fillRect(Math.round(x),Math.round(y),1,1);
+  }
+  ctx.globalAlpha=1;
+}
 function drawMoons(cx,cy,t,front){
   for(const m of planet.moonData){
     const pos=moonPosition(m,cx,cy); m.screenX=pos.x; m.screenY=pos.y; m.depth=pos.depth;
@@ -493,6 +619,10 @@ function bodyAtPoint(p,cx,cy){
     const hiddenBehindPlanet=m.depth<0 && mx*mx+my*my<1;
     if(!hiddenBehindPlanet && dx*dx+dy*dy<=hr*hr) return {type:'moon',index:i};
   }
+  for(let i=planet.moonData.length-1;i>=0;i--){
+    const m=planet.moonData[i];
+    if(pointNearMoonOrbit(p,m,cx,cy)) return {type:'moon',index:i};
+  }
   const nx=(p.x-cx)/Math.max(1,planet.rx+3), ny=(p.y-cy)/Math.max(1,planet.ry+3);
   if(nx*nx+ny*ny<=1) return {type:'planet'};
   return null;
@@ -500,49 +630,88 @@ function bodyAtPoint(p,cx,cy){
 function sameBody(a,b){ return !!a&&!!b&&a.type===b.type&&(a.type!=='moon'||a.index===b.index); }
 function drawObjectMarker(body,cx,cy){
   if(!body) return;
-  ctx.fillStyle=C.white;
   if(body.type==='moon'){
-    const m=planet.moonData[body.index], r=Math.ceil(m.hitRadius||7);
-    ctx.fillRect(Math.round(m.screenX-r),Math.round(m.screenY),2,1);
-    ctx.fillRect(Math.round(m.screenX+r-1),Math.round(m.screenY),2,1);
-    ctx.fillRect(Math.round(m.screenX),Math.round(m.screenY-r),1,2);
-    ctx.fillRect(Math.round(m.screenX),Math.round(m.screenY+r-1),1,2);
+    const m=planet.moonData[body.index]; if(!m) return;
+    const r=Math.ceil(m.hitRadius||7);
+    drawFocusFrame(m.screenX-r-2,m.screenY-r-2,r*2+5,r*2+5);
   }else{
-    ctx.fillRect(Math.round(cx-planet.rx-4),Math.round(cy),2,1);
-    ctx.fillRect(Math.round(cx+planet.rx+3),Math.round(cy),2,1);
+    drawFocusFrame(cx-planet.rx-5,cy-planet.ry-5,planet.rx*2+11,planet.ry*2+11);
   }
 }
+function drawPlanetDeepScan(x,y){
+  const d=planet.scan;
+  drawText('DEEP SCAN',x,y,C.purple,1);
+  drawText(`AGE      ${d.ageBy.toFixed(1)} BY`,x,y+12,C.white,1);
+  drawText(`PRESS    ${d.pressureAtm.toFixed(2)} ATM`,x,y+21,C.white,1);
+  drawText(`MAG      ${d.magField}`,x,y+30,C.cyan,1);
+  drawText(`O2       ${d.oxygen.toFixed(1)}%`,x,y+39,C.green,1);
+  drawText(`N2       ${d.nitrogen.toFixed(1)}%`,x,y+48,C.blue,1);
+  drawText(`CO2      ${d.co2.toFixed(1)}%`,x,y+57,C.yellow,1);
+  drawText(`TECTONIC ${d.tectonics}`,x,y+66,C.white,1);
+  drawText(`VOLCANIC ${d.volcanism}`,x,y+75,C.red,1);
+  drawText(`OCEAN    ${d.oceanDepthKm.toFixed(1)} KM`,x,y+84,C.cyan,1);
+  drawText(`ICE      ${iceCoverPercent()}%`,x,y+93,C.white,1);
+  drawText(`LIFE     ${lifeTypeLabel()}`,x,y+102,isAlive()?C.green:C.brown,1);
+  drawText(`TECH     ${techLevelLabel()}`,x,y+111,C.purple,1);
+  drawText(`FE ${d.iron}  C ${d.carbon}`,x,y+120,C.brown,1);
+  drawText(`U  ${d.uranium}`,x,y+129,C.brown,1);
+  drawText('ANOMALY',x,y+141,C.purple,1);
+  const lines=wrapText(d.anomaly,Math.max(72,W-x-6),1).slice(0,5);
+  lines.forEach((line,i)=>drawText(line,x,y+151+i*8,d.anomaly==='NONE'?C.brown:C.yellow,1));
+}
 function drawPlanetHover(cx,cy){
-  const x=clamp(Math.round(cx+planet.rx+18),202,342), y=44;
+  const x=clamp(Math.round(cx+planet.rx+18),202,220), y=38;
   drawText(planet.name,x,y,C.white,1);
   drawText(worldClass(),x,y+9,C.green,1);
-  drawText(`TEMP     ${tempC()} C`,x,y+22,C.white,1);
-  drawText(`RADIUS   ${planet.radiusEarth.toFixed(2)} EARTH`,x,y+31,C.blue,1);
-  drawText(`GRAVITY  ${planet.gravity.toFixed(2)} G`,x,y+40,C.white,1);
-  drawText(`WATER    ${surfaceWaterPercent()}%`,x,y+49,C.cyan,1);
-  drawText(`ATMOS    ${atmosphereLabel()}`,x,y+58,C.yellow,1);
-  drawText(`LIFE     ${lifeLabel()}`,x,y+67,isAlive()?C.green:C.brown,1);
-  drawText(`DAY      ${planet.dayHours.toFixed(1)} H`,x,y+76,C.white,1);
-  drawText(`YEAR     ${planet.yearDays} D`,x,y+85,C.white,1);
-  drawText(`MOONS    ${planet.moons}`,x,y+94,C.purple,1);
-  const txt=planet.special?.text || (isAlive()?planet.lifeText:planet.noLifeText);
-  if(txt){
-    drawText('OBSERVATION',x,y+108,C.purple,1);
-    const maxPx=Math.min(128,W-x-5), lines=wrapText(txt,maxPx,1), visible=lines.slice(0,8);
-    visible.forEach((line,i)=>drawText(line,x,y+118+i*8,isAlive()?C.green:C.brown,1));
-    if(lines.length>visible.length) drawText('...',x,y+118+visible.length*8,C.purple,1);
+  drawText(`TEMP       ${tempC()} C`,x,y+22,C.white,1);
+  drawText(`RADIUS     ${planet.radiusEarth.toFixed(2)} EARTH`,x,y+31,C.blue,1);
+  drawText(`GRAVITY    ${planet.gravity.toFixed(2)} G`,x,y+40,C.white,1);
+  drawText(`WATER      ${surfaceWaterPercent()}%`,x,y+49,C.cyan,1);
+  drawText(`ATMOS      ${atmosphereLabel()}`,x,y+58,C.yellow,1);
+  drawText(`BIOSPHERE  ${lifeLabel()}`,x,y+67,isAlive()?C.green:C.brown,1);
+  drawText(`POPULATION ${populationLabel()}`,x,y+76,isAlive()?C.green:C.brown,1);
+  drawText(`DAY        ${planet.dayHours.toFixed(1)} H`,x,y+85,C.white,1);
+  drawText(`YEAR       ${planet.yearDays} D`,x,y+94,C.white,1);
+  drawText(`MOONS      ${planet.moons}`,x,y+103,C.purple,1);
+  const scanned=isScanned({type:'planet'});
+  if(scanned){
+    drawPlanetDeepScan(x+130,y);
+  }else{
+    drawText('PROBE DATA LOCKED',x,y+116,C.purple,1);
+    const txt=planet.special?.text || (isAlive()?planet.lifeText:planet.noLifeText);
+    if(txt){
+      drawText('OBSERVATION',x,y+130,C.purple,1);
+      const maxPx=Math.min(128,W-x-5), lines=wrapText(txt,maxPx,1), visible=lines.slice(0,8);
+      visible.forEach((line,i)=>drawText(line,x,y+140+i*8,isAlive()?C.green:C.brown,1));
+      if(lines.length>visible.length) drawText('...',x,y+140+visible.length*8,C.purple,1);
+    }
   }
+}
+function drawMoonDeepScan(m,x,y){
+  const d=m.scan;
+  drawText('DEEP SCAN',x,y,C.purple,1);
+  drawText(`TEMP     ${moonTemperatureC(m)} C`,x,y+11,C.white,1);
+  drawText(`GRAVITY  ${d.gravity.toFixed(2)} G`,x,y+20,C.white,1);
+  drawText(`SURFACE  ${d.surface}`,x,y+29,C.brown,1);
+  drawText(`ATMOS    ${d.atmosphere}`,x,y+38,C.yellow,1);
+  drawText(`WATER ICE ${d.waterIce}`,x,y+47,C.cyan,1);
+  drawText(`ACTIVITY ${d.activity}`,x,y+56,C.red,1);
+  drawText('ANOMALY',x,y+68,C.purple,1);
+  const lines=wrapText(d.anomaly,126,1).slice(0,4);
+  lines.forEach((line,i)=>drawText(line,x,y+78+i*8,d.anomaly==='NONE'?C.brown:C.yellow,1));
 }
 function drawMoonHover(body){
   const m=planet.moonData[body.index]; if(!m) return;
-  const panelW=112;
+  const scanned=isScanned(body), panelW=136;
   let x=Math.round(m.screenX+12); if(x+panelW>W-5) x=Math.round(m.screenX-panelW-12);
   x=clamp(x,5,W-panelW-5);
-  const y=clamp(Math.round(m.screenY-24),8,206);
+  const y=clamp(Math.round(m.screenY-28),8,scanned?114:190);
   drawText(m.name,x,y,C.white,1);
   drawText(`${m.orbitKm.toLocaleString('en-US')} KM ORBIT`,x,y+11,C.blue,1);
   drawText(`${m.periodDays.toFixed(1)} DAYS`,x,y+20,C.green,1);
   drawText(`${m.radiusKm.toLocaleString('en-US')} KM MOON`,x,y+29,C.brown,1);
+  if(scanned) drawMoonDeepScan(m,x,y+43);
+  else drawText('PROBE DATA LOCKED',x,y+42,C.purple,1);
 }
 function drawContextInfo(body,cx,cy){
   if(!body) return;
@@ -566,16 +735,20 @@ function drawLibraryOverlay(){
   ctx.globalAlpha=.97;ctx.fillStyle=C.black;ctx.fillRect(x,y,w,h);ctx.globalAlpha=1;
   ctx.strokeStyle=C.purple;ctx.strokeRect(x+.5,y+.5,w-1,h-1);
   drawText('PLANET LIBRARY',x+12,y+13,C.white,1);
+  const favRect={x:x+7,y:y+20,w:75,h:19}, recentRect={x:x+84,y:y+20,w:63,h:19};
   drawText(state.libraryTab==='favorites'?'> FAVORITES':'FAVORITES',x+12,y+29,state.libraryTab==='favorites'?C.green:C.purple,1);
   drawText(state.libraryTab==='recent'?'> RECENT':'RECENT',x+91,y+29,state.libraryTab==='recent'?C.green:C.purple,1);
+  if(hoverActive()&&pointInRect(state.mouse,favRect.x,favRect.y,favRect.w,favRect.h)) drawFocusFrame(favRect.x,favRect.y,favRect.w,favRect.h);
+  if(hoverActive()&&pointInRect(state.mouse,recentRect.x,recentRect.y,recentRect.w,recentRect.h)) drawFocusFrame(recentRect.x,recentRect.y,recentRect.w,recentRect.h);
   const items=libraryItems(); state.libraryRows=[];
   if(!items.length){ drawText(state.libraryTab==='favorites'?'NO FAVORITES YET - PRESS F':'NO RECENT PLANETS YET',x+12,y+54,C.brown,1); }
   const visible=items.slice(0,11);
   state.librarySelection=clamp(state.librarySelection,0,Math.max(0,visible.length-1));
   visible.forEach((name,i)=>{
-    const ry=y+48+i*12; state.libraryRows.push({name,x:x+10,y:ry-5,w:w-20,h:11});
+    const ry=y+48+i*12, row={name,x:x+10,y:ry-5,w:w-20,h:11}; state.libraryRows.push(row);
     if(i===state.librarySelection){ctx.fillStyle=mixHex(C.purple,C.black,.48);ctx.fillRect(x+8,ry-6,w-16,10);}
     drawText(name,x+14,ry,isFavorite(name)?C.green:C.white,1);
+    if(hoverActive()&&pointInRect(state.mouse,row.x,row.y,row.w,row.h)) drawFocusFrame(row.x,row.y,row.w,row.h);
   });
   drawText('F/R TABS   ENTER VISIT   L CLOSE',x+12,y+h-10,C.purple,1);
 }
@@ -586,6 +759,7 @@ function drawToast(t){
 
 function drawSlider(){
   const x=UI.sliderX,y=UI.sliderY;
+  const hover=hoverActive()&&sliderHit(state.mouse);
   const back=asset.sliderBack;
   if(back && back.complete && back.naturalWidth) ctx.drawImage(back,x,y);
   else {ctx.fillStyle=mixHex(C.white,C.black,.55);ctx.fillRect(x,y+2,UI.sliderW,3);}
@@ -597,6 +771,7 @@ function drawSlider(){
   if(knob && knob.complete && knob.naturalWidth) ctx.drawImage(knob,kx,y-3);
   else {ctx.fillStyle=C.white;ctx.fillRect(kx,y-3,3,13);}
   drawText(`${tempC()}C`,x+UI.sliderW+6,y,C.white,1);
+  if(hover||state.draggingSlider) drawFocusFrame(x-5,y-8,UI.sliderW+10,21);
 }
 function drawButtons(){
   state.hovered=null;
@@ -604,14 +779,20 @@ function drawButtons(){
     const hover=state.mouse.inside && state.mouse.x>=b.x-3 && state.mouse.x<=b.x+14 && state.mouse.y>=UI.buttonY-4 && state.mouse.y<=UI.buttonY+14;
     if(hover) state.hovered=b;
     let im=null;
-    if(b.id==='temp') im=asset['temp'+tempBand()]; else im=asset[b.id];
-    const active=(b.id==='temp'&&state.tempView)||(b.id==='reverse'&&state.reverse)||(b.id==='mute'&&state.muted)||(b.id==='fast'&&state.speedIndex>1);
+    if(b.id==='temp') im=asset['temp'+tempBand()]; else if(b.id!=='probe') im=asset[b.id];
+    const active=(b.id==='probe'&&!!state.probe)||(b.id==='temp'&&state.tempView)||(b.id==='reverse'&&state.reverse)||(b.id==='mute'&&state.muted)||(b.id==='fast'&&state.speedIndex>1);
     ctx.globalAlpha=active?1:(hover?.95:.72);
-    if(im && im.complete && im.naturalWidth) ctx.drawImage(im,b.x,UI.buttonY);
+    if(b.id==='probe') drawProbeButtonIcon(b.x,UI.buttonY,active);
+    else if(im && im.complete && im.naturalWidth) ctx.drawImage(im,b.x,UI.buttonY);
     else {ctx.fillStyle=C.white;ctx.fillRect(b.x,UI.buttonY,9,9);}
     ctx.globalAlpha=1;
+    if(hover) drawFocusFrame(b.x-4,UI.buttonY-5,20,20);
   }
-  if(state.hovered){ drawText(`${state.hovered.tip} [${state.hovered.key}]`,472,239,C.white,1,'right'); }
+  if(state.hovered){
+    const target=state.hovered.id==='probe'?(state.pinnedBody||state.hoverBody||{type:'planet'}):null;
+    const tip=target?`LAUNCH PROBE: ${bodyName(target)}`:state.hovered.tip;
+    drawText(`${tip} [${state.hovered.key}]`,472,239,C.white,1,'right');
+  }
 }
 function drawEntry(t){
   if(state.input){
@@ -631,6 +812,94 @@ function drawRocket(t){
   if(im&&im.complete&&im.naturalWidth)ctx.drawImage(im,Math.round(x),Math.round(y)); else {ctx.fillStyle=C.white;ctx.fillRect(x,y,3,3);}
   if((age*20|0)%2===0){ctx.fillStyle=C.red;ctx.fillRect(Math.round(x-2),Math.round(y+3),1,1);}
 }
+function probeTargetPosition(body,cx,cy){
+  if(body?.type==='moon'){
+    const m=planet.moonData[body.index];
+    if(m) return {x:m.screenX,y:m.screenY};
+  }
+  return {x:cx+planet.rx*.18,y:cy-planet.ry*.12};
+}
+function launchProbe(targetOverride=null){
+  if(state.probe && !['complete','lost'].includes(state.probe.phase)){ showToast('PROBE ALREADY IN FLIGHT'); return; }
+  const target=bodyRef(targetOverride||state.hoverBody||state.pinnedBody||{type:'planet'});
+  if(isScanned(target)){
+    state.pinnedBody=target; showToast('PROBE DATA ALREADY AVAILABLE'); return;
+  }
+  const m=target.type==='moon'?planet.moonData[target.index]:null;
+  const totalHours=target.type==='moon'?Math.round(clamp(8+(m?.orbitKm||50000)/13000,9,42)):Math.round(10+planet.radiusEarth*5);
+  const scanHours=Math.max(2,Math.round(totalHours*.18));
+  state.probe={target,totalHours,remainingHours:totalHours,scanHours,phase:'flight',finishAt:0};
+  state.pinnedBody=target;
+  showToast(target.type==='moon'?`PROBE LAUNCHED TO ${bodyName(target)}`:'PROBE LAUNCHED',1800);
+}
+function updateProbe(dt,speed,t){
+  const p=state.probe; if(!p) return;
+  if(p.phase==='complete'||p.phase==='lost'){
+    if(t>=p.finishAt) state.probe=null;
+    return;
+  }
+  const rate=Math.max(.7,6*speed);
+  p.remainingHours=Math.max(0,p.remainingHours-dt*rate);
+  if(p.phase==='flight' && p.remainingHours<=p.scanHours){
+    const scan=scanForBody(p.target);
+    const firstLoss=!!scan?.lossRisk && storageGet(probeLossStorageKey(p.target),'0')!=='1';
+    if(firstLoss){
+      storageSet(probeLossStorageKey(p.target),'1');
+      p.phase='lost'; p.finishAt=t+3200;
+      showToast('PROBE LOST - CAUSE UNKNOWN',2800);
+      return;
+    }
+    p.phase='scanning';
+    showToast('SCANNING...',1300);
+  }
+  if(p.phase==='scanning' && p.remainingHours<=0){
+    markScanned(p.target);
+    state.pinnedBody=p.target;
+    p.phase='complete'; p.finishAt=t+3200;
+    showToast('PROBE DATA RECEIVED',2600);
+  }
+}
+function drawProbeSprite(x,y,scanning=false){
+  x=Math.round(x); y=Math.round(y);
+  ctx.fillStyle=scanning?C.green:C.cyan;
+  ctx.fillRect(x-1,y-1,3,3);
+  ctx.fillStyle=C.white;
+  ctx.fillRect(x-4,y,2,1); ctx.fillRect(x+3,y,2,1);
+  ctx.fillRect(x,y-3,1,2);
+  ctx.fillStyle=C.purple;
+  ctx.fillRect(x-3,y-1,1,3); ctx.fillRect(x+3,y-1,1,3);
+}
+function drawProbe(cx,cy){
+  const p=state.probe; if(!p||p.phase==='lost'||p.phase==='complete') return;
+  const target=probeTargetPosition(p.target,cx,cy);
+  if(p.phase==='scanning'){
+    const a=performance.now()*.008;
+    drawProbeSprite(target.x+Math.cos(a)*8,target.y+Math.sin(a)*4,true);
+    return;
+  }
+  const flightHours=Math.max(.001,p.totalHours-p.scanHours);
+  const progress=clamp((p.totalHours-p.remainingHours)/flightHours,0,1);
+  const eased=smooth(progress);
+  const start={x:331,y:250};
+  const x=lerp(start.x,target.x,eased), y=lerp(start.y,target.y,eased)-Math.sin(progress*Math.PI)*24;
+  drawProbeSprite(x,y,false);
+}
+function drawProbeStatus(){
+  const p=state.probe; if(!p) return;
+  if(p.phase==='flight') drawText(`PROBE ETA ${Math.max(1,Math.ceil(p.remainingHours))} H`,472,224,C.cyan,1,'right');
+  else if(p.phase==='scanning') drawText('PROBE SCANNING',472,224,C.green,1,'right');
+  else if(p.phase==='complete') drawText('PROBE DATA RECEIVED',472,224,C.green,1,'right');
+  else if(p.phase==='lost') drawText('PROBE LOST - CAUSE UNKNOWN',472,224,C.red,1,'right');
+}
+function drawProbeButtonIcon(x,y,active=false){
+  ctx.fillStyle=active?C.green:C.cyan;
+  ctx.fillRect(x+4,y+3,3,3);
+  ctx.fillStyle=C.white;
+  ctx.fillRect(x+1,y+4,2,1); ctx.fillRect(x+8,y+4,2,1); ctx.fillRect(x+5,y+1,1,2);
+  ctx.fillStyle=C.purple;
+  ctx.fillRect(x+2,y+2,1,5); ctx.fillRect(x+8,y+2,1,5);
+}
+
 function drawCursor(){
   if(!state.mouse.inside)return;
   const im=asset[state.mouse.down?'cursor1':'cursor0'];
@@ -643,21 +912,24 @@ function render(t){
   const dt=Math.min(.05,(t-state.lastTime)/1000||0); state.lastTime=t;
   const dir=state.reverse?-1:1, speeds=[.20,.55,1.7,4.2], speed=speeds[state.speedIndex];
   state.simDays += dt*1.15*speed*dir;
+  updateProbe(dt,speed,t);
   const rotationRate=(24/planet.dayHours)*.035*planet.rotationDirection;
   state.phase=mod(state.phase+dt*rotationRate*speed*dir,1);
   drawStars(t);
   const intro=state.intro && t<state.introUntil && !state.input;
   const cx=intro?240:150, cy=intro?111:116;
   drawPlanet(cx,cy,t);
+  drawProbe(cx,cy);
   drawRocket(t);
   if(!intro){
     const hovered=!state.libraryOpen&&state.mouse.inside?bodyAtPoint(state.mouse,cx,cy):null;
     state.hoverBody=hovered;
     const body=hovered || state.pinnedBody;
+    if(body?.type==='moon') drawMoonOrbit(planet.moonData[body.index],cx,cy,true);
     if(!state.info && body?.type!=='planet') drawBaseLabel(cx,cy);
     if(state.info) drawHelpCard(); else if(!state.libraryOpen) drawContextInfo(body,cx,cy);
   }
-  drawSlider(); drawButtons(); drawEntry(t); drawLibraryOverlay(); drawToast(t);
+  drawSlider(); drawButtons(); drawEntry(t); drawProbeStatus(); drawLibraryOverlay(); drawToast(t);
   if(state.cameraFlash>t){ctx.globalAlpha=.45;ctx.fillStyle=C.white;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;}
   drawCursor();
   requestAnimationFrame(render);
@@ -669,6 +941,7 @@ function toggleMute(){ state.muted=!state.muted; audio.muted=state.muted; startA
 function doAction(id){
   startAudio(); state.intro=false;
   switch(id){
+    case 'probe': launchProbe(); break;
     case 'temp': state.tempView=!state.tempView; break;
     case 'reverse': state.reverse=!state.reverse; break;
     case 'fast': state.speedIndex=(state.speedIndex+1)%4; break;
@@ -712,13 +985,13 @@ canvas.addEventListener('pointerdown',ev=>{
   if(handleLibraryPointer(p)){ev.preventDefault();return;}
   if(sliderHit(p)){state.draggingSlider=true;updateSliderFromPoint(p);ev.preventDefault();return;}
   for(const b of UI.buttons){if(p.x>=b.x-4&&p.x<=b.x+15&&p.y>=UI.buttonY-5&&p.y<=UI.buttonY+15){doAction(b.id);ev.preventDefault();return;}}
-  if(ev.pointerType && ev.pointerType!=='mouse'){
-    const intro=state.intro && performance.now()<state.introUntil && !state.input;
-    const body=bodyAtPoint(p,intro?240:150,intro?111:116);
+  const intro=state.intro && performance.now()<state.introUntil && !state.input;
+  const body=bodyAtPoint(p,intro?240:150,intro?111:116);
+  if(body){
     state.pinnedBody=sameBody(state.pinnedBody,body)?null:body;
-    if(!body) state.pinnedBody=null;
-    ev.preventDefault();
+    ev.preventDefault(); return;
   }
+  if(ev.pointerType && ev.pointerType!=='mouse'){ state.pinnedBody=null; ev.preventDefault(); }
 });
 canvas.addEventListener('pointerup',()=>{state.mouse.down=false;state.draggingSlider=false;});
 canvas.addEventListener('dblclick',()=>toggleFullscreen());
@@ -746,6 +1019,7 @@ window.addEventListener('keydown',ev=>{
   if(!state.input && ev.key.toLowerCase()==='f'){ev.preventDefault();toggleFavorite();return;}
   if(!state.input && ev.key.toLowerCase()==='l'){ev.preventDefault();state.libraryOpen=!state.libraryOpen;state.librarySelection=0;return;}
   if(!state.input && ev.key.toLowerCase()==='c'){ev.preventDefault();sharePlanet();return;}
+  if(!state.input && ev.key.toLowerCase()==='p'){ev.preventDefault();launchProbe(state.hoverBody||state.pinnedBody||{type:'planet'});return;}
   if(ev.key==='Tab'){ev.preventDefault();doAction('temp');return;}
   if(ev.key==='ArrowLeft'){ev.preventDefault();setTemp(state.temp-.0125);state.intro=false;return;}
   if(ev.key==='ArrowRight'){ev.preventDefault();setTemp(state.temp+.0125);state.intro=false;return;}
