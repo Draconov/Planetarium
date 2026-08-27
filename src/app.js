@@ -193,10 +193,121 @@ const looks=['DULL','VIBRANT','SPOTTED','STRIPED','MOTTLED','DARK','LIGHT','GREY
 const creatures=['BEASTS','BIRDS','MAMMALS','MONSTERS','CRYSTALS','ALGAE','YETIS','SPORES','MICROBES','BUGS','INSECTS','REPTILES','BUTTERFLIES','DOLPHINS','TURTLES','SQUID-LIKE CREATURES','EELS','SHARKS','BLOBS','AMPHIBIANS','CRUSTACEANS','FISH','KRAKENS','DEER','GOATS','GOLEMS','GRIFFINS','RODENTS','FUNGI','ANTS','FROGS','BATS','WORMS','GOBLINS','BEETLES','TREES','SERPENTS','UNICORNS','DRAGONS','ELDERLINGS'];
 const behaviours=['WAVING AT US','WATCHING US','LEADING THE OTHERS','DEEP IN THOUGHT','EXPLORING','DEVELOPING A LANGUAGE','PLAYING','FIGHTING','DANCING','SINGING'];
 
+const SOLAR_ALIASES = {
+  'SOL I':'MERCURY', 'SOL 1':'MERCURY',
+  'SOL II':'VENUS', 'SOL 2':'VENUS',
+  'TERRA':'EARTH', 'GAIA':'EARTH', 'SOL III':'EARTH', 'SOL 3':'EARTH',
+  'SOL IV':'MARS', 'SOL 4':'MARS',
+  'SOL V':'JUPITER', 'SOL 5':'JUPITER',
+  'SOL VI':'SATURN', 'SOL 6':'SATURN',
+  'SOL VII':'URANUS', 'SOL 7':'URANUS',
+  'SOL VIII':'NEPTUNE', 'SOL 8':'NEPTUNE'
+};
+function canonicalPlanetName(name){
+  const upper=(name||'').trim().toUpperCase().slice(0,60) || 'PLANET';
+  return SOLAR_ALIASES[upper] || upper;
+}
+function knownMoon(name,orbitKm,periodDays,radiusKm,visualOrbit,frame,size,scan={}){
+  return {name,orbitKm,periodDays,radiusKm,visualOrbit,frame,size,direction:scan.direction||1,scan};
+}
+const SOLAR_SYSTEM_PLANETS = {
+  MERCURY:{
+    renderer:'mercury', worldClass:'BARREN WORLD', visualRadius:34, radiusKm:2440, massEarth:.055, gravity:.38,
+    water:0, cloudCover:0, defaultTempC:167, tempRange:[-173,427], life:false, populationBase:0,
+    dayHours:4222.6, yearDays:88, rotationDirection:1, atmosDensity:'TRACE', atmosChemistry:'EXOSPHERE',
+    observation:'THE INNERMOST PLANET IS A SCORCHED, AIRLESS WORLD COVERED IN ANCIENT IMPACT CRATERS.',
+    moons:[], ring:false,
+    scan:{ageBy:4.5,pressureAtm:0,magField:'WEAK',oxygen:0,nitrogen:0,co2:0,tectonics:'DORMANT',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'RICH',carbon:'TRACE',uranium:'COMMON',anomaly:'EXTREME SOLAR WEATHER',lossRisk:false}
+  },
+  VENUS:{
+    renderer:'venus', worldClass:'GREENHOUSE WORLD', visualRadius:45, radiusKm:6052, massEarth:.815, gravity:.90,
+    water:0, cloudCover:.18, cloudSpeed:.18, defaultTempC:464, tempRange:[300,520], life:false, populationBase:0,
+    dayHours:2802, yearDays:224.7, rotationDirection:-1, atmosDensity:'DENSE', atmosChemistry:'CO2 / SULFUR',
+    observation:'A GLOBAL LAYER OF PALE ACID CLOUDS HIDES A CRUSHINGLY HOT VOLCANIC SURFACE.',
+    moons:[], ring:false,
+    scan:{ageBy:4.5,pressureAtm:92,magField:'NONE',oxygen:0,nitrogen:3.5,co2:96.5,tectonics:'ACTIVE',volcanism:'HIGH',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'COMMON',carbon:'RICH',uranium:'TRACE',anomaly:'SURFACE HIDDEN BY ACID CLOUDS',lossRisk:false}
+  },
+  EARTH:{
+    renderer:'earth', worldClass:'TERRESTRIAL WORLD', visualRadius:47, radiusKm:6371, massEarth:1, gravity:1,
+    water:.71, cloudCover:.48, cloudSpeed:.22, defaultTempC:15, tempRange:[-80,120], life:true, lifeToleranceC:50, populationBase:8,
+    dayHours:23.93, yearDays:365.25, rotationDirection:1, atmosDensity:'NORMAL', atmosChemistry:'N2 / O2',
+    observation:'THE BIRTHPLACE OF HUMANITY. BLUE OCEANS, ACTIVE WEATHER AND A DENSE BIOSPHERE COVER MUCH OF THE SURFACE.',
+    moons:[
+      knownMoon('MOON',384400,27.32,1737,79,4,.88,{tempBias:-35,gravity:.17,surface:'BASALT / DUST',atmosphere:'NONE',waterIce:'RICH',activity:'DORMANT',anomaly:'WATER ICE IN POLAR SHADOWS',lossRisk:false})
+    ], ring:false,
+    scan:{ageBy:4.5,pressureAtm:1,magField:'STRONG',oxygen:20.9,nitrogen:78.1,co2:.04,tectonics:'ACTIVE',volcanism:'MODERATE',oceanDepthKm:3.7,lifeTypePotential:'COMPLEX',techPotential:'EARLY SPACEFLIGHT',iron:'RICH',carbon:'ABUNDANT',uranium:'COMMON',anomaly:'ARTIFICIAL RADIO EMISSIONS DETECTED',lossRisk:false}
+  },
+  MARS:{
+    renderer:'mars', worldClass:'DESERT WORLD', visualRadius:38, radiusKm:3390, massEarth:.107, gravity:.38,
+    water:.03, cloudCover:.05, cloudSpeed:.12, defaultTempC:-63, tempRange:[-130,35], life:false, populationBase:0,
+    dayHours:24.62, yearDays:687, rotationDirection:1, atmosDensity:'THIN', atmosChemistry:'CO2',
+    observation:'FOR ONE HUNDRED AND FIFTY YEARS HUMANS HAD THEIR EYES ON MARS. ITS COLD DESERTS STILL HOLD WATER ICE BENEATH THE DUST.',
+    moons:[
+      knownMoon('PHOBOS',9376,.319,11,55,14,.55,{tempBias:-5,gravity:.001,surface:'DUST / ROCK',atmosphere:'NONE',waterIce:'TRACE',activity:'DORMANT',anomaly:'ORBIT DECAY DETECTED',lossRisk:false}),
+      knownMoon('DEIMOS',23463,1.263,6,72,15,.48,{tempBias:-8,gravity:.001,surface:'DUST / ROCK',atmosphere:'NONE',waterIce:'TRACE',activity:'DORMANT',anomaly:'NONE',lossRisk:false})
+    ], ring:false,
+    scan:{ageBy:4.6,pressureAtm:.01,magField:'WEAK',oxygen:.1,nitrogen:1.9,co2:95.3,tectonics:'DORMANT',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'RICH',carbon:'COMMON',uranium:'COMMON',anomaly:'SUBSURFACE WATER ICE DETECTED',lossRisk:false}
+  },
+  JUPITER:{
+    renderer:'jupiter', worldClass:'GAS GIANT', visualRadius:62, radiusKm:69911, massEarth:317.8, gravity:2.53,
+    water:0, cloudCover:0, defaultTempC:-110, tempRange:[-180,-40], life:false, populationBase:0,
+    dayHours:9.93, yearDays:4332.6, rotationDirection:1, atmosDensity:'DENSE', atmosChemistry:'H2 / HE',
+    observation:'THE LARGEST PLANET IN THE SOLAR SYSTEM IS A DEEP, BANDED ATMOSPHERE WRAPPED AROUND AN ENORMOUS INTERIOR.',
+    moons:[
+      knownMoon('IO',421700,1.769,1822,77,1,.72,{tempBias:-20,gravity:.18,surface:'SULFUR / BASALT',atmosphere:'TRACE',waterIce:'NONE',activity:'VOLCANIC',anomaly:'EXTREME VOLCANISM',lossRisk:false}),
+      knownMoon('EUROPA',671100,3.551,1561,90,6,.70,{tempBias:-50,gravity:.13,surface:'ICE / ROCK',atmosphere:'TRACE',waterIce:'ABUNDANT',activity:'CRYOVOLCANIC',anomaly:'SUBSURFACE OCEAN LIKELY',lossRisk:false}),
+      knownMoon('GANYMEDE',1070400,7.155,2634,104,9,.80,{tempBias:-40,gravity:.15,surface:'ICE / ROCK',atmosphere:'TRACE',waterIce:'ABUNDANT',activity:'TECTONIC',anomaly:'INTRINSIC MAGNETIC FIELD',lossRisk:false}),
+      knownMoon('CALLISTO',1882700,16.689,2410,119,12,.78,{tempBias:-30,gravity:.13,surface:'ICE / ROCK',atmosphere:'TRACE',waterIce:'RICH',activity:'DORMANT',anomaly:'ANCIENT CRATERED SURFACE',lossRisk:false})
+    ], ring:false,
+    scan:{ageBy:4.6,pressureAtm:1,magField:'EXTREME',oxygen:0,nitrogen:.1,co2:.1,tectonics:'ATMOSPHERIC',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'RICH',carbon:'COMMON',uranium:'TRACE',anomaly:'CENTURIES-OLD ATMOSPHERIC STORM',lossRisk:false}
+  },
+  SATURN:{
+    renderer:'saturn', worldClass:'GAS GIANT', visualRadius:59, radiusKm:58232, massEarth:95.2, gravity:1.07,
+    water:0, cloudCover:0, defaultTempC:-140, tempRange:[-200,-70], life:false, populationBase:0,
+    dayHours:10.7, yearDays:10759, rotationDirection:1, atmosDensity:'DENSE', atmosChemistry:'H2 / HE',
+    observation:'A PALE GAS GIANT SURROUNDED BY A VAST SYSTEM OF ICY RINGS.',
+    moons:[
+      knownMoon('ENCELADUS',238000,1.37,252,96,5,.58,{tempBias:-61,gravity:.01,surface:'WATER ICE',atmosphere:'TRACE',waterIce:'ABUNDANT',activity:'CRYOVOLCANIC',anomaly:'WATER PLUMES DETECTED',lossRisk:false}),
+      knownMoon('RHEA',527000,4.52,764,109,7,.65,{tempBias:-34,gravity:.03,surface:'ICE / ROCK',atmosphere:'TRACE',waterIce:'ABUNDANT',activity:'DORMANT',anomaly:'NONE',lossRisk:false}),
+      knownMoon('TITAN',1221870,15.945,2575,123,11,.82,{tempBias:-39,gravity:.14,surface:'ICE / ROCK',atmosphere:'DENSE N2',waterIce:'RICH',activity:'DORMANT',anomaly:'LIQUID HYDROCARBON LAKES',lossRisk:false}),
+      knownMoon('IAPETUS',3560820,79.32,735,138,13,.64,{tempBias:-43,gravity:.02,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'DORMANT',anomaly:'TWO-TONE SURFACE',lossRisk:false})
+    ], ring:true, ringTilt:-.08, ringScale:1.82, ringFlatness:.23, ringColor:C.yellow, ringAlpha:.92,
+    scan:{ageBy:4.5,pressureAtm:1,magField:'STRONG',oxygen:0,nitrogen:.1,co2:.1,tectonics:'ATMOSPHERIC',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'COMMON',carbon:'RICH',uranium:'TRACE',anomaly:'HEXAGONAL POLAR STORM',lossRisk:false}
+  },
+  URANUS:{
+    renderer:'uranus', worldClass:'ICE GIANT', visualRadius:52, radiusKm:25362, massEarth:14.5, gravity:.89,
+    water:0, cloudCover:0, defaultTempC:-195, tempRange:[-240,-130], life:false, populationBase:0,
+    dayHours:17.24, yearDays:30687, rotationDirection:-1, atmosDensity:'DENSE', atmosChemistry:'H2 / HE / CH4',
+    observation:'A PALE CYAN ICE GIANT ROTATING ALMOST ON ITS SIDE, ENCIRCLED BY A FAINT DARK RING SYSTEM.',
+    moons:[
+      knownMoon('MIRANDA',129390,1.413,236,70,2,.56,{tempBias:-18,gravity:.01,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'TECTONIC',anomaly:'EXTREME CLIFFS',lossRisk:false}),
+      knownMoon('ARIEL',190900,2.52,579,82,4,.62,{tempBias:-18,gravity:.03,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'ABUNDANT',activity:'CRYOVOLCANIC',anomaly:'YOUNG FRACTURED TERRAIN',lossRisk:false}),
+      knownMoon('UMBRIEL',266000,4.144,585,95,8,.62,{tempBias:-19,gravity:.03,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'DORMANT',anomaly:'DARK ANCIENT SURFACE',lossRisk:false}),
+      knownMoon('TITANIA',436300,8.706,789,109,10,.68,{tempBias:-8,gravity:.04,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'TECTONIC',anomaly:'CANYON NETWORKS',lossRisk:false})
+    ], ring:true, ringTilt:1.28, ringScale:1.52, ringFlatness:.16, ringColor:C.blue, ringAlpha:.55,
+    scan:{ageBy:4.5,pressureAtm:1,magField:'STRONG',oxygen:0,nitrogen:.1,co2:.1,tectonics:'ATMOSPHERIC',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'COMMON',carbon:'RICH',uranium:'TRACE',anomaly:'EXTREME AXIAL TILT',lossRisk:false}
+  },
+  NEPTUNE:{
+    renderer:'neptune', worldClass:'ICE GIANT', visualRadius:51, radiusKm:24622, massEarth:17.1, gravity:1.14,
+    water:0, cloudCover:0, defaultTempC:-200, tempRange:[-240,-140], life:false, populationBase:0,
+    dayHours:16.11, yearDays:60190, rotationDirection:1, atmosDensity:'DENSE', atmosChemistry:'H2 / HE / CH4',
+    observation:'A DEEP BLUE ICE GIANT WITH THE FASTEST WINDS IN THE SOLAR SYSTEM.',
+    moons:[
+      knownMoon('PROTEUS',117647,1.122,210,68,3,.54,{tempBias:-22,gravity:.01,surface:'DARK ROCK / ICE',atmosphere:'NONE',waterIce:'RICH',activity:'DORMANT',anomaly:'IRREGULAR CRATERED SHAPE',lossRisk:false}),
+      knownMoon('TRITON',354759,5.877,1353,84,6,.73,{direction:-1,tempBias:-35,gravity:.08,surface:'N2 ICE / ROCK',atmosphere:'TRACE',waterIce:'ABUNDANT',activity:'CRYOVOLCANIC',anomaly:'NITROGEN GEYSERS',lossRisk:false}),
+      knownMoon('NEREID',5513400,360.14,170,103,16,.52,{tempBias:-20,gravity:.01,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'DORMANT',anomaly:'HIGHLY ECCENTRIC ORBIT',lossRisk:false})
+    ], ring:true, ringTilt:.12, ringScale:1.46, ringFlatness:.18, ringColor:C.blue, ringAlpha:.35,
+    scan:{ageBy:4.5,pressureAtm:1,magField:'STRONG',oxygen:0,nitrogen:.1,co2:.1,tectonics:'ATMOSPHERIC',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'COMMON',carbon:'RICH',uranium:'TRACE',anomaly:'SUPERSONIC WINDS AND DARK STORMS',lossRisk:false}
+  }
+};
+function tempRangeFor(p=planet){ return p?.tempRange || [-78,78]; }
+function tempStateFromC(c,p=planet){ const [lo,hi]=tempRangeFor(p); return clamp((c-lo)/(hi-lo),0,1); }
+function tempCFromState(v,p=planet){ const [lo,hi]=tempRangeFor(p); return Math.round(lo+clamp(v,0,1)*(hi-lo)); }
+function tempStorageKey(p=planet){ return p?.solar ? `planetarium:temp:solar:${p.name}` : `planetarium:temp:${p?.seed}`; }
+
 const SPECIALS = {
   'CAT PLANET': { text:'CAT PLANET CAT PLANET CAT PLANET CAT PLANET CAT PLANET CAT PLANET CAT PLANET CAT PLANET.', palette:'cat', life:true },
   'EVERYBODY CAT PLANET': { text:'CAT PLANET CAT PLANET CAT PLANET. MEOW!', palette:'cat', life:true },
-  'MARS': { text:'FOR ONE HUNDRED AND FIFTY YEARS HUMANS HAD THEIR EYES ON MARS, BUT IT ALWAYS PROVED TOO INHOSPITABLE. EVENTUALLY THEY LOOKED FURTHER ABROAD.', life:false, hot:true },
   'ARDA': { text:'AMONG MANY OTHER FASCINATING CREATURES, ARDA IS HOME TO A RACE OF TALL, THIN, HUMANOID CREATURES, THE FIRST CHILDREN OF ILUVATAR.', life:true },
   'SHIRE': { text:'THE HILLS ARE HOME TO SMALL, PEACEFUL CREATURES WITH LARGE, HAIRY FEET.', life:true },
   'ARRAKIS': { text:"THE DEEP SANDS ARE HOME TO ENORMOUS, INCREDIBLY STRONG WORMS, KNOWN LOCALLY AS 'GREAT MAKERS' AND WORSHIPPED AS GODS. THE ONLY KNOWN SOURCE OF THE SPICE MELANGE.", life:true, hot:true },
@@ -228,7 +339,6 @@ const SPECIALS = {
   'HAMMOCK': { text:'THE WARM OCEANS ARE TEEMING WITH FRIENDLY, ADORABLE SHARKS.', life:true },
   'EXILE': { text:"AFTER A TIMELESS PERIOD DRIFTING THROUGH SPACE, A SETTLEMENT SHIP LANDED ON THIS SMALL, HARSH PLANET. THE AIR IS THIN, THE FLORA BITTER, AND THE FAUNA DEADLY - BUT IT'S HOME.", life:true },
   'NEW EDEN': { text:'HOME TO A HUMAN SETTLEMENT FOR TWO HUNDRED YEARS. PRESENTLY, NO LIFE REMAINS.', life:false },
-  'TERRA': { text:'THE BIRTHPLACE OF THE HUMAN RACE, BEFORE THEY FLED TO SARDONIA AND BEYOND. IS THAT BOB? HI, BOB!', life:true },
 };
 const INFO_CARDS = {
   'WHAT DO I DO?': 'CLICK AND DRAG THE SLIDER (OR PRESS LEFT AND RIGHT) TO CHANGE THE HEAT OF THE PLANET. TYPE IN NEW PLACES TO VISIT, OR PRESS ? / 0 FOR A RANDOM PLANET. HOVER A PLANET OR MOON FOR DETAILS. CLICK A BODY TO TARGET IT, THEN PRESS P OR THE PROBE BUTTON FOR A DEEP SCAN. PRESS F FOR FAVORITES, L FOR THE PLANET LIBRARY, AND C TO COPY A SHAREABLE LINK. THERE IS NO PURPOSE, SO JUST HAVE FUN!',
@@ -313,10 +423,70 @@ function makeMoonScan(p,m,index){
   };
 }
 function generatePlanet(name){
-  name=(name || 'PLANET').trim().toUpperCase().slice(0,60) || 'PLANET';
+  name=canonicalPlanetName(name);
   const seed=hashString(name), r=mulberry32(seed);
-  const special=SPECIALS[name] || null;
-  const p={name,seed,special};
+  const solar=SOLAR_SYSTEM_PLANETS[name] || null;
+  const special=solar ? {text:solar.observation, life:solar.life, solar:true} : (SPECIALS[name] || null);
+  const p={name,seed,special,solar};
+  if(solar){
+    p.renderer=solar.renderer;
+    p.tempRange=solar.tempRange.slice();
+    p.defaultTempC=solar.defaultTempC;
+    p.radius=solar.visualRadius;
+    p.rx=p.radius*(solar.renderer==='jupiter'||solar.renderer==='saturn' ? 1.05 : 1);
+    p.ry=p.radius*(solar.renderer==='jupiter'||solar.renderer==='saturn' ? .94 : 1);
+    p.water=solar.water;
+    p.mount=.76; p.beach=.03;
+    p.cloudCover=solar.cloudCover||0;
+    p.cloudSpeed=solar.cloudSpeed||.12;
+    p.target=tempStateFromC(solar.defaultTempC,p);
+    p.variance=solar.life ? clamp((solar.lifeToleranceC||45)/(solar.tempRange[1]-solar.tempRange[0]),.08,.35) : .08;
+    p.moons=solar.moons.length;
+    p.ring=!!solar.ring;
+    p.ringTilt=solar.ringTilt||0;
+    p.ringScale=solar.ringScale;
+    p.ringFlatness=solar.ringFlatness;
+    p.ringColor=solar.ringColor;
+    p.ringAlpha=solar.ringAlpha;
+    p.radiusKm=solar.radiusKm;
+    p.radiusEarth=p.radiusKm/6371;
+    p.gravity=solar.gravity;
+    p.massEarth=solar.massEarth;
+    p.density=Math.max(.1,p.gravity/Math.max(.01,p.radiusEarth));
+    p.dayHours=solar.dayHours;
+    p.yearDays=solar.yearDays;
+    p.rotationDirection=solar.rotationDirection||1;
+    p.rotation=p.rotationDirection*(.18+r()*.08);
+    p.atmosDensity=solar.atmosDensity;
+    p.atmosChemistry=solar.atmosChemistry;
+    p.terrainSeed=(seed^0x9e3779b9)>>>0;
+    p.stars=[]; const sr=mulberry32(seed^0x62a9d9ed);
+    for(let i=0;i<78;i++) p.stars.push({x:Math.floor(sr()*W),y:Math.floor(sr()*238),b:sr(),tw:sr()*6.28});
+    p.clouds=[];
+    const cn=Math.floor(2+p.cloudCover*18);
+    for(let i=0;i<cn;i++) p.clouds.push({lon:r(),lat:.15+r()*.7,frame:Math.floor(r()*12),off:r()*6.28});
+    p.moonData=solar.moons.map((m,i)=>({
+      name:m.name, orbit:m.visualOrbit, orbitKm:m.orbitKm, periodDays:m.periodDays,
+      radiusKm:m.radiusKm, phase:(i*.91+r()*.45)%(Math.PI*2), direction:m.direction||1,
+      frame:m.frame%17, size:m.size, screenX:0, screenY:0, known:true
+    }));
+    p.lifeText=solar.observation;
+    p.noLifeText=solar.observation;
+    makePlanetScan(p);
+    p.populationBase=solar.populationBase||0;
+    Object.assign(p.scan,solar.scan||{});
+    p.moonData.forEach((m,i)=>{
+      m.scan=makeMoonScan(p,m,i);
+      Object.assign(m.scan,solar.moons[i].scan||{});
+    });
+    const saved=parseFloat(storageGet(tempStorageKey(p),''));
+    state.temp=Number.isFinite(saved)?clamp(saved,0,1):tempStateFromC(solar.defaultTempC,p);
+    state.info=INFO_CARDS[name] || null;
+    state.infoTitle=state.info ? name : null;
+    storageSet('planetarium:lastName',name);
+    return p;
+  }
+
   p.radius = special && name==='VERY PLANET' ? 54 : 43+Math.floor(r()*18);
   p.rx = p.radius*(.88+r()*.22); p.ry=p.radius*(.91+r()*.18);
   p.water=.28+r()*.45; p.mount=.70+r()*.18; p.beach=.025+r()*.035;
@@ -359,7 +529,7 @@ function generatePlanet(name){
   p.noLifeText = r()<.5 ? 'PRESENTLY, NO LIFE REMAINS.' : 'NO SIGNS OF LIFE ARE VISIBLE AT THIS TEMPERATURE.';
   makePlanetScan(p);
   p.moonData.forEach((m,i)=>{m.scan=makeMoonScan(p,m,i);});
-  const saved=parseFloat(storageGet('planetarium:temp:'+seed,''));
+  const saved=parseFloat(storageGet(tempStorageKey(p),''));
   state.temp=Number.isFinite(saved)?clamp(saved,0,1):(special?.cold?.12:special?.hot?.84:clamp(p.target+(r()-.5)*.4,0,1));
   state.info=INFO_CARDS[name] || null;
   state.infoTitle=state.info ? name : null;
@@ -367,15 +537,14 @@ function generatePlanet(name){
   return p;
 }
 function visit(name, addHistory=true){
-  name=(name||'').trim(); if(!name) return;
+  name=canonicalPlanetName(name); if(!name) return;
   if(addHistory){
-    const upper=name.toUpperCase();
-    state.history=state.history.filter(v=>v!==upper);
-    state.history.push(upper);
+    state.history=state.history.filter(v=>v!==name);
+    state.history.push(name);
     state.history=state.history.slice(-40); state.historyPos=state.history.length;
     storageSet('planetarium:history',JSON.stringify(state.history));
   }
-  state.name=name.toUpperCase(); state.input=''; state.intro=false; state.phase=0; state.simDays=0;
+  state.name=name; state.input=''; state.intro=false; state.phase=0; state.simDays=0;
   state.rocket=null; state.probe=null; state.pinnedBody=null; state.hoverBody=null; state.libraryOpen=false;
   planet=generatePlanet(state.name);
   document.title=`${planet.name} - Planetarium`;
@@ -383,7 +552,8 @@ function visit(name, addHistory=true){
 }
 function randomVisit(){ visit(randomPlanetName()); }
 planet=generatePlanet(state.name);
-if(Number.isFinite(urlTempC)){ state.temp=clamp((urlTempC+78)/156,0,1); storageSet('planetarium:temp:'+planet.seed,String(state.temp)); }
+state.name=planet.name;
+if(Number.isFinite(urlTempC)){ state.temp=tempStateFromC(urlTempC,planet); storageSet(tempStorageKey(planet),String(state.temp)); }
 if(urlPlanet){
   state.history=state.history.filter(v=>v!==planet.name); state.history.push(planet.name); state.history=state.history.slice(-40);
   state.historyPos=state.history.length; storageSet('planetarium:history',JSON.stringify(state.history));
@@ -392,18 +562,33 @@ document.title=`${planet.name} - Planetarium`;
 queueMicrotask(()=>syncUrl());
 
 function isAlive(){
+  if(planet.solar){
+    if(!planet.solar.life) return false;
+    return Math.abs(tempC()-planet.solar.defaultTempC)<=planet.solar.lifeToleranceC;
+  }
   if(planet.special && typeof planet.special.life==='boolean') return planet.special.life;
   return Math.abs(state.temp-planet.target)<=planet.variance;
 }
-function tempC(){ return Math.round(-78 + state.temp*156); }
+function tempC(){ return tempCFromState(state.temp,planet); }
 function tempBand(){ return clamp(Math.floor(state.temp*5),0,4); }
 
 function surfaceWaterPercent(){
+  if(planet.solar){
+    const t=tempC();
+    if(planet.name==='EARTH'){
+      const frozen=t<0?clamp((t+55)/55,0,1):1;
+      const boiled=t>100?clamp((155-t)/55,0,1):1;
+      return Math.round(71*Math.min(frozen,boiled));
+    }
+    if(planet.name==='MARS') return t>0&&t<30?3:t>-20?1:0;
+    return 0;
+  }
   const freeze=state.temp<.24 ? lerp(.38,1,(state.temp/.24)) : 1;
   const boil=state.temp>.82 ? lerp(1,.35,(state.temp-.82)/.18) : 1;
   return Math.round(clamp(planet.water*freeze*boil,0,.95)*100);
 }
 function worldClass(){
+  if(planet.solar) return planet.solar.worldClass;
   if(planet.special?.dark) return 'DARK WORLD';
   if(state.temp<.16) return 'ICE WORLD';
   if(state.temp>.90) return 'LAVA WORLD';
@@ -428,6 +613,12 @@ function populationLabel(){
 function lifeTypeLabel(){ return isAlive()?planet.scan.lifeTypePotential:'NONE'; }
 function techLevelLabel(){ return isAlive()?planet.scan.techPotential:'NONE'; }
 function iceCoverPercent(){
+  if(planet.solar){
+    const t=tempC();
+    if(planet.name==='EARTH') return Math.round(clamp(8+(15-t)*1.25,1,98));
+    if(planet.name==='MARS') return Math.round(clamp(18+(-63-t)*.28,2,65));
+    return 0;
+  }
   const cold=clamp((.43-state.temp)/.43,0,1);
   return Math.round(clamp(cold*(34+planet.water*66)+(1-planet.water)*4,0,98));
 }
@@ -439,7 +630,7 @@ function probeLossStorageKey(body){ return `planetarium:probe-loss:${planet.seed
 function isScanned(body){ return storageGet(scanStorageKey(body),'0')==='1'; }
 function markScanned(body){ storageSet(scanStorageKey(body),'1'); }
 function scanForBody(body){ return body?.type==='moon'?planet.moonData[body.index]?.scan:planet.scan; }
-function moonTemperatureC(m){ return Math.round(tempC()+m.scan.tempBias); }
+function moonTemperatureC(m){ return Math.round(tempC()+(m.scan.tempBias||0)); }
 function planetShareUrl(){
   const u=new URL(window.location.href);
   u.search='';
@@ -493,7 +684,88 @@ function terrainAt(lon,lat){
   const ridge=Math.abs(.5-valueNoise(x*.8+11,y*.8-7,planet.terrainSeed^0x51ed,64))*2;
   return {n, ridge};
 }
+function surfaceShade(col,nx,z){
+  const light=clamp((z*.62 + (-nx*.22) + .28),0,1);
+  if(light<.34) return mixHex(col,C.black,.34);
+  if(light<.53) return mixHex(col,C.black,.13);
+  return col;
+}
+function lonDistance(a,b){ const d=Math.abs(a-b); return Math.min(d,1-d); }
+function continentBlob(lon,lat,cx,cy,wx,hy){
+  const dx=lonDistance(lon,cx)/wx, dy=(lat-cy)/hy;
+  return 1-(dx*dx+dy*dy);
+}
+function earthLandValue(lon,lat,q){
+  const blobs=[
+    [.20,.34,.13,.17],[.27,.57,.075,.22], [.50,.32,.12,.12],[.61,.34,.18,.13],
+    [.56,.55,.09,.18],[.78,.66,.08,.09],[.90,.44,.055,.08]
+  ];
+  let v=-1;
+  for(const b of blobs) v=Math.max(v,continentBlob(lon,lat,...b));
+  return v+(q.n-.5)*.65+(q.ridge-.5)*.08;
+}
+function solarSurfaceColor(lon,lat,normY,nx,z){
+  if(state.tempView){
+    const heat=clamp(state.temp-Math.abs(lat-.5)*.18,0,1);
+    const c=heat<.2?C.blue:heat<.4?C.cyan:heat<.6?C.green:heat<.8?C.yellow:C.red;
+    return surfaceShade(c,nx,z);
+  }
+  const kind=planet.renderer, t=tempC();
+  if(kind==='jupiter'||kind==='saturn'||kind==='uranus'||kind==='neptune'){
+    const wobble=valueNoise(lon*14,lat*8,planet.terrainSeed,64)-.5;
+    const band=Math.sin((lat*18+wobble*.7)*Math.PI);
+    let col;
+    if(kind==='jupiter'){
+      col=band>.52?C.white:band>.02?C.yellow:band>-.55?C.brown:mixHex(C.red,C.yellow,.34);
+      const spot=(lonDistance(lon,.72)/.085)**2+((lat-.62)/.055)**2;
+      if(spot<1) col=spot<.46?C.red:mixHex(C.red,C.yellow,.35);
+    }else if(kind==='saturn'){
+      col=band>.52?C.white:band>-.08?C.yellow:mixHex(C.brown,C.white,.48);
+    }else if(kind==='uranus'){
+      col=band>.58?C.white:band<-.60?C.blue:C.cyan;
+      col=mixHex(col,C.white,.12);
+    }else{
+      col=band>.58?C.cyan:band<-.50?C.blue:mixHex(C.blue,C.cyan,.24);
+      const spot=(lonDistance(lon,.66)/.095)**2+((lat-.43)/.065)**2;
+      if(spot<1) col=mixHex(C.blue,C.black,.42);
+    }
+    return surfaceShade(col,nx,z);
+  }
+  const q=terrainAt(lon,lat);
+  let col=C.brown;
+  if(kind==='earth'){
+    const land=earthLandValue(lon,lat,q);
+    const iceLimit=t<0 ? clamp(.36+t/260,.18,.36) : clamp(.43+t/850,.40,.49);
+    const polar=Math.abs(lat-.5)>iceLimit;
+    if(polar) col=C.white;
+    else if(land<.02){
+      if(t>105) col=mixHex(C.blue,C.brown,.65); else col=land>-.12?C.cyan:C.blue;
+    }else if(land<.10) col=C.yellow;
+    else if(t>55) col=land>.48?C.brown:C.yellow;
+    else if(t<-18) col=C.white;
+    else col=land>.54?C.brown:C.green;
+  }else if(kind==='mars'){
+    const polar=Math.abs(lat-.5)>clamp(.42+(t+63)/520,.34,.48);
+    if(polar) col=C.white;
+    else if(q.ridge>.80) col=mixHex(C.brown,C.black,.16);
+    else if(q.n>.62) col=C.red;
+    else if(q.n<.39) col=C.brown;
+    else col=mixHex(C.red,C.yellow,.28);
+    if(t>5 && q.n<.32) col=C.blue;
+  }else if(kind==='mercury'){
+    if(q.ridge>.80) col=mixHex(C.brown,C.black,.32);
+    else if(q.n>.67) col=mixHex(C.white,C.brown,.45);
+    else if(q.n<.35) col=mixHex(C.brown,C.black,.22);
+    else col=mixHex(C.brown,C.white,.28);
+  }else if(kind==='venus'){
+    const sw=Math.sin((lat*12+(q.n-.5)*1.4)*Math.PI);
+    col=sw>.45?C.white:sw>-.25?C.yellow:mixHex(C.yellow,C.red,.34);
+    if(q.ridge>.84) col=mixHex(col,C.brown,.22);
+  }
+  return surfaceShade(col,nx,z);
+}
 function surfaceColor(lon,lat,normY,nx,z){
+  if(planet.solar) return solarSurfaceColor(lon,lat,normY,nx,z);
   const q=terrainAt(lon,lat), tempLocal=state.temp - Math.abs(lat-.5)*.63 + (q.n-.5)*.12;
   let col;
   const iceLine=clamp(.31 + state.temp*.33, .25,.64);
@@ -510,16 +782,13 @@ function surfaceColor(lon,lat,normY,nx,z){
     const heat=clamp(tempLocal,0,1);
     col = heat<.2?C.blue : heat<.4?C.cyan : heat<.6?C.green : heat<.8?C.yellow : C.red;
   }
-  // chunky spherical shading, intentionally subtle like the original flat pixel art
-  const light=clamp((z*.62 + (-nx*.22) + .28),0,1);
-  if(light<.34) col=mixHex(col,C.black,.34);
-  else if(light<.53) col=mixHex(col,C.black,.13);
-  return col;
+  return surfaceShade(col,nx,z);
 }
 function ringPoints(cx,cy,front){
   if(!planet.ring) return;
-  const a=planet.rx*1.52, b=Math.max(7,planet.ry*.27), rot=planet.ringTilt;
-  ctx.fillStyle=planet.special?.dark?C.red:C.purple;
+  const a=planet.rx*(planet.ringScale||1.52), b=Math.max(7,planet.ry*(planet.ringFlatness||.27)), rot=planet.ringTilt;
+  ctx.fillStyle=planet.ringColor || (planet.special?.dark?C.red:C.purple);
+  ctx.globalAlpha=planet.ringAlpha??1;
   for(let i=0;i<240;i++){
     const th=i/240*Math.PI*2;
     const ysign=Math.sin(th);
@@ -529,6 +798,7 @@ function ringPoints(cx,cy,front){
     const x=cx+ex*Math.cos(rot)-ey*Math.sin(rot), y=cy+ex*Math.sin(rot)+ey*Math.cos(rot);
     if(i%2===0) ctx.fillRect(Math.round(x),Math.round(y),1,1);
   }
+  ctx.globalAlpha=1;
 }
 function moonPosition(m,cx,cy){
   const ang=m.phase+(state.simDays/m.periodDays)*Math.PI*2*m.direction;
@@ -672,7 +942,7 @@ function drawPlanetHover(cx,cy){
   drawText(`POPULATION ${populationLabel()}`,x,y+76,isAlive()?C.green:C.brown,1);
   drawText(`DAY        ${planet.dayHours.toFixed(1)} H`,x,y+85,C.white,1);
   drawText(`YEAR       ${planet.yearDays} D`,x,y+94,C.white,1);
-  drawText(`MOONS      ${planet.moons}`,x,y+103,C.purple,1);
+  drawText(`${planet.solar&&['JUPITER','SATURN','URANUS','NEPTUNE'].includes(planet.name)?'MAJOR MOONS':'MOONS      '} ${planet.moons}`,x,y+103,C.purple,1);
   const scanned=isScanned({type:'planet'});
   if(scanned){
     drawPlanetDeepScan(x+130,y);
@@ -935,7 +1205,7 @@ function render(t){
   requestAnimationFrame(render);
 }
 
-function saveTemp(){ storageSet('planetarium:temp:'+planet.seed,String(state.temp)); }
+function saveTemp(){ storageSet(tempStorageKey(planet),String(state.temp)); }
 function setTemp(v){ state.temp=clamp(v,0,1); saveTemp(); syncUrl(); }
 function toggleMute(){ state.muted=!state.muted; audio.muted=state.muted; startAudio(); }
 function doAction(id){
