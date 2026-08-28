@@ -77,7 +77,7 @@ const MOON_COLORS = [
   mixHex(C.green,C.white,.32), mixHex(C.purple,C.white,.22), mixHex(C.red,C.white,.24)
 ];
 const SOLAR_MOON_COLORS = {
-  MOON: mixHex(C.white,C.brown,.20), PHOBOS:C.brown, DEIMOS:mixHex(C.brown,C.white,.24),
+  MOON: mixHex(C.white,C.black,.18), PHOBOS:C.brown, DEIMOS:mixHex(C.brown,C.white,.24),
   IO:C.yellow, EUROPA:mixHex(C.white,C.yellow,.25), GANYMEDE:mixHex(C.brown,C.white,.18), CALLISTO:mixHex(C.brown,C.purple,.18),
   ENCELADUS:C.cyan, RHEA:mixHex(C.white,C.blue,.15), TITAN:mixHex(C.yellow,C.red,.28), IAPETUS:mixHex(C.brown,C.white,.12),
   MIRANDA:mixHex(C.white,C.blue,.18), ARIEL:C.cyan, UMBRIEL:mixHex(C.purple,C.black,.22), TITANIA:mixHex(C.cyan,C.blue,.22),
@@ -163,7 +163,22 @@ function texturedMoonSprite(frame,color,m,diameter){
   g.globalCompositeOperation='source-atop';
   const r=mulberry32(hashString(key)), palette=moonTextureColors(m,color), detailCount=diameter>=30?28:diameter>=20?20:diameter>=12?12:6;
   const point=()=>solid[Math.floor(r()*solid.length)];
-  if(surface.includes('ICE')){
+  if(planet?.name==='EARTH' && m?.name==='MOON'){
+    const maria=[
+      [.30,.38,.16,.12],[.43,.30,.12,.10],[.56,.35,.14,.10],[.62,.48,.18,.12],[.42,.56,.18,.12],[.30,.62,.12,.10]
+    ];
+    g.fillStyle=mixHex(C.white,C.black,.36);
+    for(const [cx,cy,rx,ry] of maria){
+      for(let y=0;y<c.height;y++) for(let x=0;x<c.width;x++){
+        const dx=(x/c.width-cx)/rx, dy=(y/c.height-cy)/ry;
+        if(dx*dx+dy*dy<1 && alpha[(y*c.width+x)*4+3]>24) g.fillRect(x,y,1,1);
+      }
+    }
+    g.fillStyle=mixHex(C.white,C.black,.18);
+    for(let i=0;i<detailCount+8;i++){ const [x,y]=point(); g.fillRect(x,y,1,1); }
+    g.fillStyle=C.white;
+    for(let i=0;i<8;i++){ const [x,y]=point(); if(r()>.5) g.fillRect(x,y,1,1); }
+  } else if(surface.includes('ICE')){
     g.fillStyle=palette[1];
     for(let i=0;i<Math.max(4,Math.floor(detailCount*.55));i++){
       let [x,y]=point(),len=2+Math.floor(r()*Math.max(2,diameter*.18));
@@ -334,7 +349,8 @@ const SOLAR_ALIASES = {
   'SOL V':'JUPITER', 'SOL 5':'JUPITER',
   'SOL VI':'SATURN', 'SOL 6':'SATURN',
   'SOL VII':'URANUS', 'SOL 7':'URANUS',
-  'SOL VIII':'NEPTUNE', 'SOL 8':'NEPTUNE'
+  'SOL VIII':'NEPTUNE', 'SOL 8':'NEPTUNE',
+  'SOL IX':'PLUTO', 'SOL 9':'PLUTO'
 };
 function canonicalPlanetName(name){
   const upper=(name||'').trim().toUpperCase().slice(0,60) || 'PLANET';
@@ -368,12 +384,12 @@ const SOLAR_SYSTEM_PLANETS = {
     dayHours:23.934, yearDays:365.25, distanceAU:1, axialTiltDeg:23.44, rotationDirection:1,
     atmosDensity:'NORMAL', atmosChemistry:'N2 / O2', weather:'RAIN / STORMS', hurricanePotential:true,
     observation:'THE BIRTHPLACE OF HUMANITY. BLUE OCEANS, ACTIVE WEATHER AND A DENSE BIOSPHERE COVER MUCH OF THE SURFACE.',
-    moons:[knownMoon('MOON',384400,27.322,1737,79,4,.88,{tempBias:-35,gravity:.17,surface:'BASALT / DUST',atmosphere:'TRACE EXOSPHERE',waterIce:'RICH',activity:'DORMANT',anomaly:'WATER ICE IN POLAR SHADOWS',lossRisk:false})], ring:false,
+    moons:[knownMoon('MOON',384400,27.322,1737,79,4,.72,{tempBias:-35,gravity:.17,surface:'BASALT / DUST',atmosphere:'TRACE EXOSPHERE',waterIce:'RICH',activity:'DORMANT',anomaly:'WATER ICE IN POLAR SHADOWS',lossRisk:false})], ring:false,
     scan:{ageBy:4.5,pressureAtm:1,pressureText:'1 ATM',magField:'STRONG',oxygen:20.9,nitrogen:78.1,co2:.04,tectonics:'ACTIVE',volcanism:'MODERATE',oceanDepthKm:3.7,lifeTypePotential:'COMPLEX',techPotential:'EARLY SPACEFLIGHT',iron:'RICH',carbon:'ABUNDANT',uranium:'COMMON',anomaly:'ARTIFICIAL RADIO EMISSIONS DETECTED',lossRisk:false}
   },
   MARS:{
     renderer:'mars', worldClass:'DESERT WORLD', visualRadius:38, radiusKm:3390, massEarth:.107, gravity:.38,
-    water:.03, cloudCover:.06, cloudSpeed:.12, defaultTempC:-63, tempRange:[-130,35], life:false, populationBase:0,
+    water:.06, cloudCover:.08, cloudSpeed:.12, defaultTempC:-63, tempRange:[-130,85], life:false, populationBase:0,
     dayHours:24.623, yearDays:686.98, distanceAU:1.524, axialTiltDeg:25.19, rotationDirection:1,
     atmosDensity:'THIN', atmosChemistry:'CO2 / N2 / AR', weather:'DUST STORMS',
     observation:'FOR ONE HUNDRED AND FIFTY YEARS HUMANS HAD THEIR EYES ON MARS. ITS COLD DESERTS STILL HOLD WATER ICE BENEATH THE DUST.',
@@ -438,6 +454,19 @@ const SOLAR_SYSTEM_PLANETS = {
       knownMoon('NEREID',5509090,360.14,170,103,16,.52,{tempBias:-20,gravity:.01,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'DORMANT',anomaly:'HIGHLY ECCENTRIC ORBIT',lossRisk:false})
     ], ring:true, ringStyle:'SPARSE', ringMaterial:'DUST / ICE', ringTilt:.12, ringScale:1.46, ringFlatness:.18, ringColor:C.blue, ringAlpha:.42,
     scan:{ageBy:4.5,pressureAtm:.99,pressureText:'1 BAR REF',magField:'STRONG',oxygen:0,nitrogen:0,co2:0,tectonics:'ATMOSPHERIC',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'COMMON',carbon:'RICH',uranium:'TRACE',anomaly:'SUPERSONIC WINDS AND DARK STORMS',lossRisk:false}
+  },
+  PLUTO:{
+    renderer:'pluto', worldClass:'DWARF PLANET', visualRadius:24, radiusKm:1188, massEarth:.00218, gravity:.063,
+    water:0, cloudCover:0, cloudSpeed:.04, defaultTempC:-229, tempRange:[-245,-150], life:false, populationBase:0,
+    dayHours:153.3, yearDays:90560, distanceAU:39.48, axialTiltDeg:119.59, rotationDirection:-1,
+    atmosDensity:'TRACE', atmosChemistry:'N2 / CH4 / CO', weather:'NITROGEN FROSTS',
+    observation:'A COLD DWARF PLANET WITH A BRIGHT HEART-SHAPED BASIN, PATCHY NITROGEN ICE AND A LARGE COMPANION MOON.',
+    moons:[
+      knownMoon('CHARON',19596,6.387,606,54,9,.66,{direction:-1,tempBias:-18,gravity:.03,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'ABUNDANT',activity:'DORMANT',anomaly:'CANYONED ICE PLAINS',lossRisk:false}),
+      knownMoon('NIX',48694,24.85,25,76,16,.44,{tempBias:-20,gravity:.001,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'DORMANT',anomaly:'NONE',lossRisk:false}),
+      knownMoon('HYDRA',64738,38.2,32,92,18,.46,{tempBias:-20,gravity:.001,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'DORMANT',anomaly:'NONE',lossRisk:false})
+    ], ring:false,
+    scan:{ageBy:4.5,pressureAtm:0.00001,pressureText:'TRACE',magField:'WEAK',oxygen:0,nitrogen:97.5,co2:0,tectonics:'DORMANT',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'TRACE',carbon:'COMMON',uranium:'TRACE',anomaly:'HEART-SHAPED NITROGEN BASIN',lossRisk:false}
   }
 };
 function tempRangeFor(p=planet){ return p?.tempRange || [-78,78]; }
@@ -772,6 +801,7 @@ function generatePlanet(name){
     configureCivilization(p);
     const saved=parseFloat(storageGet(tempStorageKey(p),''));
     state.temp=Number.isFinite(saved)?clamp(saved,0,1):tempStateFromC(solar.defaultTempC,p);
+    syncSolarTemperatureState(p);
     state.info=INFO_CARDS[name] || null;
     state.infoTitle=state.info ? name : null;
     storageSet('planetarium:lastName',name);
@@ -868,6 +898,7 @@ queueMicrotask(()=>syncUrl());
 
 function isAlive(){
   if(planet.solar){
+    if(planet.name==='MARS') return marsTerraformStage()>=2;
     if(!planet.solar.life) return false;
     return Math.abs(tempC()-planet.solar.defaultTempC)<=planet.solar.lifeToleranceC;
   }
@@ -876,6 +907,34 @@ function isAlive(){
 }
 function tempC(){ return tempCFromState(state.temp,planet); }
 function tempBand(){ return clamp(Math.floor(state.temp*5),0,4); }
+function marsTerraformStage(t=tempC()){
+  if(planet?.name!=='MARS') return 0;
+  if(t>=34) return 3; // verdant / heavily terraformed
+  if(t>=8) return 2;  // open water + colonies
+  if(t>=-8) return 1; // thawing desert
+  return 0;
+}
+function periodicNoise01(lon,lat,fx,fy,seed){
+  return valueNoise(lon*fx,lat*fy,seed,fx);
+}
+function syncSolarTemperatureState(p=planet){
+  if(!p?.solar) return;
+  if(p.name==='MARS'){
+    const t=tempCFromState(state.temp,p);
+    const stage=t>=34?3:t>=8?2:t>=-8?1:0;
+    if(stage>=2){
+      p.scan.lifeTypePotential=stage>=3?'INTELLIGENT':'MICROBIAL';
+      p.scan.techPotential='INTERPLANETARY';
+      p.populationBase=stage>=3?5:4;
+      configureCivilization(p);
+    }else{
+      p.scan.lifeTypePotential='NONE';
+      p.scan.techPotential='NONE';
+      p.populationBase=0;
+      p.civilization=null;
+    }
+  }
+}
 
 function surfaceWaterPercent(){
   if(planet.solar){
@@ -885,7 +944,15 @@ function surfaceWaterPercent(){
       const boiled=t>100?clamp((155-t)/55,0,1):1;
       return Math.round(71*Math.min(frozen,boiled));
     }
-    if(planet.name==='MARS') return t>0&&t<30?3:t>-20?1:0;
+    if(planet.name==='MARS'){
+      if(t< -20) return 1;
+      if(t< 0) return 4;
+      if(t< 10) return 12;
+      if(t< 22) return 28;
+      if(t< 36) return 46;
+      if(t< 56) return 58;
+      return 44;
+    }
     return 0;
   }
   const freeze=state.temp<.24 ? lerp(.38,1,(state.temp/.24)) : 1;
@@ -893,7 +960,16 @@ function surfaceWaterPercent(){
   return Math.round(clamp(planet.water*freeze*boil,0,.95)*100);
 }
 function worldClass(){
-  if(planet.solar) return planet.solar.worldClass;
+  if(planet.solar){
+    if(planet.name==='MARS'){
+      const stage=marsTerraformStage(), water=surfaceWaterPercent();
+      if(stage>=3) return water>=40?'VERDANT MARS':'TERRAFORMED MARS';
+      if(stage>=2) return water>=34?'OCEANIC MARS':'TERRAFORMED MARS';
+      if(stage>=1) return 'THAWING MARS';
+      return 'DESERT WORLD';
+    }
+    return planet.solar.worldClass;
+  }
   if(planet.special?.dark) return 'DARK WORLD';
   if(state.temp<.12) return 'ICE WORLD';
   if(state.temp>.93) return 'LAVA WORLD';
@@ -959,6 +1035,13 @@ function weatherLabel(){
     if(hurricaneConditions()) return 'RAIN / HURRICANES';
     return 'RAIN / STORMS';
   }
+  if(planet.name==='MARS'){
+    const stage=marsTerraformStage();
+    if(stage>=3) return 'RAIN / STORMS';
+    if(stage>=2) return 'CLOUDS / SHOWERS';
+    if(stage>=1) return 'THAW MISTS';
+    return 'DUST STORMS';
+  }
   if(hurricaneConditions()) return 'RAIN / HURRICANES';
   if(planet.solar && planet.weatherPreset) return planet.weatherPreset;
   if(c.includes('CHLORINE')) return strength>.8?'CHLORINE SUPERSTORMS':'CHLORINE HAZE';
@@ -1021,17 +1104,33 @@ function atmosphereViewColor(lon,lat,nx,z){
 }
 function lifeLabel(){
   if(!isAlive()) return 'NONE';
+  if(planet.name==='MARS'){
+    const stage=marsTerraformStage();
+    return stage>=3?'ABUNDANT':stage>=2?'ACTIVE':'SPARSE';
+  }
   const d=Math.abs(state.temp-planet.target)/Math.max(.001,planet.variance);
   return d<.30?'ABUNDANT':d<.68?'ACTIVE':'SPARSE';
 }
 function populationLabel(){
   if(!isAlive()) return 'NONE';
+  if(planet.name==='MARS'){
+    const stage=marsTerraformStage();
+    return stage>=3?'MANY':stage>=2?'SOME':'TRACE';
+  }
   const d=Math.abs(state.temp-planet.target)/Math.max(.001,planet.variance);
   const penalty=d<.22?0:d<.48?1:d<.74?2:3;
   return POPULATION_WORDS[clamp(planet.populationBase-penalty,1,POPULATION_WORDS.length-1)];
 }
-function lifeTypeLabel(){ return isAlive()?planet.scan.lifeTypePotential:'NONE'; }
-function techLevelLabel(){ return isAlive()?planet.scan.techPotential:'NONE'; }
+function lifeTypeLabel(){
+  if(!isAlive()) return 'NONE';
+  if(planet.name==='MARS') return marsTerraformStage()>=3?'INTELLIGENT':'MICROBIAL';
+  return planet.scan.lifeTypePotential;
+}
+function techLevelLabel(){
+  if(!isAlive()) return 'NONE';
+  if(planet.name==='MARS') return 'INTERPLANETARY';
+  return planet.scan.techPotential;
+}
 function lifeEnvironmentKey(){
   const t=tempC(), water=surfaceWaterPercent(), ice=iceCoverPercent(), strength=atmosphereStrength(planet);
   if(ice>=45 || t<-22) return 'COLD';
@@ -1085,6 +1184,11 @@ function lifeProbeObservation(){
       'COMPLEX FOOD WEBS COVER LAND AND SEA. HUMANS ARE THE DOMINANT TECHNOLOGICAL SPECIES, BUT MICROBIAL LIFE STILL MAKES UP MUCH OF THE BIOSPHERE.',
       'OCEANS ARE RICH IN PLANKTON, REEFS AND LARGE ANIMALS; LAND SUPPORTS FORESTS, FUNGI, INSECTS, BIRDS, MAMMALS AND HUMAN CIVILIZATION.'
     ]);
+  }
+  if(planet.name==='MARS'){
+    const stage=marsTerraformStage();
+    if(stage>=3) return 'MARS NOW SUPPORTS OPEN SEAS, GREEN BASINS AND A GROWING WEB OF SEEDED LIFE. THE HUMANITY ARE ON A WAY TO BUILD A NEW CIVILIZATION THERE.';
+    if(stage>=2) return 'SHALLOW OCEANS, ENGINEERED MICROBES AND EXPANDING HABITATS ARE DETECTED. THE HUMANITY ARE ON A WAY TO BUILD A NEW CIVILIZATION THERE.';
   }
   const chemistry=(planet.atmosChemistry||'').toUpperCase();
   const microbialBias=chemistry.includes('SULF')?'SULFUR-METABOLIZING':chemistry.includes('METHANE')||chemistry.includes('CH4')?'METHANE-FEEDING':chemistry.includes('EXOTIC')?'EXOTIC-CHEMISTRY':'';
@@ -1314,9 +1418,13 @@ function drawStars(t){
   }
 }
 function terrainAt(lon,lat){
-  const x=lon*32, y=lat*17;
-  const n=fbm(x,y,planet.terrainSeed);
-  const ridge=Math.abs(.5-valueNoise(x*.8+11,y*.8-7,planet.terrainSeed^0x51ed,64))*2;
+  // Fully wrap-safe procedural terrain so special planets do not show a vertical seam.
+  const n=(
+    periodicNoise01(lon,lat,14,6,planet.terrainSeed)*.56+
+    periodicNoise01(lon,lat,28,12,planet.terrainSeed+101)*.29+
+    periodicNoise01(lon,lat,56,24,planet.terrainSeed+202)*.15
+  );
+  const ridge=Math.abs(.5-periodicNoise01(lon+11/24,lat-.09,24,8,planet.terrainSeed^0x51ed))*2;
   return {n, ridge};
 }
 function surfaceShade(col,nx,z){
@@ -1331,13 +1439,29 @@ function continentBlob(lon,lat,cx,cy,wx,hy){
   return 1-(dx*dx+dy*dy);
 }
 function earthLandValue(lon,lat,q){
-  const blobs=[
-    [.20,.34,.13,.17],[.27,.57,.075,.22], [.50,.32,.12,.12],[.61,.34,.18,.13],
-    [.56,.55,.09,.18],[.78,.66,.08,.09],[.90,.44,.055,.08]
+  const add=[
+    // North America + Greenland
+    [.155,.30,.075,.09],[.205,.34,.090,.12],[.255,.38,.075,.11],[.315,.21,.040,.06],
+    // South America
+    [.245,.56,.060,.13],[.270,.68,.040,.11],
+    // Eurasia / Africa / Arabia / India / SE Asia
+    [.515,.30,.115,.10],[.610,.29,.160,.12],[.720,.31,.120,.10],[.810,.34,.075,.08],
+    [.565,.52,.075,.15],[.615,.60,.045,.12],[.705,.48,.055,.08],[.775,.47,.060,.08],
+    // Australia + islands
+    [.855,.66,.060,.06],[.920,.58,.030,.04],[.965,.49,.020,.03],
+    // Antarctica shelf
+    [.500,.90,.330,.05]
   ];
-  let v=-1;
-  for(const b of blobs) v=Math.max(v,continentBlob(lon,lat,...b));
-  return v+(q.n-.5)*.65+(q.ridge-.5)*.08;
+  const cut=[
+    // Atlantic, Mediterranean, Indian Ocean and Arctic cutouts to make continents read better
+    [.405,.42,.090,.16],[.500,.43,.040,.05],[.650,.40,.040,.05],[.742,.58,.055,.09],[.590,.14,.120,.05],
+    [.865,.53,.026,.03],[.214,.49,.030,.04]
+  ];
+  let v=-1.1;
+  for(const b of add) v=Math.max(v,continentBlob(lon,lat,...b));
+  for(const b of cut) v-=Math.max(0,continentBlob(lon,lat,...b))*0.72;
+  const coastline=valueNoise(lon*96,lat*44,planet.terrainSeed^0x45ef,96)-.5;
+  return v+(q.n-.5)*.20+(q.ridge-.5)*.05+coastline*.10;
 }
 function solarSurfaceColor(lon,lat,normY,nx,z){
   if(state.viewMode===2 && hasAtmosphereView()) return atmosphereViewColor(lon,lat,nx,z);
@@ -1348,11 +1472,10 @@ function solarSurfaceColor(lon,lat,normY,nx,z){
   }
   const kind=planet.renderer, t=tempC();
   if(kind==='jupiter'||kind==='saturn'||kind==='uranus'||kind==='neptune'){
-    // Special gas/ice giants use the same chunky, multi-scale pixel texture language
-    // as procedural worlds instead of perfectly smooth horizontal stripes.
-    const coarse=valueNoise(lon*13,lat*9,planet.terrainSeed^0x51e2,64)-.5;
-    const streak=valueNoise(lon*42,lat*26,planet.terrainSeed^0xa931,64)-.5;
-    const grain=valueNoise(lon*88,lat*48,planet.terrainSeed^0x2c47,32)-.5;
+    // Wrap-safe giant planet bands so the texture closes cleanly with no seam.
+    const coarse=periodicNoise01(lon,lat,24,9,planet.terrainSeed^0x51e2)-.5;
+    const streak=periodicNoise01(lon,lat,64,26,planet.terrainSeed^0xa931)-.5;
+    const grain=periodicNoise01(lon,lat,96,48,planet.terrainSeed^0x2c47)-.5;
     const wave=Math.sin(lon*Math.PI*6+coarse*2.2)*.035;
     const bandLat=lat+wave+coarse*.026;
     const band=Math.sin((bandLat*18+streak*.34)*Math.PI);
@@ -1388,20 +1511,24 @@ function solarSurfaceColor(lon,lat,normY,nx,z){
     const iceLimit=t<0 ? clamp(.36+t/260,.18,.36) : clamp(.43+t/850,.40,.49);
     const polar=Math.abs(lat-.5)>iceLimit;
     if(polar) col=C.white;
-    else if(land<.02){
-      if(t>105) col=mixHex(C.blue,C.brown,.65); else col=land>-.12?C.cyan:C.blue;
-    }else if(land<.10) col=C.yellow;
-    else if(t>55) col=land>.48?C.brown:C.yellow;
+    else if(land<.01){
+      if(t>105) col=mixHex(C.blue,C.brown,.65); else col=land>-.10?C.cyan:C.blue;
+    }else if(land<.08) col=C.yellow;
+    else if(t>55) col=land>.44?C.brown:C.yellow;
     else if(t<-18) col=C.white;
-    else col=land>.54?C.brown:C.green;
+    else if(q.ridge>.82 && land>.16) col=mixHex(C.brown,C.green,.30);
+    else col=land>.50?C.brown:C.green;
   }else if(kind==='mars'){
-    const polar=Math.abs(lat-.5)>clamp(.42+(t+63)/520,.34,.48);
-    if(polar) col=C.white;
+    const stage=marsTerraformStage();
+    const polar=Math.abs(lat-.5)>clamp(.42+(t+63)/520,.32,.48);
+    const ocean=valueNoise(lon*56,lat*33,planet.terrainSeed^0x544f,56);
+    if(polar && t<10) col=C.white;
+    else if(stage>=2 && ocean<clamp(.18+stage*.06,0,.34)) col=stage>=3?mixHex(C.blue,C.cyan,.18):C.blue;
+    else if(stage>=3 && q.n>.44) col=q.ridge>.79?mixHex(C.brown,C.green,.26):C.green;
     else if(q.ridge>.80) col=mixHex(C.brown,C.black,.16);
-    else if(q.n>.62) col=C.red;
-    else if(q.n<.39) col=C.brown;
-    else col=mixHex(C.red,C.yellow,.28);
-    if(t>5 && q.n<.32) col=C.blue;
+    else if(q.n>.60) col=mixHex(C.red,C.brown,.12);
+    else if(q.n<.36) col=mixHex(C.brown,C.black,.06);
+    else col=mixHex(C.red,C.yellow,.18);
   }else if(kind==='mercury'){
     if(q.ridge>.80) col=mixHex(C.brown,C.black,.32);
     else if(q.n>.67) col=mixHex(C.white,C.brown,.45);
@@ -1415,14 +1542,27 @@ function solarSurfaceColor(lon,lat,normY,nx,z){
       else if(q.n<.34) col=mixHex(C.brown,C.black,.16);
       else col=mixHex(C.brown,C.yellow,.20);
     }else{
-      const cloudWarp=valueNoise(lon*16,lat*11,planet.terrainSeed^0x77b1,64)-.5;
-      const cloudGrain=valueNoise(lon*54,lat*37,planet.terrainSeed^0x09ed,32)-.5;
+      const cloudWarp=periodicNoise01(lon,lat,32,11,planet.terrainSeed^0x77b1)-.5;
+      const cloudGrain=periodicNoise01(lon,lat,96,37,planet.terrainSeed^0x09ed)-.5;
       const sw=Math.sin((lat*12+(q.n-.5)*1.05+cloudWarp*.55)*Math.PI);
       col=sw>.45?C.white:sw>-.25?C.yellow:mixHex(C.yellow,C.red,.34);
       if(cloudGrain>.35) col=mixHex(col,C.white,.12);
       else if(cloudGrain<-.40) col=mixHex(col,C.brown,.10);
       if(q.ridge>.84) col=mixHex(col,C.brown,.18);
     }
+  }else if(kind==='pluto'){
+    const heart=(lonDistance(lon,.57)/.19)**2+((lat-.43)/.18)**2;
+    const heartLobeA=(lonDistance(lon,.52)/.10)**2+((lat-.41)/.10)**2;
+    const heartLobeB=(lonDistance(lon,.61)/.10)**2+((lat-.41)/.10)**2;
+    const darkRegion=(lonDistance(lon,.33)/.22)**2+((lat-.68)/.28)**2;
+    const mottled=periodicNoise01(lon,lat,80,38,planet.terrainSeed^0x6c75)-.5;
+    const cracks=periodicNoise01(lon,lat,48,24,planet.terrainSeed^0x55aa)-.5;
+    col=mixHex(C.white,C.yellow,.22);
+    if(darkRegion<1) col=mixHex(C.red,C.brown,.28);
+    if(heart<1.05 || heartLobeA<1 || heartLobeB<1) col=mixHex(C.white,C.yellow,.08);
+    if(mottled>.28) col=mixHex(col,C.white,.12);
+    else if(mottled<-.32) col=mixHex(col,C.brown,.10);
+    if(cracks>.42 && heart>1.05) col=mixHex(col,C.blue,.16);
   }
   return surfaceShade(col,nx,z);
 }
@@ -1621,7 +1761,8 @@ function moonVisualDiameter(m){
   // diameter, then select the closest native pixel sprite instead of scaling a
   // tiny moon frame into a blurry/blocky giant.
   const physicalRatio=Math.max(0,(m.radiusKm||0)/Math.max(1,planet.radiusKm||1));
-  const physicalDiameter=planetVisualRadius*2*physicalRatio;
+  let physicalDiameter=planetVisualRadius*2*physicalRatio;
+  if(planet?.name==='EARTH' && m?.name==='MOON') physicalDiameter*=.78;
   return clamp(Math.round(physicalDiameter),2,40);
 }
 function moonNativeFrame(targetDiameter){
@@ -2232,7 +2373,7 @@ function render(t){
 }
 
 function saveTemp(){ storageSet(tempStorageKey(planet),String(state.temp)); }
-function setTemp(v){ state.temp=clamp(v,0,1); saveTemp(); syncUrl(); }
+function setTemp(v){ state.temp=clamp(v,0,1); syncSolarTemperatureState(planet); saveTemp(); syncUrl(); }
 function toggleMute(){ state.muted=!state.muted; audio.muted=state.muted; startAudio(); }
 function doAction(id){
   startAudio(); state.intro=false;
