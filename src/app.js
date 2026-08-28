@@ -3810,7 +3810,7 @@ function drawHaloLoreFact(x,y,maxPx=124,maxBottom=232){
   return true;
 }
 function drawPlanetHover(cx,cy){
-  const body={type:'planet'},scanned=isScanned(body),innerW=146,summaryW=168;
+  const body={type:'planet'},scanned=isScanned(body);
   const halo=isHaloRingWorld();
   const artificialOrbitals=planet.moonData?.some(m=>!!m.kind);
   const bodyCountLabel=artificialOrbitals?'OBJECTS':(planet.solar&&['JUPITER','SATURN','URANUS','NEPTUNE'].includes(planet.name)?'SHOWN MOONS':'MOONS');
@@ -3823,34 +3823,61 @@ function drawPlanetHover(cx,cy){
     ['WEATHER',compactWeatherLabel(),atmosphereAccentColor()],['BIOSPHERE',lifeLabel(),isAlive()?C.green:C.brown],['POPULATION',populationLabel(),isAlive()?C.green:C.brown],['DAY',`${planet.dayHours.toFixed(1)} H`,C.white],['YEAR',`${planet.yearDays} D`,C.white],
     [bodyCountLabel,String(bodyCount),C.purple],...(planet.ring?[['RING',ringStyleLabel(),planet.ringColor||C.purple]]:[])
   ];
-  const nameLines=wrapText(planet.name,innerW,1);
-  const classLines=wrapText(halo?'FORERUNNER HALO':worldClass(),innerW,1);
-  let contentH=Math.max(1,nameLines.length)*9+Math.max(1,classLines.length)*9+4;
-  for(const [label,value] of baseRows)contentH+=infoFieldHeight(label,value,innerW);
-  let narrative='';
+
+  // Planet cards stay compact until a probe result exists. Once scanned, the
+  // same card expands horizontally: ordinary planet data on the left and the
+  // probe/deep-scan report on the right. Moon cards intentionally do not use
+  // this layout and remain handled by drawMoonHover() unchanged.
+  const panelW=scanned?280:168;
+  const pad=8,columnGap=10;
+  const normalW=scanned?127:146;
+  const probeW=scanned?127:0;
+  const nameLines=wrapText(planet.name,normalW,1);
+  const classLines=wrapText(halo?'FORERUNNER HALO':worldClass(),normalW,1);
+
+  let normalH=Math.max(1,nameLines.length)*9+Math.max(1,classLines.length)*9+4;
+  for(const [label,value] of baseRows) normalH+=infoFieldHeight(label,value,normalW);
+
+  let narrative='',probeH=0,scanModel=null;
   if(scanned){
     narrative=halo?(planet.loreReport||planet.lifeText||''):lifeProbeObservation();
-    if(narrative)contentH+=4+measureNarrative(narrative,innerW);
-    contentH+=8+measureDeepScanModel(deepScanModelForPlanet(),innerW);
-  }else contentH+=13;
-  const panelH=Math.min(232,contentH+16);
-  const rect=choosePlanetHoverPanelRect(cx,cy,summaryW,panelH);
-  const pos=beginScrollableInfoPanel(`${planet.seed}:planet:${scanned?'scan':'locked'}`,rect,contentH,8);
+    scanModel=deepScanModelForPlanet();
+    probeH=12; // PROBE DATA heading
+    if(narrative) probeH+=measureNarrative(narrative,probeW)+4;
+    probeH+=measureDeepScanModel(scanModel,probeW)+6;
+  }
+
+  const contentH=scanned?Math.max(normalH,probeH):normalH;
+  const panelH=Math.min(232,contentH+pad*2);
+  const rect=choosePlanetHoverPanelRect(cx,cy,panelW,panelH);
+  const pos=beginScrollableInfoPanel(`${planet.seed}:planet:${scanned?'two-column-scan':'summary'}`,rect,contentH,pad);
   const x=pos.x,y=pos.y;
+
+  // LEFT COLUMN — always-visible planet information.
   nameLines.forEach((line,i)=>drawText(line,x,y+i*9,C.white,1));
   let yy=y+Math.max(1,nameLines.length)*9;
   classLines.forEach((line,i)=>drawText(line,x,yy+i*9,C.green,1));
   yy+=Math.max(1,classLines.length)*9+4;
-  for(const [label,value,color] of baseRows)yy=drawInfoField(label,value,x,yy,innerW,color);
+  for(const [label,value,color] of baseRows) yy=drawInfoField(label,value,x,yy,normalW,color);
+
+  // RIGHT COLUMN — created only after this planet has actually been probed.
   if(scanned){
+    const probeX=x+normalW+columnGap;
+    const separatorX=x+normalW+Math.floor(columnGap/2);
+    ctx.globalAlpha=.35;ctx.fillStyle=C.purple;
+    for(let sy=y;sy<y+contentH;sy+=4) ctx.fillRect(separatorX,sy,1,2);
+    ctx.globalAlpha=1;
+
+    drawText('PROBE DATA',probeX,y,C.purple,1);
+    let py=y+12;
     if(narrative){
-      yy+=4;
-      yy=drawNarrative(halo?'INSTALLATION DATA':'LIFE OBSERVED',narrative,x,yy,innerW,C.green,halo?C.white:C.green);
+      py=drawNarrative(halo?'INSTALLATION DATA':'LIFE OBSERVED',narrative,probeX,py,probeW,C.green,halo?C.white:C.green);
+      py+=4;
     }
-    yy+=8;
-    drawPlanetDeepScan(x,yy,innerW);
-  }else drawText('PROBE DATA LOCKED',x,yy+3,C.purple,1);
-  endScrollableInfoPanel(rect,contentH,8);
+    drawDeepScanModel(scanModel,probeX,py,probeW);
+  }
+
+  endScrollableInfoPanel(rect,contentH,pad);
 }
 function drawMoonDeepScan(m,x,y,maxPx=132){
   return drawDeepScanModel(deepScanModelForMoon(m),x,y,maxPx);
