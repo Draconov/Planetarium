@@ -91,7 +91,9 @@ const SOLAR_MOON_COLORS = {
   IO:C.yellow, EUROPA:mixHex(C.white,C.yellow,.25), GANYMEDE:mixHex(C.brown,C.white,.18), CALLISTO:mixHex(C.brown,C.purple,.18),
   ENCELADUS:C.cyan, RHEA:mixHex(C.white,C.blue,.15), TITAN:mixHex(C.yellow,C.red,.28), IAPETUS:mixHex(C.brown,C.white,.12),
   MIRANDA:mixHex(C.white,C.blue,.18), ARIEL:C.cyan, UMBRIEL:mixHex(C.purple,C.black,.22), TITANIA:mixHex(C.cyan,C.blue,.22),
-  PROTEUS:mixHex(C.brown,C.black,.18), TRITON:mixHex(C.cyan,C.purple,.18), NEREID:C.blue
+  PROTEUS:mixHex(C.brown,C.black,.18), TRITON:mixHex(C.cyan,C.purple,.18), NEREID:C.blue,
+  WIKTIONARY:mixHex(C.white,C.black,.18), WIKIBOOKS:C.white, WIKIQUOTE:mixHex(C.white,C.blue,.12),
+  WIKISOURCE:mixHex(C.white,C.brown,.10), WIKISPECIES:mixHex(C.white,C.green,.10), WIKIVOYAGE:mixHex(C.white,C.cyan,.12), WIKIDATA:mixHex(C.white,C.purple,.10)
 };
 
 const RING_STYLE_PROFILES = {
@@ -371,7 +373,8 @@ const FICTIONAL_ALIASES={
   'DEATHSTAR':'DEATH STAR','DEATH STAR 1':'DEATH STAR','DEATH STAR I':'DEATH STAR',
   'DEATH STAR 2':'DEATH STAR II','DEATH STAR TWO':'DEATH STAR II',
   'DEATH STAR 3':'DEATH STAR III','DEATH STAR THREE':'DEATH STAR III',
-  'DS-1':'DEATH STAR','DS-2':'DEATH STAR II','DS-3':'DEATH STAR III'
+  'DS-1':'DEATH STAR','DS-2':'DEATH STAR II','DS-3':'DEATH STAR III',
+  'WIKI':'WIKIPEDIA','WIKIPEDIA.ORG':'WIKIPEDIA','WIKIMEDIA':'WIKIPEDIA'
 };
 function canonicalPlanetName(name){
   const upper=(name||'').trim().toUpperCase().slice(0,60) || 'PLANET';
@@ -492,6 +495,25 @@ const SOLAR_SYSTEM_PLANETS = {
     scan:{ageBy:4.5,pressureAtm:0.00001,pressureText:'TRACE',magField:'WEAK',oxygen:0,nitrogen:97.5,co2:0,tectonics:'ACTIVE ICE',volcanism:'CRYOVOLCANIC?',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'TRACE',carbon:'COMMON',uranium:'TRACE',anomaly:'SPUTNIK PLANITIA - NITROGEN ICE BASIN',lossRisk:false}
   }};
 const LORE_PRESETS={
+  WIKIPEDIA:{
+    worldType:'BARREN',worldClass:'ENCYCLOPEDIC WORLD',renderer:'wikipedia',visualRadius:39,radiusKm:4600,gravity:.58,massEarth:.31,density:.80,
+    water:0,cloudCover:.08,cloudSpeed:.06,defaultTempC:20,tempRange:[-20,55],life:true,populationBase:8,
+    dayHours:24,yearDays:365,distanceAU:1,axialTiltDeg:23,rotationDirection:1,
+    atmosDensity:'THIN',atmosChemistry:'N2 / O2',weather:'EDIT CLOUDS',ring:false,disableAutoCivilization:true,
+    observation:'A PALE PUZZLE-GLOBE WORLD COVERED IN INTERLOCKING KNOWLEDGE PANELS, GLYPHS AND CONSTANTLY CHANGING ARTICLE DISTRICTS.',
+    moons:[
+      knownMoon('WIKTIONARY',42000,1.7,92,55,15,.38,{tempBias:-10,gravity:.003,surface:'LEXICON PANELS',atmosphere:'NONE',waterIce:'NONE',activity:'EDITING',anomaly:'MULTILINGUAL DICTIONARY INDEX',lossRisk:false}),
+      knownMoon('WIKIBOOKS',54000,2.6,108,65,14,.40,{tempBias:-12,gravity:.004,surface:'TEXTBOOK PANELS',atmosphere:'NONE',waterIce:'NONE',activity:'EDITING',anomaly:'OPEN TEXTBOOK ARCHIVE',lossRisk:false}),
+      knownMoon('WIKIQUOTE',67500,3.8,76,75,15,.35,{tempBias:-14,gravity:.002,surface:'QUOTE PANELS',atmosphere:'NONE',waterIce:'NONE',activity:'EDITING',anomaly:'SOURCED QUOTATION ARCHIVE',lossRisk:false}),
+      knownMoon('WIKISOURCE',83000,5.3,118,86,14,.42,{tempBias:-16,gravity:.004,surface:'DOCUMENT PANELS',atmosphere:'NONE',waterIce:'NONE',activity:'ARCHIVING',anomaly:'PRIMARY SOURCE VAULTS',lossRisk:false}),
+      knownMoon('WIKISPECIES',99000,7.1,69,97,15,.34,{tempBias:-18,gravity:.002,surface:'TAXONOMY PANELS',atmosphere:'NONE',waterIce:'NONE',activity:'CATALOGUING',anomaly:'SPECIES DIRECTORY',lossRisk:false}),
+      knownMoon('WIKIVOYAGE',118000,9.5,96,108,14,.38,{tempBias:-20,gravity:.003,surface:'MAP PANELS',atmosphere:'NONE',waterIce:'NONE',activity:'MAPPING',anomaly:'TRAVEL GUIDE NETWORK',lossRisk:false}),
+      knownMoon('WIKIDATA',141000,12.4,132,120,13,.44,{tempBias:-22,gravity:.005,surface:'DATA PANELS',atmosphere:'NONE',waterIce:'NONE',activity:'INDEXING',anomaly:'STRUCTURED DATA CORE',lossRisk:false})
+    ],
+    scan:{ageBy:.25,pressureAtm:.72,pressureText:'0.72 ATM',magField:'MODERATE',oxygen:20,nitrogen:78,co2:.04,tectonics:'CONTINUOUS EDITS',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'INTELLIGENT',techPotential:'INTERSTELLAR',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'MISSING PUZZLE SEGMENT / GLOBAL EDIT HISTORY',lossRisk:false},
+    loreReport:'THE SURFACE IS DIVIDED INTO BILLIONS OF INTERLOCKING KNOWLEDGE DISTRICTS MAINTAINED BY VAST NUMBERS OF EDITORS. SEVEN SMALL SISTER-PROJECT MOONS ORBIT THE GLOBE, EACH SPECIALIZED IN WORDS, BOOKS, QUOTATIONS, SOURCE TEXTS, SPECIES, TRAVEL OR STRUCTURED DATA.',
+    lifeLabel:'ABUNDANT',populationLabel:'MASSIVE',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'INTERSTELLAR'
+  },
   PANDORA:{
     worldType:'VERDANT',worldClass:'LIFE-BEARING MOON',visualRadius:42,radiusKm:2890,gravity:.80,massEarth:.16,density:1.78,
     water:.44,cloudCover:.62,cloudSpeed:.18,defaultTempC:27,tempRange:[-20,42],life:true,populationBase:5,
@@ -1958,6 +1980,41 @@ function coruscantSurfaceColor(lon,lat,nx,z){
   if(Math.abs(lat-.5)>.43) col=mixHex(col,C.black,.10);
   return surfaceShade(col,nx,z);
 }
+function wikipediaSurfaceColor(lon,lat,nx,z){
+  const gx=lon*8, gy=lat*5;
+  const cellX=Math.floor(gx), cellY=Math.floor(gy), u=gx-cellX, v=gy-cellY;
+  const wobbleX=Math.sin((lat*11+cellX*.73)*Math.PI)*.045;
+  const wobbleY=Math.sin((lon*13+cellY*.61)*Math.PI)*.040;
+  let col=mixHex(C.white,C.black,.08);
+  const seamX=Math.min(Math.abs(u+wobbleX),Math.abs(1-u-wobbleX));
+  const seamY=Math.min(Math.abs(v+wobbleY),Math.abs(1-v-wobbleY));
+  if(seamX<.035||seamY<.040) col=mixHex(C.white,C.black,.30);
+  else{
+    const shade=periodicNoise01(lon,lat,48,28,planet.terrainSeed^0x7711)-.5;
+    col=mixHex(col,shade>0?C.white:C.black,Math.abs(shade)*.16);
+  }
+  // Pseudo-glyphs: deterministic dark strokes scattered across puzzle panels.
+  const h=hashString(`${cellX}:${cellY}:${planet.seed}`);
+  const mark=(h%100)<62;
+  if(mark){
+    const style=h%5;
+    let ink=false;
+    if(style===0) ink=(Math.abs(u-.50)<.055&&v>.24&&v<.78)||(Math.abs(v-.34)<.045&&u>.25&&u<.72)||(Math.abs(v-.68)<.045&&u>.25&&u<.72);
+    else if(style===1) ink=(Math.abs(u-.32)<.05&&v>.25&&v<.75)||(Math.abs(u-.68)<.05&&v>.25&&v<.75)||(Math.abs(v-.52)<.05&&u>.32&&u<.68);
+    else if(style===2) ink=(Math.abs(v-.30)<.05&&u>.28&&u<.72)||(Math.abs(v-.70)<.05&&u>.28&&u<.72)||(Math.abs(u-.50)<.05&&v>.30&&v<.70);
+    else if(style===3) ink=((u-.50)*(u-.50)+(v-.50)*(v-.50)<.055)&&((u-.50)*(u-.50)+(v-.50)*(v-.50)>.022);
+    else ink=(Math.abs((u-.24)-(v-.25)*.65)<.05&&v>.24&&v<.76)||(Math.abs((u-.76)+(v-.25)*.65)<.05&&v>.24&&v<.76);
+    if(ink) col=mixHex(C.black,C.white,.05);
+  }
+  return surfaceShade(col,nx,z);
+}
+function wikipediaMissingPiece(nx,ny){
+  if(planet?.renderer!=='wikipedia') return false;
+  const core=nx>-0.34&&nx<-0.05&&ny<-.69&&ny>-.91;
+  const tab=((nx+.195)/.075)**2+((ny+.67)/.075)**2<1;
+  const side=((nx+.04)/.065)**2+((ny+.80)/.065)**2<1;
+  return core||tab||side;
+}
 function loreSurfaceColor(lon,lat,normY,nx,z){
   if(state.viewMode===2 && hasAtmosphereView()) return atmosphereViewColor(lon,lat,nx,z);
   if(state.viewMode===3){
@@ -1970,6 +2027,7 @@ function loreSurfaceColor(lon,lat,normY,nx,z){
   if(planet.renderer==='deathstar2') return deathStarSurfaceColor(lon,lat,nx,z,2);
   if(planet.renderer==='deathstar3') return deathStarSurfaceColor(lon,lat,nx,z,3);
   if(planet.renderer==='coruscant') return coruscantSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='wikipedia') return wikipediaSurfaceColor(lon,lat,nx,z);
   return null;
 }
 function surfaceColor(lon,lat,normY,nx,z){
@@ -2401,7 +2459,7 @@ function precipitationLabel(p=planet){
   return dynamicCloudCover(p)>.55?'TRACE':'NONE';
 }
 function cloudLayerSpec(layer,p=planet){
-  if(!hasAtmosphereView(p)) return null;
+  if(!hasAtmosphereView(p) || p?.renderer==='wikipedia') return null;
   const giant=planetIsAtmosphericGiant(p), cover=dynamicCloudCover(p), types=cloudChemistryTypes(p);
   if(giant && layer===0) return null; // the visible giant surface is already atmosphere
   const seedSign=((hashString(`${p.seed}:CLOUD:${layer}`)&1)?1:-1);
@@ -2685,6 +2743,7 @@ function drawPlanet(cx,cy,t){
     for(let x=minX;x<=maxX;x++){
       const nx=(x-cx)/planet.rx;
       const rr=nx*nx+ny*ny; if(rr>1) continue;
+      if(wikipediaMissingPiece(nx,ny)) continue;
       const z=Math.sqrt(Math.max(0,1-rr));
       const lon=mod(.5+Math.atan2(nx,z)/(Math.PI*2)+rot,1);
       const lat=clamp(.5+Math.asin(ny)/Math.PI,0,1);
