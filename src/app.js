@@ -47,6 +47,16 @@ for (let i=0;i<25;i++) assetNames['moon'+i] = `s_moon_${String(i).padStart(2,'0'
 for (const [k,fn] of Object.entries(assetNames)) {
   const im = new Image(); im.src = 'assets/sprites/' + fn; asset[k] = im;
 }
+const specialTexture = {};
+const plutoMapImage = new Image();
+plutoMapImage.src = 'assets/textures/pluto_map_00.png';
+plutoMapImage.addEventListener('load',()=>{
+  try{
+    const c=document.createElement('canvas'); c.width=plutoMapImage.naturalWidth; c.height=plutoMapImage.naturalHeight;
+    const g=c.getContext('2d',{willReadFrequently:true}); g.imageSmoothingEnabled=false; g.drawImage(plutoMapImage,0,0);
+    specialTexture.pluto={width:c.width,height:c.height,data:g.getImageData(0,0,c.width,c.height).data};
+  }catch{}
+});
 
 const audio = new Audio('assets/mus_loop.ogg');
 audio.loop = true;
@@ -308,7 +318,7 @@ function moonName(r,index){
   return (base + (index>1 && r()<.28 ? ` ${index+1}` : '')).toUpperCase();
 }
 const atmosphereChemistries=['N2 / O2','O2 RICH','NITROGEN','N2 / CH4','CO2 RICH','CO2 / SO2','METHANE','SULFURIC','ARGON','WATER VAPOR','AMMONIA','H2 / HE','H2 / HE / CH4','HYDROGEN SULFIDE','CHLORINE','HE / NE','METALLIC VAPOR','EXOTIC'];
-const WORLD_PROFILE_ORDER=['TERRESTRIAL','OCEAN','DESERT','ICE','BARREN','VOLCANIC','TOXIC','VERDANT'];
+const WORLD_PROFILE_ORDER=['TERRESTRIAL','OCEAN','DESERT','ICE','BARREN','VOLCANIC','TOXIC','VERDANT','DWARF'];
 const WORLD_PROFILES={
   TERRESTRIAL:{water:[.28,.64],target:[.34,.70],cloud:[.18,.58],atmos:['THIN','NORMAL','NORMAL','DENSE'],chem:['N2 / O2','O2 RICH','NITROGEN','ARGON','WATER VAPOR','N2 / CH4']},
   OCEAN:{water:[.76,.94],target:[.38,.70],cloud:[.40,.78],atmos:['NORMAL','DENSE','DENSE','SUPERDENSE'],chem:['N2 / O2','O2 RICH','NITROGEN','WATER VAPOR','N2 / CH4','AMMONIA']},
@@ -317,13 +327,14 @@ const WORLD_PROFILES={
   BARREN:{water:[0,.08],target:[.18,.72],cloud:[0,.10],atmos:['NONE','TRACE','TRACE','THIN'],chem:['ARGON','CO2 RICH','NITROGEN','HE / NE','METALLIC VAPOR']},
   VOLCANIC:{water:[0,.08],target:[.80,.97],cloud:[.16,.48],atmos:['THIN','DENSE','SUPERDENSE'],chem:['CO2 / SO2','SULFURIC','METALLIC VAPOR','CO2 RICH','HYDROGEN SULFIDE','CHLORINE']},
   TOXIC:{water:[.08,.38],target:[.48,.78],cloud:[.48,.86],atmos:['DENSE','DENSE','SUPERDENSE'],chem:['SULFURIC','CHLORINE','HYDROGEN SULFIDE','CO2 / SO2','EXOTIC','METALLIC VAPOR','N2 / CH4']},
-  VERDANT:{water:[.38,.68],target:[.38,.64],cloud:[.28,.66],atmos:['NORMAL','NORMAL','DENSE'],chem:['N2 / O2','O2 RICH','WATER VAPOR','NITROGEN','N2 / CH4']}
+  VERDANT:{water:[.38,.68],target:[.38,.64],cloud:[.28,.66],atmos:['NORMAL','NORMAL','DENSE'],chem:['N2 / O2','O2 RICH','WATER VAPOR','NITROGEN','N2 / CH4']},
+  DWARF:{water:[0,.30],target:[.03,.28],cloud:[0,.15],atmos:['NONE','NONE','TRACE','TRACE','THIN'],chem:['NITROGEN','N2 / CH4','ARGON','CO2 RICH','METHANE']}
 };
 function rangePick(r,range){ return range[0]+r()*(range[1]-range[0]); }
 function chooseWorldProfile(r){
   const q=r();
-  if(q<.34)return 'TERRESTRIAL'; if(q<.49)return 'OCEAN'; if(q<.63)return 'DESERT'; if(q<.73)return 'ICE';
-  if(q<.81)return 'BARREN'; if(q<.88)return 'VOLCANIC'; if(q<.94)return 'TOXIC'; return 'VERDANT';
+  if(q<.31)return 'TERRESTRIAL'; if(q<.45)return 'OCEAN'; if(q<.58)return 'DESERT'; if(q<.68)return 'ICE';
+  if(q<.76)return 'BARREN'; if(q<.83)return 'VOLCANIC'; if(q<.89)return 'TOXIC'; if(q<.94)return 'VERDANT'; return 'DWARF';
 }
 const SPECIAL_WORLD_TYPES={ARRAKIS:'DESERT',HOTH:'ICE',BLOOD:'OCEAN',SINGULARITY:'BARREN',MAGRATHEA:'TERRESTRIAL','VERY PLANET':'TERRESTRIAL','CAT PLANET':'VERDANT','EVERYBODY CAT PLANET':'VERDANT'};
 const urlParams=new URLSearchParams(window.location.search);
@@ -456,23 +467,27 @@ const SOLAR_SYSTEM_PLANETS = {
     scan:{ageBy:4.5,pressureAtm:.99,pressureText:'1 BAR REF',magField:'STRONG',oxygen:0,nitrogen:0,co2:0,tectonics:'ATMOSPHERIC',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'COMMON',carbon:'RICH',uranium:'TRACE',anomaly:'SUPERSONIC WINDS AND DARK STORMS',lossRisk:false}
   },
   PLUTO:{
-    renderer:'pluto', worldClass:'DWARF PLANET', visualRadius:24, radiusKm:1188, massEarth:.00218, gravity:.063,
+    renderer:'pluto', worldClass:'DWARF PLANET', visualRadius:28, radiusKm:1188, massEarth:.00218, gravity:.063,
     water:0, cloudCover:0, cloudSpeed:.04, defaultTempC:-229, tempRange:[-245,-150], life:false, populationBase:0,
     dayHours:153.3, yearDays:90560, distanceAU:39.48, axialTiltDeg:119.59, rotationDirection:-1,
     atmosDensity:'TRACE', atmosChemistry:'N2 / CH4 / CO', weather:'NITROGEN FROSTS',
-    observation:'A COLD DWARF PLANET WITH A BRIGHT HEART-SHAPED BASIN, PATCHY NITROGEN ICE AND A LARGE COMPANION MOON.',
+    observation:'A COLD DWARF PLANET WITH A BRIGHT HEART-SHAPED NITROGEN-ICE BASIN AND FIVE KNOWN MOONS.',
     moons:[
-      knownMoon('CHARON',19596,6.387,606,54,9,.66,{direction:-1,tempBias:-18,gravity:.03,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'ABUNDANT',activity:'DORMANT',anomaly:'CANYONED ICE PLAINS',lossRisk:false}),
-      knownMoon('NIX',48694,24.85,25,76,16,.44,{tempBias:-20,gravity:.001,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'DORMANT',anomaly:'NONE',lossRisk:false}),
-      knownMoon('HYDRA',64738,38.2,32,92,18,.46,{tempBias:-20,gravity:.001,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'DORMANT',anomaly:'NONE',lossRisk:false})
+      knownMoon('CHARON',19640,6.387,606,50,9,.66,{direction:-1,tempBias:-18,gravity:.029,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'ABUNDANT',activity:'DORMANT',anomaly:'RED POLAR CAP AND CANYONED ICE PLAINS',lossRisk:false}),
+      knownMoon('STYX',42700,20.2,8,63,16,.40,{tempBias:-22,gravity:.001,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'CHAOTIC ROTATION',anomaly:'NONE',lossRisk:false}),
+      knownMoon('NIX',48700,24.9,19,74,17,.44,{tempBias:-20,gravity:.001,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'CHAOTIC ROTATION',anomaly:'REDDISH IMPACT REGION',lossRisk:false}),
+      knownMoon('KERBEROS',57800,32.2,6,86,15,.38,{tempBias:-21,gravity:.001,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'CHAOTIC ROTATION',anomaly:'DOUBLE-LOBED SHAPE',lossRisk:false}),
+      knownMoon('HYDRA',64800,38.2,24,98,18,.46,{tempBias:-20,gravity:.001,surface:'WATER ICE',atmosphere:'NONE',waterIce:'ABUNDANT',activity:'CHAOTIC ROTATION',anomaly:'HIGHLY REFLECTIVE WATER ICE',lossRisk:false})
     ], ring:false,
-    scan:{ageBy:4.5,pressureAtm:0.00001,pressureText:'TRACE',magField:'WEAK',oxygen:0,nitrogen:97.5,co2:0,tectonics:'DORMANT',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'TRACE',carbon:'COMMON',uranium:'TRACE',anomaly:'HEART-SHAPED NITROGEN BASIN',lossRisk:false}
-  }
-};
+    scan:{ageBy:4.5,pressureAtm:0.00001,pressureText:'TRACE',magField:'WEAK',oxygen:0,nitrogen:97.5,co2:0,tectonics:'ACTIVE ICE',volcanism:'CRYOVOLCANIC?',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'TRACE',carbon:'COMMON',uranium:'TRACE',anomaly:'SPUTNIK PLANITIA - NITROGEN ICE BASIN',lossRisk:false}
+  }};
 function tempRangeFor(p=planet){ return p?.tempRange || [-78,78]; }
 function tempStateFromC(c,p=planet){ const [lo,hi]=tempRangeFor(p); return clamp((c-lo)/(hi-lo),0,1); }
 function tempCFromState(v,p=planet){ const [lo,hi]=tempRangeFor(p); return Math.round(lo+clamp(v,0,1)*(hi-lo)); }
-function tempStorageKey(p=planet){ return p?.solar ? `planetarium:temp:solar:${p.name}` : `planetarium:temp:${p?.seed}`; }
+function tempStorageKey(p=planet){
+  if(p?.solar && p.name==='MARS') return 'planetarium:temp:solar:MARS:v2';
+  return p?.solar ? `planetarium:temp:solar:${p.name}` : `planetarium:temp:${p?.seed}`;
+}
 
 const SPECIALS = {
   'CAT PLANET': { text:'CAT PLANET CAT PLANET CAT PLANET CAT PLANET CAT PLANET CAT PLANET CAT PLANET CAT PLANET.', palette:'cat', life:true },
@@ -487,7 +502,6 @@ const SPECIALS = {
   'VULCAN': { text:'THE PLANET IS GIVING OFF STRANGE PSYCHIC READINGS. LOGIC APPEARS TO BE POPULAR HERE.', life:true },
   'MAGRATHEA': { text:'THIS PLANET IS LARGE ENOUGH TO HOUSE OTHER PLANETS.', life:true },
   'EUROPA': { text:'ALL THESE WORLDS ARE YOURS EXCEPT EUROPA - ATTEMPT NO LANDING THERE.', life:false, cold:true },
-  'PLUTO': { text:'SORRY, THIS IS A PLANETARIUM, NOT A NOT-A-PLANET-ARIUM.', life:false, cold:true },
   'MOBIUS': { text:'THIS PLANET IS HOME TO A REMARKABLE POPULATION OF INCREDIBLY FAST BLUE HEDGEHOGS.', life:true },
   'HYRULE': { text:'HEY, LISTEN!', life:true },
   'SUPER MARIO WORLD': { text:'THE CASTLES ARE HOME TO LARGE, VICIOUS TURTLE-LIKE CREATURES. SO MANY CASTLES, SO FEW PRINCESSES!', life:true },
@@ -810,7 +824,7 @@ function generatePlanet(name){
 
   p.worldType=SPECIAL_WORLD_TYPES[name]||chooseWorldProfile(r);
   const profile=WORLD_PROFILES[p.worldType]||WORLD_PROFILES.TERRESTRIAL;
-  p.radius = special && name==='VERY PLANET' ? 54 : 43+Math.floor(r()*18);
+  p.radius = p.worldType==='DWARF' ? 22+Math.floor(r()*11) : (special && name==='VERY PLANET' ? 54 : 43+Math.floor(r()*18));
   p.rx = p.radius*(.88+r()*.22); p.ry=p.radius*(.91+r()*.18);
   p.water=rangePick(r,profile.water);
   p.mount=p.worldType==='OCEAN'?.82:p.worldType==='DESERT'?.67:p.worldType==='VOLCANIC'?.62:.70+r()*.18;
@@ -819,17 +833,17 @@ function generatePlanet(name){
   p.target=rangePick(r,profile.target); p.variance=.07+r()*.10;
   if(p.worldType==='VERDANT') p.variance=.11+r()*.09;
   if(p.worldType==='BARREN'||p.worldType==='VOLCANIC') p.variance=.045+r()*.055;
-  p.moons = Math.min(4, Math.floor(r()*4.1));
-  p.ring = r()<.15 || ['SATURN','MAGRATHEA','SINGULARITY'].includes(name);
+  p.moons = p.worldType==='DWARF' ? Math.min(3,Math.floor(r()*3.5)) : Math.min(4, Math.floor(r()*4.1));
+  p.ring = p.worldType==='DWARF' ? r()<.035 : (r()<.15 || ['SATURN','MAGRATHEA','SINGULARITY'].includes(name));
   p.ringTilt = -.34+r()*.68;
   configureProceduralRing(p,r);
-  p.radiusKm=Math.round(1600+p.radius*100+r()*2400);
+  p.radiusKm=p.worldType==='DWARF' ? Math.round(350+r()*1450) : Math.round(1600+p.radius*100+r()*2400);
   p.radiusEarth=p.radiusKm/6371;
-  p.density=.72+r()*.72;
-  p.gravity=clamp(p.radiusEarth*p.density,.16,2.65);
+  p.density=p.worldType==='DWARF' ? .45+r()*.70 : .72+r()*.72;
+  p.gravity=p.worldType==='DWARF' ? clamp(p.radiusEarth*p.density,.02,.30) : clamp(p.radiusEarth*p.density,.16,2.65);
   p.massEarth=Math.max(.03,p.gravity*p.radiusEarth*p.radiusEarth);
-  p.dayHours=Math.round((7+r()*43)*10)/10;
-  p.yearDays=Math.round(74+r()*812);
+  p.dayHours=p.worldType==='DWARF'?Math.round((18+r()*180)*10)/10:Math.round((7+r()*43)*10)/10;
+  p.yearDays=p.worldType==='DWARF'?Math.round(1200+r()*120000):Math.round(74+r()*812);
   p.rotationDirection=r()<.16?-1:1;
   p.rotation=p.rotationDirection*(.18+r()*.24);
   p.atmosDensity=pick(r,profile.atmos);
@@ -994,6 +1008,7 @@ function worldClass(){
   if(planet.worldType==='VOLCANIC') return 'VOLCANIC WORLD';
   if(planet.worldType==='TOXIC') return 'TOXIC WORLD';
   if(planet.worldType==='BARREN') return 'BARREN WORLD';
+  if(planet.worldType==='DWARF') return state.temp<.30?'ICY DWARF PLANET':'DWARF PLANET';
   if(planet.worldType==='VERDANT') return 'VERDANT WORLD';
   if(state.temp>.78 && planet.water<.48) return 'DESERT WORLD';
   if(surfaceWaterPercent()>68) return 'OCEAN WORLD';
@@ -1478,6 +1493,14 @@ function earthLandValue(lon,lat,q){
   const coastline=valueNoise(lon*96,lat*44,planet.terrainSeed^0x45ef,96)-.5;
   return v+(q.n-.5)*.20+(q.ridge-.5)*.05+coastline*.10;
 }
+function plutoTextureColor(lon,lat){
+  const tex=specialTexture.pluto;
+  if(!tex?.data) return null;
+  const x=clamp(Math.floor(mod(lon,1)*tex.width),0,tex.width-1);
+  const y=clamp(Math.floor(clamp(lat,0,1)*(tex.height-1)),0,tex.height-1);
+  const i=(y*tex.width+x)*4;
+  return '#'+[tex.data[i],tex.data[i+1],tex.data[i+2]].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
 function solarSurfaceColor(lon,lat,normY,nx,z){
   if(state.viewMode===2 && hasAtmosphereView()) return atmosphereViewColor(lon,lat,nx,z);
   if(state.viewMode===3){
@@ -1523,8 +1546,10 @@ function solarSurfaceColor(lon,lat,normY,nx,z){
   let col=C.brown;
   if(kind==='earth'){
     const land=earthLandValue(lon,lat,q);
-    const iceLimit=t<0 ? clamp(.36+t/260,.18,.36) : clamp(.43+t/850,.40,.49);
-    const polar=Math.abs(lat-.5)>iceLimit;
+    const coldShift=clamp((15-t)/100,-.08,.14);
+    const northIce=lat < clamp(.13+coldShift,.055,.26);
+    const antarctica=lat > clamp(.82-coldShift*.80,.69,.92);
+    const polar=northIce||antarctica;
     if(polar) col=C.white;
     else if(land<.01){
       if(t>105) col=mixHex(C.blue,C.brown,.65); else col=land>-.10?C.cyan:C.blue;
@@ -1536,14 +1561,14 @@ function solarSurfaceColor(lon,lat,normY,nx,z){
   }else if(kind==='mars'){
     const stage=marsTerraformStage();
     const polar=Math.abs(lat-.5)>clamp(.42+(t+63)/520,.32,.48);
-    const ocean=valueNoise(lon*56,lat*33,planet.terrainSeed^0x544f,56);
+    const ocean=periodicNoise01(lon,lat,56,33,planet.terrainSeed^0x544f);
     if(polar && t<10) col=C.white;
     else if(stage>=2 && ocean<clamp(.18+stage*.06,0,.34)) col=stage>=3?mixHex(C.blue,C.cyan,.18):C.blue;
-    else if(stage>=3 && q.n>.44) col=q.ridge>.79?mixHex(C.brown,C.green,.26):C.green;
-    else if(q.ridge>.80) col=mixHex(C.brown,C.black,.16);
-    else if(q.n>.60) col=mixHex(C.red,C.brown,.12);
-    else if(q.n<.36) col=mixHex(C.brown,C.black,.06);
-    else col=mixHex(C.red,C.yellow,.18);
+    else if(stage>=3 && q.n>.44) col=q.ridge>.79?mixHex(C.brown,C.green,.22):C.green;
+    else if(q.ridge>.80) col=mixHex(C.red,C.black,.28);
+    else if(q.n>.62) col=mixHex(C.red,C.brown,.18);
+    else if(q.n<.34) col=mixHex(C.red,C.black,.12);
+    else col=mixHex(C.red,C.yellow,.10);
   }else if(kind==='mercury'){
     if(q.ridge>.80) col=mixHex(C.brown,C.black,.32);
     else if(q.n>.67) col=mixHex(C.white,C.brown,.45);
@@ -1566,18 +1591,19 @@ function solarSurfaceColor(lon,lat,normY,nx,z){
       if(q.ridge>.84) col=mixHex(col,C.brown,.18);
     }
   }else if(kind==='pluto'){
-    const heart=(lonDistance(lon,.57)/.19)**2+((lat-.43)/.18)**2;
-    const heartLobeA=(lonDistance(lon,.52)/.10)**2+((lat-.41)/.10)**2;
-    const heartLobeB=(lonDistance(lon,.61)/.10)**2+((lat-.41)/.10)**2;
-    const darkRegion=(lonDistance(lon,.33)/.22)**2+((lat-.68)/.28)**2;
-    const mottled=periodicNoise01(lon,lat,80,38,planet.terrainSeed^0x6c75)-.5;
-    const cracks=periodicNoise01(lon,lat,48,24,planet.terrainSeed^0x55aa)-.5;
-    col=mixHex(C.white,C.yellow,.22);
-    if(darkRegion<1) col=mixHex(C.red,C.brown,.28);
-    if(heart<1.05 || heartLobeA<1 || heartLobeB<1) col=mixHex(C.white,C.yellow,.08);
-    if(mottled>.28) col=mixHex(col,C.white,.12);
-    else if(mottled<-.32) col=mixHex(col,C.brown,.10);
-    if(cracks>.42 && heart>1.05) col=mixHex(col,C.blue,.16);
+    const mapCol=plutoTextureColor(lon,lat);
+    if(mapCol){
+      col=mapCol;
+    }else{
+      const heart=(lonDistance(lon,.57)/.19)**2+((lat-.43)/.18)**2;
+      const darkRegion=(lonDistance(lon,.33)/.22)**2+((lat-.68)/.28)**2;
+      const mottled=periodicNoise01(lon,lat,80,38,planet.terrainSeed^0x6c75)-.5;
+      col=mixHex(C.white,C.yellow,.22);
+      if(darkRegion<1) col=mixHex(C.red,C.brown,.28);
+      if(heart<1.05) col=mixHex(C.white,C.yellow,.08);
+      if(mottled>.28) col=mixHex(col,C.white,.12);
+      else if(mottled<-.32) col=mixHex(col,C.brown,.10);
+    }
   }
   return surfaceShade(col,nx,z);
 }
@@ -1626,6 +1652,12 @@ function surfaceColor(lon,lat,normY,nx,z){
     else if(q.n>.66) col=mixHex(C.brown,C.white,.26);
     else if(q.n<.34) col=mixHex(C.purple,C.black,.38);
     else col=C.brown;
+  }else if(type==='DWARF'){
+    const frost=periodicNoise01(lon,lat,40,19,planet.terrainSeed^0x0d77);
+    if(polar || tempLocal<.18) col=frost>.42?C.white:mixHex(C.cyan,C.white,.45);
+    else if(q.ridge>.80) col=mixHex(C.brown,C.black,.34);
+    else if(q.n>.60) col=mixHex(C.white,C.brown,.28);
+    else col=mixHex(C.brown,C.purple,.14);
   }else if(type==='VERDANT'){
     const threshold=.59+(planet.water-.52)*.26;
     if(polar||tempLocal<.055) col=C.white;
