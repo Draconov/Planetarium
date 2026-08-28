@@ -363,9 +363,19 @@ const SOLAR_ALIASES = {
   'SOL VIII':'NEPTUNE', 'SOL 8':'NEPTUNE',
   'SOL IX':'PLUTO', 'SOL 9':'PLUTO'
 };
+const FICTIONAL_ALIASES={
+  'AVATAR':'PANDORA','PANDORA (AVATAR)':'PANDORA','MOON OF PANDORA':'PANDORA','EYWA':'PANDORA',
+  'ROCKY':'ERID','ROCKY PLANET':'ERID','PROJECT HAIL MARY':'ERID',
+  'FOREST MOON OF ENDOR':'ENDOR','SAND BLAST':'ARRAKIS','DUNE':'ARRAKIS','RAKIS':'ARRAKIS',
+  'GEIDI PRIME':'GIEDI PRIME','GIEDI PRIME':'GIEDI PRIME',
+  'DEATHSTAR':'DEATH STAR','DEATH STAR 1':'DEATH STAR','DEATH STAR I':'DEATH STAR',
+  'DEATH STAR 2':'DEATH STAR II','DEATH STAR TWO':'DEATH STAR II',
+  'DEATH STAR 3':'DEATH STAR III','DEATH STAR THREE':'DEATH STAR III',
+  'DS-1':'DEATH STAR','DS-2':'DEATH STAR II','DS-3':'DEATH STAR III'
+};
 function canonicalPlanetName(name){
   const upper=(name||'').trim().toUpperCase().slice(0,60) || 'PLANET';
-  return SOLAR_ALIASES[upper] || upper;
+  return FICTIONAL_ALIASES[upper] || SOLAR_ALIASES[upper] || upper;
 }
 function knownMoon(name,orbitKm,periodDays,radiusKm,visualOrbit,frame,size,scan={}){
   return {name,orbitKm,periodDays,radiusKm,visualOrbit,frame,size,direction:scan.direction||1,scan};
@@ -481,6 +491,171 @@ const SOLAR_SYSTEM_PLANETS = {
     ], ring:false,
     scan:{ageBy:4.5,pressureAtm:0.00001,pressureText:'TRACE',magField:'WEAK',oxygen:0,nitrogen:97.5,co2:0,tectonics:'ACTIVE ICE',volcanism:'CRYOVOLCANIC?',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'TRACE',carbon:'COMMON',uranium:'TRACE',anomaly:'SPUTNIK PLANITIA - NITROGEN ICE BASIN',lossRisk:false}
   }};
+const LORE_PRESETS={
+  PANDORA:{
+    worldType:'VERDANT',worldClass:'LIFE-BEARING MOON',visualRadius:42,radiusKm:2890,gravity:.80,massEarth:.16,density:1.78,
+    water:.44,cloudCover:.62,cloudSpeed:.18,defaultTempC:27,tempRange:[-20,42],life:true,populationBase:5,
+    dayHours:21,yearDays:304,distanceAU:4.37,axialTiltDeg:17,rotationDirection:1,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2 / CO2',weather:'MONSOONS / MISTS',ring:false,
+    observation:'A DENSELY FORESTED MOON OF POLYPHEMUS. TOWERING JUNGLES, FLOATING MOUNTAINS AND A PLANET-WIDE BIOSPHERIC NETWORK DEFINE THIS WORLD.',
+    scan:{ageBy:4.3,pressureAtm:.9,pressureText:'0.9 ATM',magField:'MODERATE',oxygen:20,nitrogen:72,co2:5,tectonics:'ACTIVE',volcanism:'LOW',oceanDepthKm:1.7,lifeTypePotential:'INTELLIGENT',techPotential:'PRE-INDUSTRIAL',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'PLANET-WIDE NEURAL BIOSPHERE',lossRisk:false},
+    loreReport:'THE NA\'VI LIVE IN LARGE CLANS AMONG GIANT FORESTS, CLIFFS AND FLOATING MOUNTAINS. IKRAN, DIREHORSES AND COUNTLESS BIOLUMINESCENT SPECIES ARE TIED TO THE GLOBAL NETWORK KNOWN AS EYWA.'
+  },
+  POLYPHEMUS:{
+    worldType:'TOXIC',worldClass:'GAS GIANT',renderer:'jupiter',visualRadius:58,radiusKm:78000,gravity:2.1,massEarth:210,density:.95,
+    water:0,cloudCover:.54,cloudSpeed:.26,defaultTempC:-145,tempRange:[-210,-70],life:false,populationBase:0,
+    dayHours:11.4,yearDays:10240,distanceAU:4.37,axialTiltDeg:12,rotationDirection:1,
+    atmosDensity:'SUPERDENSE',atmosChemistry:'H2 / HE / CH4',weather:'AMMONIA STORMS',ring:true,ringStyle:'FAINT',ringMaterial:'ICE / DUST',ringTilt:.06,ringScale:1.34,ringFlatness:.17,ringColor:C.cyan,ringAlpha:.28,
+    observation:'THE MASSIVE GAS GIANT THAT PANDORA ORBITS. ITS PALE STORM BANDS DOMINATE THE SKY OF THE SATURN-LIKE SYSTEM.',
+    scan:{ageBy:4.6,pressureAtm:1,pressureText:'1 BAR REF',magField:'STRONG',oxygen:0,nitrogen:0,co2:0,tectonics:'ATMOSPHERIC',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'COMMON',carbon:'RICH',uranium:'TRACE',anomaly:'EXTENSIVE MOON SYSTEM',lossRisk:false}
+  },
+  ERID:{
+    worldType:'TOXIC',worldClass:'AMMONIA WORLD',visualRadius:46,radiusKm:7120,gravity:2.05,massEarth:2.56,density:1.84,
+    water:.02,cloudCover:.76,cloudSpeed:.18,defaultTempC:98,tempRange:[40,180],life:true,populationBase:7,
+    dayHours:8.9,yearDays:42,distanceAU:39.1,axialTiltDeg:8,rotationDirection:1,
+    atmosDensity:'SUPERDENSE',atmosChemistry:'AMMONIA / N2 / CO2',weather:'AMMONIA STORMS',ring:false,
+    observation:'THE HIGH-PRESSURE HOMEWORLD OF THE ERIDIANS. WARM ROCK, AMMONIA CHEMISTRY AND A CRUSHING ATMOSPHERE DEFINE THE PLANET ROCKY CALLS HOME.',
+    scan:{ageBy:5.0,pressureAtm:29.3,pressureText:'29.3 ATM',magField:'MODERATE',oxygen:0,nitrogen:58,co2:18,tectonics:'ACTIVE',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'INTELLIGENT',techPotential:'INTERSTELLAR',iron:'RICH',carbon:'COMMON',uranium:'COMMON',anomaly:'ADVANCED XENON-DRIVEN INDUSTRIAL SIGNATURES',lossRisk:false},
+    loreReport:'THE ERIDIANS ARE TOOL-USING, HIGHLY SOCIAL ROCK-LIKE BEINGS WHO THRIVE IN A HOT, HIGH-PRESSURE AMMONIA ENVIRONMENT. INDUSTRIAL MINING, PRECISION ENGINEERING AND ADVANCED SPACEFLIGHT ARE CLEARLY DETECTED.'
+  },
+  TATOOINE:{
+    worldType:'DESERT',worldClass:'DESERT WORLD',visualRadius:41,radiusKm:5250,gravity:.93,massEarth:.62,density:1.13,
+    water:.01,cloudCover:.04,cloudSpeed:.09,defaultTempC:34,tempRange:[-15,72],life:true,populationBase:4,
+    dayHours:23,yearDays:304,distanceAU:1.9,axialTiltDeg:22,rotationDirection:1,
+    atmosDensity:'THIN',atmosChemistry:'N2 / O2',weather:'HEAT HAZE / SANDSTORMS',ring:false,
+    observation:'A BINARY-SUN DESERT WORLD OF ROCKY MESAS, SALT FLATS AND SCATTERED SETTLEMENTS.',
+    moons:[knownMoon('GHOMRASSEN',310000,24.1,820,72,11,.60,{tempBias:-16,gravity:.08,surface:'ROCK / DUST',atmosphere:'NONE',waterIce:'TRACE',activity:'DORMANT',anomaly:'NONE',lossRisk:false}),knownMoon('GUERMESSA',420000,38.4,670,88,10,.55,{tempBias:-18,gravity:.06,surface:'ROCK / DUST',atmosphere:'NONE',waterIce:'TRACE',activity:'DORMANT',anomaly:'NONE',lossRisk:false})],
+    scan:{ageBy:4.8,pressureAtm:.87,pressureText:'0.87 ATM',magField:'WEAK',oxygen:19,nitrogen:77,co2:1.8,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'INTELLIGENT',techPotential:'INTERPLANETARY',iron:'COMMON',carbon:'COMMON',uranium:'TRACE',anomaly:'TWIN-STELLAR INSOLATION PATTERN',lossRisk:false},
+    loreReport:'MOISTURE FARMERS, JAWA TRADERS AND HUTT-DOMINATED SETTLEMENTS ARE SCATTERED ACROSS THE DESERT. DEEP SAND SEAS AND REMOTE CANYONS HIDE OLD RUINS, RACER TRACKS AND SMUGGLER ROUTES.'
+  },
+  HOTH:{
+    worldType:'ICE',worldClass:'ICE WORLD',visualRadius:40,radiusKm:4800,gravity:.92,massEarth:.52,density:1.22,
+    water:.58,cloudCover:.22,cloudSpeed:.12,defaultTempC:-58,tempRange:[-150,-5],life:true,populationBase:2,
+    dayHours:23.8,yearDays:549,distanceAU:3.1,axialTiltDeg:28,rotationDirection:1,
+    atmosDensity:'THIN',atmosChemistry:'N2 / O2',weather:'BLIZZARDS',ring:false,
+    observation:'A FROZEN WORLD of SNOW PLAINS, BLUE GLACIERS AND BITTER WINDS.',
+    scan:{ageBy:4.7,pressureAtm:.74,pressureText:'0.74 ATM',magField:'WEAK',oxygen:18,nitrogen:79,co2:.5,tectonics:'LOW',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'COMPLEX',techPotential:'NONE',iron:'COMMON',carbon:'TRACE',uranium:'TRACE',anomaly:'SUBGLACIAL CAVERN NETWORKS',lossRisk:false},
+    loreReport:'TAUNTAUN HERDS AND LARGE PREDATORS LIKE WAMPAS SURVIVE IN THE POLAR WASTES. NO NATIVE TECHNOLOGICAL CIVILIZATION IS VISIBLE, BUT TEMPORARY MILITARY ACTIVITY SOMETIMES APPEARS.'
+  },
+  ENDOR:{
+    worldType:'VERDANT',worldClass:'FOREST MOON',visualRadius:38,radiusKm:4900,gravity:.85,massEarth:.49,density:1.10,
+    water:.33,cloudCover:.34,cloudSpeed:.15,defaultTempC:16,tempRange:[-20,38],life:true,populationBase:4,
+    dayHours:18.2,yearDays:402,distanceAU:8.2,axialTiltDeg:19,rotationDirection:1,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'MISTS / SHOWERS',ring:false,
+    observation:'A WOODED MOON WITH TOWERING CONIFERS, FOGGY VALLEYS AND A STRONG NATIVE BIOSPHERE.',
+    scan:{ageBy:4.3,pressureAtm:1.02,pressureText:'1.02 ATM',magField:'MODERATE',oxygen:22,nitrogen:75,co2:.06,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:.5,lifeTypePotential:'INTELLIGENT',techPotential:'PRE-INDUSTRIAL',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'ORBITAL BATTLE DEBRIS SIGNATURES',lossRisk:false},
+    loreReport:'EWOK VILLAGES, LIFTED WOODEN BRIDGES AND FOREST TRAILS ARE DETECTED THROUGH THE TREETOPS. THE MOON ALSO CARRIES OLD SCARS FROM THE BATTLE THAT DESTROYED THE SECOND DEATH STAR.'
+  },
+  NABOO:{
+    worldType:'VERDANT',worldClass:'TERRESTRIAL WORLD',visualRadius:43,radiusKm:6400,gravity:1.0,massEarth:1.01,density:1.00,
+    water:.46,cloudCover:.36,cloudSpeed:.16,defaultTempC:21,tempRange:[-10,40],life:true,populationBase:7,
+    dayHours:26.6,yearDays:312,distanceAU:1.1,axialTiltDeg:17,rotationDirection:1,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'RAIN / STORMS',ring:false,
+    observation:'A LUSH WORLD OF GRASSLANDS, SEAS AND WETLANDS KNOWN FOR BOTH SURFACE CITIES AND UNDERWATER SETTLEMENTS.',
+    scan:{ageBy:4.4,pressureAtm:1.01,pressureText:'1.01 ATM',magField:'MODERATE',oxygen:21,nitrogen:78,co2:.05,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:2.2,lifeTypePotential:'INTELLIGENT',techPotential:'INTERPLANETARY',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'DUAL SURFACE / SUBAQUATIC CIVILIZATION',lossRisk:false},
+    loreReport:'HUMAN CITIES, GUNGAN UNDERWATER HABITATS AND HIGH-ENERGY TRANSPORT ROUTES COVER NABOO. THE WORLD MAINTAINS A BALANCE BETWEEN ORNAMENTAL ARCHITECTURE, AGRICULTURE AND ADVANCED STARFARING TECHNOLOGY.'
+  },
+  CORUSCANT:{
+    worldType:'BARREN',worldClass:'CITY WORLD',renderer:'coruscant',visualRadius:44,radiusKm:6100,gravity:.98,massEarth:.95,density:1.03,
+    water:.01,cloudCover:.21,cloudSpeed:.12,defaultTempC:18,tempRange:[-5,35],life:true,populationBase:8,
+    dayHours:24,yearDays:368,distanceAU:1.3,axialTiltDeg:22,rotationDirection:1,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'URBAN HAZE / RAIN',ring:false,
+    observation:'A PLANET-SPANNING ECUMENOPOLIS WHERE NEARLY THE ENTIRE SURFACE HAS BEEN BUILT OVER.',
+    scan:{ageBy:5.1,pressureAtm:1.02,pressureText:'1.02 ATM',magField:'MODERATE',oxygen:20.5,nitrogen:77.8,co2:.4,tectonics:'CONTAINED',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'INTELLIGENT',techPotential:'INTERSTELLAR',iron:'RICH',carbon:'COMMON',uranium:'COMMON',anomaly:'PLANET-WIDE ARTIFICIAL LIGHT NETWORK',lossRisk:false},
+    loreReport:'A LAYERED CITYSCAPE COVERS THE ENTIRE PLANET. HEAVY AIR TRAFFIC, ORBITAL LANES, SENATORIAL DISTRICTS AND MEGASTRUCTURAL FOUNDATIONS ALL POINT TO ONE OF THE GALAXY\'S MOST ADVANCED URBAN WORLDS.'
+  },
+  MUSTAFAR:{
+    worldType:'VOLCANIC',worldClass:'VOLCANIC WORLD',visualRadius:38,radiusKm:4200,gravity:.85,massEarth:.41,density:1.29,
+    water:0,cloudCover:.12,cloudSpeed:.06,defaultTempC:134,tempRange:[40,260],life:true,populationBase:2,
+    dayHours:36,yearDays:412,distanceAU:.9,axialTiltDeg:11,rotationDirection:1,
+    atmosDensity:'THIN',atmosChemistry:'CO2 / SO2',weather:'ASH / HEAT',ring:false,
+    observation:'A VOLCANIC WORLD OF LAVA RIVERS, BASALT SPires AND CONSTANT GEOLOGICAL VIOLENCE.',
+    scan:{ageBy:4.8,pressureAtm:.29,pressureText:'0.29 ATM',magField:'WEAK',oxygen:1,nitrogen:7,co2:82,tectonics:'VIOLENT',volcanism:'HIGH',oceanDepthKm:0,lifeTypePotential:'COMPLEX',techPotential:'INDUSTRIAL',iron:'RICH',carbon:'TRACE',uranium:'COMMON',anomaly:'EXTENSIVE LAVA OCEANS',lossRisk:false},
+    loreReport:'INDUSTRIAL MINING FACILITIES AND FORTIFIED COMPLEXES CLING TO THE ROCK ABOVE THE LAVA FLOWS. LIFE IS HARSH AND LOCALIZED, BUT THE WORLD SUPPORTS SPECIALIZED INDUSTRY AND STRATEGIC OUTPOSTS.'
+  },
+  KAMINO:{
+    worldType:'OCEAN',worldClass:'OCEAN WORLD',visualRadius:43,radiusKm:6800,gravity:1.02,massEarth:1.12,density:1.01,
+    water:.94,cloudCover:.82,cloudSpeed:.24,defaultTempC:9,tempRange:[-5,28],life:true,populationBase:5,
+    dayHours:27,yearDays:463,distanceAU:2.1,axialTiltDeg:14,rotationDirection:1,
+    atmosDensity:'DENSE',atmosChemistry:'N2 / O2',weather:'GLOBAL STORMS',ring:false,
+    observation:'AN OCEANIC WORLD OF ENDLESS SEAS, HARD RAIN AND TOWERING STILTED CITIES RISING ABOVE THE WAVES.',
+    scan:{ageBy:4.5,pressureAtm:1.6,pressureText:'1.6 ATM',magField:'MODERATE',oxygen:21,nitrogen:77.5,co2:.1,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:6.1,lifeTypePotential:'INTELLIGENT',techPotential:'INTERPLANETARY',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'CLONE / BIOENGINEERING INFRASTRUCTURE',lossRisk:false},
+    loreReport:'THE KAMINOANS OPERATE ADVANCED CLONING FACILITIES FROM OCEAN-BORNE CITIES. HEAVY RAIN, STRONG WINDS AND PLANET-WIDE WATER COVER DOMINATE THE ENVIRONMENT.'
+  },
+  ALDERAAN:{
+    worldType:'VERDANT',worldClass:'ALPINE WORLD',visualRadius:42,radiusKm:6250,gravity:.96,massEarth:.93,density:1.01,
+    water:.51,cloudCover:.31,cloudSpeed:.14,defaultTempC:14,tempRange:[-12,30],life:true,populationBase:6,
+    dayHours:24.2,yearDays:364,distanceAU:1.0,axialTiltDeg:21,rotationDirection:1,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'CLEAR / SHOWERS',ring:false,
+    observation:'A BEAUTIFUL CORE WORLD OF MOUNTAINS, LAKES AND ELEGANT CITIES.',
+    scan:{ageBy:4.6,pressureAtm:1,pressureText:'1 ATM',magField:'MODERATE',oxygen:21,nitrogen:78,co2:.04,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:2.6,lifeTypePotential:'INTELLIGENT',techPotential:'INTERPLANETARY',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'RECENT PLANETARY DESTRUCTION TRAUMA',lossRisk:false},
+    loreReport:'PEACEFUL CITIES, ALPINE SETTLEMENTS AND HIGH CULTURAL DENSITY DEFINE ALDERAAN. THE WORLD IS SYNONYMOUS WITH DIPLOMACY, ART AND LONG-STANDING PARTICIPATION IN INTERSTELLAR AFFAIRS.'
+  },
+  DEATH_STAR:{
+    worldType:'BARREN',worldClass:'IMPERIAL BATTLE STATION',renderer:'deathstar',visualRadius:46,radiusKm:80000,gravity:1.08,massEarth:170,density:.19,
+    water:0,cloudCover:0,cloudSpeed:0,defaultTempC:21,tempRange:[0,42],life:false,populationBase:0,
+    dayHours:24,yearDays:365,distanceAU:0,axialTiltDeg:0,rotationDirection:1,
+    atmosDensity:'NONE',atmosChemistry:'NONE',weather:'NONE',ring:false,disableAutoCivilization:true,
+    observation:'A MOON-SIZED ARTIFICIAL BATTLE STATION WITH A PLANET-KILLING SUPERLASER DISH AND AN IMPERIAL PANEL-ARMOURED SURFACE.',
+    scan:{ageBy:.03,pressureAtm:0,pressureText:'CONTROLLED INTERIOR ONLY',magField:'ARTIFICIAL',oxygen:0,nitrogen:0,co2:0,tectonics:'NONE',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'INTERSTELLAR',iron:'ABUNDANT',carbon:'TRACE',uranium:'ABUNDANT',anomaly:'SUPERLASER CONDUIT GRID',lossRisk:false},
+    lifeLabel:'NONE',populationLabel:'MASSIVE',lifeTypeLabel:'NONE',techLevelLabel:'INTERSTELLAR'
+  },
+  DEATH_STAR_II:{
+    worldType:'BARREN',worldClass:'INCOMPLETE BATTLE STATION',renderer:'deathstar2',visualRadius:46,radiusKm:90000,gravity:1.02,massEarth:165,density:.17,
+    water:0,cloudCover:0,cloudSpeed:0,defaultTempC:18,tempRange:[0,40],life:false,populationBase:0,
+    dayHours:24,yearDays:365,distanceAU:0,axialTiltDeg:0,rotationDirection:1,
+    atmosDensity:'NONE',atmosChemistry:'NONE',weather:'NONE',ring:false,disableAutoCivilization:true,
+    observation:'THE SECOND DEATH STAR: A PARTIALLY COMPLETED SUPERWEAPON ABOVE ENDOR WITH LARGE EXPOSED SECTIONS OF INNER SUPERSTRUCTURE.',
+    scan:{ageBy:.01,pressureAtm:0,pressureText:'PARTIAL INTERNAL LIFE SUPPORT',magField:'ARTIFICIAL',oxygen:0,nitrogen:0,co2:0,tectonics:'NONE',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'INTERSTELLAR',iron:'ABUNDANT',carbon:'TRACE',uranium:'ABUNDANT',anomaly:'EXPOSED REACTOR / CONSTRUCTION SUPERSTRUCTURE',lossRisk:false},
+    lifeLabel:'NONE',populationLabel:'MANY',lifeTypeLabel:'NONE',techLevelLabel:'INTERSTELLAR'
+  },
+  DEATH_STAR_III:{
+    worldType:'BARREN',worldClass:'RUINED BATTLE STATION',renderer:'deathstar3',visualRadius:46,radiusKm:90000,gravity:.96,massEarth:140,density:.16,
+    water:0,cloudCover:0,cloudSpeed:0,defaultTempC:-12,tempRange:[-120,25],life:false,populationBase:0,
+    dayHours:24,yearDays:365,distanceAU:0,axialTiltDeg:0,rotationDirection:1,
+    atmosDensity:'NONE',atmosChemistry:'NONE',weather:'NONE',ring:false,disableAutoCivilization:true,
+    observation:'A BADLY DAMAGED DEATH-STAR-TYPE HULK. WHOLE REGIONS OF THE SHELL ARE TORN OPEN, LEAVING JAGGED SCARS AND EXPOSED INNER FRAMES.',
+    scan:{ageBy:.02,pressureAtm:0,pressureText:'VACUUM',magField:'ARTIFICIAL',oxygen:0,nitrogen:0,co2:0,tectonics:'NONE',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'INTERSTELLAR',iron:'ABUNDANT',carbon:'TRACE',uranium:'ABUNDANT',anomaly:'CATASTROPHIC BATTLE DAMAGE',lossRisk:false},
+    lifeLabel:'NONE',populationLabel:'NONE',lifeTypeLabel:'NONE',techLevelLabel:'INTERSTELLAR'
+  },
+  ARRAKIS:{
+    worldType:'DESERT',worldClass:'DESERT PLANET',visualRadius:42,radiusKm:6200,gravity:.91,massEarth:.86,density:.93,
+    water:.00,cloudCover:.01,cloudSpeed:.05,defaultTempC:47,tempRange:[10,92],life:true,populationBase:5,
+    dayHours:26.5,yearDays:687,distanceAU:1.9,axialTiltDeg:19,rotationDirection:1,
+    atmosDensity:'THIN',atmosChemistry:'N2 / O2',weather:'SPICE DUST / SANDSTORMS',ring:false,
+    observation:'THE DESERT WORLD OF DUNE, ALMOST ENTIRELY DRY AND FAMOUS AS THE ONLY SOURCE OF MELANGE.',
+    scan:{ageBy:4.9,pressureAtm:.92,pressureText:'0.92 ATM',magField:'WEAK',oxygen:20,nitrogen:76,co2:1.6,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'INTELLIGENT',techPotential:'INTERPLANETARY',iron:'COMMON',carbon:'COMMON',uranium:'TRACE',anomaly:'SPICE BLOWS / TITANIC SANDWORM SIGNATURES',lossRisk:false},
+    loreReport:'FREMEN SIETCHES, SCATTERED IMPERIAL OUTPOSTS AND ENORMOUS SANDWORMS DOMINATE THE DEEP DESERT. THE ENTIRE POLITICAL ECONOMY OF THE IMPERIUM ORBITS THE SPICE HARVESTED HERE.'
+  },
+  CALADAN:{
+    worldType:'OCEAN',worldClass:'OCEANIC WORLD',visualRadius:43,radiusKm:6700,gravity:.98,massEarth:1.06,density:1.02,
+    water:.78,cloudCover:.52,cloudSpeed:.16,defaultTempC:18,tempRange:[-8,34],life:true,populationBase:6,
+    dayHours:24.4,yearDays:391,distanceAU:1.1,axialTiltDeg:18,rotationDirection:1,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'RAIN / SEAS',ring:false,
+    observation:'A WATER-RICH WORLD OF RAIN, ISLANDS AND DEEP OCEANS, LONG RULED BY HOUSE ATREIDES.',
+    scan:{ageBy:4.4,pressureAtm:1.03,pressureText:'1.03 ATM',magField:'MODERATE',oxygen:21,nitrogen:78,co2:.05,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:4.9,lifeTypePotential:'INTELLIGENT',techPotential:'INTERPLANETARY',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'VAST PELAGIC ECOSYSTEMS',lossRisk:false},
+    loreReport:'SEA-SWEPT CLIFFS, AGRICULTURAL ESTATES AND COASTAL CITIES DEFINE CALADAN. THE PLANET SUPPORTS A STABLE HUMAN CIVILIZATION WITH HIGH TECHNOLOGY AND A STRONG MARITIME CHARACTER.'
+  },
+  'GIEDI PRIME':{
+    worldType:'TOXIC',worldClass:'INDUSTRIAL WORLD',visualRadius:42,radiusKm:6000,gravity:1.02,massEarth:.98,density:1.08,
+    water:.01,cloudCover:.66,cloudSpeed:.10,defaultTempC:36,tempRange:[5,75],life:true,populationBase:7,
+    dayHours:28,yearDays:402,distanceAU:1.4,axialTiltDeg:14,rotationDirection:1,
+    atmosDensity:'DENSE',atmosChemistry:'CO2 / SO2 / N2',weather:'SMOG / ACID RAIN',ring:false,
+    observation:'A HARSH, HEAVILY INDUSTRIALIZED WORLD ASSOCIATED WITH HOUSE HARKONNEN.',
+    scan:{ageBy:4.8,pressureAtm:1.8,pressureText:'1.8 ATM',magField:'WEAK',oxygen:11,nitrogen:63,co2:22,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'INTELLIGENT',techPotential:'INTERPLANETARY',iron:'RICH',carbon:'COMMON',uranium:'COMMON',anomaly:'PLANET-WIDE INDUSTRIAL EMISSIONS',lossRisk:false},
+    loreReport:'DENSE INDUSTRIAL ZONES, EXTRACTION COMPLEXES AND HEAVY POLLUTION COVER GIEDI PRIME. BIOLOGICAL DIVERSITY IS LIMITED, BUT THE PLANET IS TEEMING WITH HIGH-ENERGY INDUSTRIAL ACTIVITY.'
+  },
+  'SALUSA SECUNDUS':{
+    worldType:'BARREN',worldClass:'PRISON WORLD',visualRadius:40,radiusKm:5900,gravity:.96,massEarth:.84,density:1.12,
+    water:.03,cloudCover:.08,cloudSpeed:.08,defaultTempC:18,tempRange:[-18,58],life:true,populationBase:2,
+    dayHours:25,yearDays:471,distanceAU:1.5,axialTiltDeg:16,rotationDirection:1,
+    atmosDensity:'THIN',atmosChemistry:'N2 / O2',weather:'DUST / HEAT',ring:false,
+    observation:'A BLEAK AND DEADLY IMPERIAL PRISON PLANET, HARDENED BY EXTREME CONDITIONS.',
+    scan:{ageBy:4.7,pressureAtm:.81,pressureText:'0.81 ATM',magField:'WEAK',oxygen:18,nitrogen:79,co2:.5,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'INTELLIGENT',techPotential:'INTERPLANETARY',iron:'COMMON',carbon:'TRACE',uranium:'TRACE',anomaly:'SURVIVAL-SELECTED MILITARY POPULATION',lossRisk:false},
+    loreReport:'THE WORLD IS DELIBERATELY BRUTAL: WASTELANDS, ROCKY BASINS AND MINIMAL RESOURCES PUSH ITS PEOPLE TOWARD RELENTLESS SURVIVAL. MILITARIZED ENCAMPMENTS AND HARDENED FORTRESSES ARE VISIBLE.'
+  }
+};
+function lorePresetForName(name){ return LORE_PRESETS[name?.replace(/ /g,'_')] || LORE_PRESETS[name] || null; }
 function tempRangeFor(p=planet){ return p?.tempRange || [-78,78]; }
 function tempStateFromC(c,p=planet){ const [lo,hi]=tempRangeFor(p); return clamp((c-lo)/(hi-lo),0,1); }
 function tempCFromState(v,p=planet){ const [lo,hi]=tempRangeFor(p); return Math.round(lo+clamp(v,0,1)*(hi-lo)); }
@@ -682,7 +857,7 @@ function makeMoonScan(p,m,index){
   scan.anomaly=moonAnomalyFor(p,scan,r);
   return scan;
 }
-const SPACE_TECH_RANK={NONE:0,PRIMITIVE:0,'PRE-INDUSTRIAL':1,INDUSTRIAL:2,'EARLY SPACEFLIGHT':3,ORBITAL:4,INTERPLANETARY:5};
+const SPACE_TECH_RANK={NONE:0,PRIMITIVE:0,'PRE-INDUSTRIAL':1,INDUSTRIAL:2,'EARLY SPACEFLIGHT':3,ORBITAL:4,INTERPLANETARY:5,INTERSTELLAR:6};
 function spaceTechRank(level){ return SPACE_TECH_RANK[level]||0; }
 function makeOrbitalObject(r,p,type,index,rank){
   const base=p.radius+10;
@@ -748,12 +923,87 @@ function configureWeatherSystems(p,r){
     p.weatherSystems.push({lon:r(),lat:.18+r()*.64,size:3+sizeBoost+Math.floor(r()*7),spin:r()<.5?-1:1,speed:(.003+r()*.010)*(r()<.5?-1:1),phase:r()*Math.PI*2,intensity:.35+r()*.65});
   }
 }
+function applyLorePreset(p,preset,r){
+  if(!preset) return;
+  p.lorePreset=preset;
+  p.renderer=preset.renderer||p.renderer||null;
+  p.worldType=preset.worldType||p.worldType;
+  p.worldClassOverride=preset.worldClass||null;
+  p.radius=preset.visualRadius||p.radius;
+  const giant=p.worldClassOverride==='GAS GIANT' || ['jupiter','saturn','uranus','neptune'].includes(p.renderer);
+  p.rx=p.radius*(giant?1.05:1);
+  p.ry=p.radius*(giant ? .94 : 1);
+  p.water=preset.water ?? p.water;
+  p.mount=preset.mount ?? (p.worldType==='OCEAN' ? .82 : p.worldType==='DESERT' ? .67 : p.worldType==='VOLCANIC' ? .62 : .76);
+  p.beach=preset.beach ?? (p.worldType==='OCEAN' ? .018 : p.worldType==='DESERT' ? .055 : .028);
+  p.cloudCover=preset.cloudCover ?? p.cloudCover;
+  p.cloudSpeed=preset.cloudSpeed ?? p.cloudSpeed;
+  p.tempRange=(preset.tempRange||p.tempRange||[-78,78]).slice();
+  p.defaultTempC=preset.defaultTempC ?? 15;
+  p.target=tempStateFromC(p.defaultTempC,p);
+  p.variance=preset.lifeToleranceC ? clamp(preset.lifeToleranceC/(p.tempRange[1]-p.tempRange[0]),.08,.35) : (preset.variance ?? Math.max(.06,p.variance||.12));
+  p.ring=!!preset.ring;
+  p.ringTilt=preset.ringTilt||0;
+  p.ringScale=preset.ringScale;
+  p.ringFlatness=preset.ringFlatness;
+  p.ringColor=preset.ringColor;
+  p.ringAlpha=preset.ringAlpha;
+  p.ringStyle=preset.ringStyle||'THIN';
+  p.ringMaterial=preset.ringMaterial||'ROCK / ICE';
+  p.radiusKm=preset.radiusKm||p.radiusKm;
+  p.radiusEarth=p.radiusKm/6371;
+  p.gravity=preset.gravity ?? p.gravity;
+  p.massEarth=preset.massEarth ?? Math.max(.01,p.gravity*p.radiusEarth*p.radiusEarth);
+  p.density=preset.density ?? Math.max(.1,p.gravity/Math.max(.01,p.radiusEarth));
+  p.dayHours=preset.dayHours ?? p.dayHours;
+  p.yearDays=preset.yearDays ?? p.yearDays;
+  p.distanceAU=preset.distanceAU ?? p.distanceAU;
+  p.axialTiltDeg=preset.axialTiltDeg ?? p.axialTiltDeg;
+  p.rotationDirection=preset.rotationDirection ?? 1;
+  p.rotation=p.rotationDirection*(preset.rotation ?? (.18+r()*.12));
+  p.atmosDensity=preset.atmosDensity||p.atmosDensity;
+  p.atmosChemistry=preset.atmosChemistry||p.atmosChemistry;
+  p.weatherPreset=preset.weather||p.weatherPreset||'CLEAR';
+  p.lifeText=preset.observation||p.lifeText;
+  p.noLifeText=preset.observation||p.noLifeText;
+  p.populationBase=preset.populationBase ?? p.populationBase;
+  p.clouds=[];
+  const cn=Math.floor((p.atmosDensity==='NONE'?0:4)+p.cloudCover*15*atmosphereStrength(p));
+  for(let i=0;i<cn;i++) p.clouds.push({lon:r(),lat:.15+r()*.7,frame:Math.floor(r()*12),off:r()*6.28});
+  configureWeatherSystems(p,r);
+  if(Array.isArray(preset.moons)){
+    p.moonData=preset.moons.map((m,i)=>({
+      name:m.name,orbit:m.visualOrbit,orbitKm:m.orbitKm,periodDays:m.periodDays,radiusKm:m.radiusKm,
+      phase:(i*.91+r()*.45)%(Math.PI*2),direction:m.direction||1,frame:m.frame%17,size:m.size,screenX:0,screenY:0,known:true,scan:{...m.scan}
+    }));
+    p.moons=p.moonData.length;
+  }
+  makePlanetScan(p);
+  Object.assign(p.scan,preset.scan||{});
+  if(preset.scan?.lifeTypePotential) p.scan.lifeTypePotential=preset.scan.lifeTypePotential;
+  if(preset.scan?.techPotential) p.scan.techPotential=preset.scan.techPotential;
+  p.moonData=(p.moonData||[]).map((m,i)=>{
+    const scan=makeMoonScan(p,m,i);
+    m.scan={...scan,...(m.scan||{})};
+    return m;
+  });
+  p.loreReport=preset.loreReport||'';
+  p.lifeLabelOverride=preset.lifeLabel||null;
+  p.populationLabelOverride=preset.populationLabel||null;
+  p.lifeTypeOverride=preset.lifeTypeLabel||null;
+  p.techLevelOverride=preset.techLevelLabel||null;
+  if(preset.disableAutoCivilization) p.civilization=null; else configureCivilization(p);
+  const saved=parseFloat(storageGet(tempStorageKey(p),''));
+  state.temp=Number.isFinite(saved)?clamp(saved,0,1):tempStateFromC(p.defaultTempC,p);
+}
+
 function generatePlanet(name){
   name=canonicalPlanetName(name);
   const seed=hashString(name), r=mulberry32(seed);
   const solar=SOLAR_SYSTEM_PLANETS[name] || null;
-  const special=solar ? {text:solar.observation, life:solar.life, solar:true} : (SPECIALS[name] || null);
-  const p={name,seed,special,solar};
+  const lorePreset=solar ? null : lorePresetForName(name);
+  const special=solar ? {text:solar.observation, life:solar.life, solar:true} : (lorePreset ? {text:lorePreset.observation, life:lorePreset.life, lore:true} : (SPECIALS[name] || null));
+  const p={name,seed,special,solar,lorePreset};
   if(solar){
     p.renderer=solar.renderer;
     p.tempRange=solar.tempRange.slice();
@@ -903,10 +1153,14 @@ function generatePlanet(name){
       p.moonData[0].periodDays=18;
     }
   }
-  p.moonData.forEach((m,i)=>{m.scan=makeMoonScan(p,m,i);});
-  configureCivilization(p);
-  const saved=parseFloat(storageGet(tempStorageKey(p),''));
-  state.temp=Number.isFinite(saved)?clamp(saved,0,1):(special?.cold?.12:special?.hot?.84:clamp(p.target+(r()-.5)*.4,0,1));
+  if(lorePreset){
+    applyLorePreset(p,lorePreset,r);
+  }else{
+    p.moonData.forEach((m,i)=>{m.scan=makeMoonScan(p,m,i);});
+    configureCivilization(p);
+    const saved=parseFloat(storageGet(tempStorageKey(p),''));
+    state.temp=Number.isFinite(saved)?clamp(saved,0,1):(special?.cold?.12:special?.hot?.84:clamp(p.target+(r()-.5)*.4,0,1));
+  }
   state.info=INFO_CARDS[name] || null;
   state.infoTitle=state.info ? name : null;
   storageSet('planetarium:lastName',name);
@@ -1019,6 +1273,7 @@ function surfaceWaterPercent(){
   return Math.round(clamp(planet.water*freeze*boil,0,.95)*100);
 }
 function worldClass(){
+  if(planet.worldClassOverride) return planet.worldClassOverride;
   if(planet.solar){
     if(planet.name==='MARS'){
       const stage=marsTerraformStage(), water=surfaceWaterPercent();
@@ -1168,6 +1423,7 @@ function atmosphereViewColor(lon,lat,nx,z){
   return surfaceShade(col,nx,z);
 }
 function lifeLabel(){
+  if(planet.lifeLabelOverride) return planet.lifeLabelOverride;
   if(!isAlive()) return 'NONE';
   if(planet.name==='MARS'){
     const stage=marsTerraformStage();
@@ -1177,6 +1433,7 @@ function lifeLabel(){
   return d<.30?'ABUNDANT':d<.68?'ACTIVE':'SPARSE';
 }
 function populationLabel(){
+  if(planet.populationLabelOverride) return planet.populationLabelOverride;
   if(!isAlive()) return 'NONE';
   if(planet.name==='MARS'){
     const stage=marsTerraformStage();
@@ -1187,11 +1444,13 @@ function populationLabel(){
   return POPULATION_WORDS[clamp(planet.populationBase-penalty,1,POPULATION_WORDS.length-1)];
 }
 function lifeTypeLabel(){
+  if(planet.lifeTypeOverride) return planet.lifeTypeOverride;
   if(!isAlive()) return 'NONE';
   if(planet.name==='MARS') return marsTerraformStage()>=3?'INTELLIGENT':'MICROBIAL';
   return planet.scan.lifeTypePotential;
 }
 function techLevelLabel(){
+  if(planet.techLevelOverride) return planet.techLevelOverride;
   if(!isAlive()) return 'NONE';
   if(planet.name==='MARS') return 'INTERPLANETARY';
   return planet.scan.techPotential;
@@ -1258,6 +1517,7 @@ function lifeProbeObservation(){
     if(stage>=3) return 'MARS NOW SUPPORTS OPEN SEAS, GREEN BASINS AND A GROWING WEB OF SEEDED LIFE. THE HUMANITY ARE ON A WAY TO BUILD A NEW CIVILIZATION THERE.';
     if(stage>=2) return 'SHALLOW OCEANS, ENGINEERED MICROBES AND EXPANDING HABITATS ARE DETECTED. THE HUMANITY ARE ON A WAY TO BUILD A NEW CIVILIZATION THERE.';
   }
+  if(planet.loreReport) return planet.loreReport;
   const chemistry=(planet.atmosChemistry||'').toUpperCase();
   const microbialBias=chemistry.includes('SULF')?'SULFUR-METABOLIZING':chemistry.includes('METHANE')||chemistry.includes('CH4')?'METHANE-FEEDING':chemistry.includes('EXOTIC')?'EXOTIC-CHEMISTRY':'';
   if(life==='MICROBIAL'){
@@ -1645,8 +1905,77 @@ function solarSurfaceColor(lon,lat,normY,nx,z){
   }
   return surfaceShade(col,nx,z);
 }
+function deathStarSurfaceColor(lon,lat,nx,z,variant=1){
+  const panelA=periodicNoise01(lon,lat,30,14,planet.terrainSeed^0x5101)-.5;
+  const panelB=periodicNoise01(lon,lat,72,34,planet.terrainSeed^0x5102)-.5;
+  const greeble=periodicNoise01(lon,lat,128,60,planet.terrainSeed^0x5103)-.5;
+  const lx=(mod(lon*28+panelA*.9,1));
+  const ly=(mod(lat*16+panelB*.7,1));
+  let col=mixHex(C.white,C.black,.22);
+  if(lx<.045||ly<.05) col=mixHex(C.white,C.black,.36);
+  else if(greeble>.18) col=mixHex(C.white,C.black,.28);
+  else if(greeble<-.30) col=mixHex(C.white,C.black,.14);
+  const trench=Math.abs(lat-.52);
+  if(trench<.013) col=mixHex(C.black,C.white,.09);
+  else if(trench<.023) col=mixHex(C.black,C.white,.23);
+  const dish=((lonDistance(lon,.67)/.13)**2)+(((lat-.36)/.16)**2);
+  if(dish<1){
+    const radial=Math.abs(Math.sin(Math.atan2(lat-.36,lonDistance(lon,.67))*8));
+    col=dish<.09?C.black:dish<.82?mixHex(C.white,C.black,.42-radial*.08):mixHex(C.white,C.black,.26);
+  }
+  const cap=((lonDistance(lon,.50)/.11)**2)+(((lat-.06)/.09)**2);
+  if(cap<1) col=cap<.25?mixHex(C.black,C.white,.28):mixHex(C.white,C.black,.30);
+  if(variant>=2){
+    const damage=((lonDistance(lon,.92)/.23)**2)+(((lat-.48)/.34)**2);
+    if(damage<1.18){
+      const scaff=periodicNoise01(lon,lat,90,46,planet.terrainSeed^0x5201);
+      const strut=(Math.abs(mod(lon*52,1)-.5)<.08)||(Math.abs(mod(lat*34,1)-.5)<.08);
+      if(variant===2){
+        col=scaff>.60||strut?mixHex(C.white,C.black,.42):mixHex(C.black,C.white,.04);
+      }else{
+        const ragged=periodicNoise01(lon,lat,24,14,planet.terrainSeed^0x5301)-.5;
+        if(scaff>.54||strut) col=mixHex(C.white,C.black,.48);
+        else if(ragged>.06) col=C.black;
+        else col=mixHex(C.black,C.white,.07);
+      }
+    }
+  }
+  if(variant===3){
+    const scar=((lonDistance(lon,.78)/.16)**2)+(((lat-.68)/.11)**2);
+    if(scar<1) col=scar<.72?C.black:mixHex(C.white,C.black,.50);
+  }
+  return surfaceShade(col,nx,z);
+}
+function coruscantSurfaceColor(lon,lat,nx,z){
+  const gridA=periodicNoise01(lon,lat,46,22,planet.terrainSeed^0x6111)-.5;
+  const gridB=periodicNoise01(lon,lat,118,58,planet.terrainSeed^0x6112)-.5;
+  const roadX=Math.abs(mod(lon*42+gridA*.4,1)-.5);
+  const roadY=Math.abs(mod(lat*24+gridB*.3,1)-.5);
+  let col=mixHex(C.white,C.black,.56);
+  if(roadX<.07||roadY<.07) col=mixHex(C.white,C.black,.72);
+  else if(gridB>.24) col=mixHex(C.white,C.black,.50);
+  if((roadX<.025||roadY<.025) && gridA>.08) col=mixHex(C.yellow,C.white,.22);
+  if(Math.abs(lat-.5)>.43) col=mixHex(col,C.black,.10);
+  return surfaceShade(col,nx,z);
+}
+function loreSurfaceColor(lon,lat,normY,nx,z){
+  if(state.viewMode===2 && hasAtmosphereView()) return atmosphereViewColor(lon,lat,nx,z);
+  if(state.viewMode===3){
+    const heat=clamp(state.temp-Math.abs(lat-.5)*.18,0,1);
+    const c=heat<.2?C.blue:heat<.4?C.cyan:heat<.6?C.green:heat<.8?C.yellow:C.red;
+    return surfaceShade(c,nx,z);
+  }
+  if(['jupiter','saturn','uranus','neptune','mercury','venus','earth','mars','pluto'].includes(planet.renderer)) return solarSurfaceColor(lon,lat,normY,nx,z);
+  if(planet.renderer==='deathstar') return deathStarSurfaceColor(lon,lat,nx,z,1);
+  if(planet.renderer==='deathstar2') return deathStarSurfaceColor(lon,lat,nx,z,2);
+  if(planet.renderer==='deathstar3') return deathStarSurfaceColor(lon,lat,nx,z,3);
+  if(planet.renderer==='coruscant') return coruscantSurfaceColor(lon,lat,nx,z);
+  return null;
+}
 function surfaceColor(lon,lat,normY,nx,z){
   if(planet.solar) return solarSurfaceColor(lon,lat,normY,nx,z);
+  const loreCol=loreSurfaceColor(lon,lat,normY,nx,z);
+  if(loreCol) return loreCol;
   const q=terrainAt(lon,lat), tempLocal=state.temp-Math.abs(lat-.5)*.63+(q.n-.5)*.12;
   if(state.viewMode===2 && hasAtmosphereView()) return atmosphereViewColor(lon,lat,nx,z);
   if(state.viewMode===3){
