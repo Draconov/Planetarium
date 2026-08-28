@@ -1887,11 +1887,40 @@ function drawMoonOrbit(m,cx,cy,emphasis=false){
   }
   ctx.globalAlpha=1;
 }
+function drawBlockMoon(pos,m,diameter){
+  // Minecraft's single moon follows the same deliberately impossible voxel
+  // geometry as the planet instead of using a round moon sprite.
+  const s=Math.max(6,Math.round(diameter/2)*2);
+  const x=Math.round(pos.x-s/2), y=Math.round(pos.y-s/2);
+  const base=mixHex(C.white,C.brown,.34);
+  const light=mixHex(base,C.white,.28);
+  const dark=mixHex(base,C.black,.30);
+  ctx.fillStyle=base; ctx.fillRect(x,y,s,s);
+  // Bright top/left and darker right/bottom faces give the tiny square a
+  // readable cube-like volume without breaking the native pixel style.
+  ctx.fillStyle=light; ctx.fillRect(x,y,s,2); ctx.fillRect(x,y,2,s);
+  ctx.fillStyle=dark; ctx.fillRect(x+s-2,y,2,s); ctx.fillRect(x,y+s-2,s,2);
+  const seed=hashString(`${planet.seed}:${m.name}:BLOCK-MOON`);
+  for(let py=2;py<s-2;py+=2){
+    for(let px=2;px<s-2;px+=2){
+      const n=h2(px,py,seed);
+      if(n>.73){ctx.fillStyle=dark;ctx.fillRect(x+px,y+py,1,1);}
+      else if(n<.16){ctx.fillStyle=light;ctx.fillRect(x+px,y+py,1,1);}
+    }
+  }
+  m.visualDiameter=s;
+  m.hitRadius=Math.max(6,s*.62+3);
+  m.renderFrame=-1;
+}
 function drawMoons(cx,cy,t,front){
   for(const m of planet.moonData){
     const pos=moonPosition(m,cx,cy); m.screenX=pos.x; m.screenY=pos.y; m.depth=pos.depth;
     if((front && pos.depth<0)||(!front && pos.depth>=0)) continue;
     const requestedDiameter=moonVisualDiameter(m);
+    if(isCubePlanet() && m.name==='BLOCK MOON'){
+      drawBlockMoon(pos,m,requestedDiameter);
+      continue;
+    }
     const native=moonNativeFrame(requestedDiameter);
     const im=texturedMoonSprite(native.frame,moonTintColor(m),m,native.diameter);
     const renderedDiameter=native.diameter;
