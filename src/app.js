@@ -418,6 +418,33 @@ function chooseNearBodyPanelRect(body,cx,cy,w,h,extraObstacles=[]){
   }
   return best||{x:margin,y:margin,w,h};
 }
+function choosePlanetHoverPanelRect(cx,cy,w,h){
+  // Keep the primary planet card in its original, predictable home: just to
+  // the right of the planet. Only clamp vertically/horizontally to the UI.
+  const margin=6,bottomLimit=246;
+  w=Math.min(Math.round(w),W-margin*2);h=Math.min(Math.round(h),bottomLimit-margin*2);
+  const maxX=W-w-margin,maxY=bottomLimit-h-margin;
+  const desiredX=Math.round(cx+planet.rx+18);
+  const legacyMaxX=Math.min(220,maxX);
+  const x=maxX<202?Math.max(margin,maxX):clamp(desiredX,202,Math.max(202,legacyMaxX));
+  const y=clamp(38,margin,Math.max(margin,maxY));
+  return {x,y,w,h};
+}
+function chooseMoonHoverPanelRect(body,w,h){
+  // A moon/object tooltip should move WITH the body, not re-plan its side on
+  // every frame. Prefer the classic fixed right-hand offset; flip left only
+  // when there genuinely is not enough room at the screen edge.
+  const margin=5,bottomLimit=246,m=planet.moonData?.[body?.index];
+  w=Math.min(Math.round(w),W-margin*2);h=Math.min(Math.round(h),bottomLimit-margin*2);
+  if(!m||!Number.isFinite(m.screenX)||!Number.isFinite(m.screenY)) return {x:margin,y:margin,w,h};
+  const gap=12;
+  let x=Math.round(m.screenX+gap);
+  if(x+w>W-margin) x=Math.round(m.screenX-w-gap);
+  x=clamp(x,margin,W-w-margin);
+  const y=clamp(Math.round(m.screenY-28),8,Math.max(8,bottomLimit-h-margin));
+  return {x,y,w,h};
+}
+
 
 function infoFieldLines(value,label,maxPx){
   const prefix=(String(label||'').toUpperCase()+'        ').slice(0,9),prefixW=textWidth(prefix,1);
@@ -3707,7 +3734,7 @@ function drawPlanetHover(cx,cy){
   for(const [label,value] of baseRows) summaryContentH+=infoFieldHeight(label,value,innerW);
   if(scanned) summaryContentH+=halo?92:96; else summaryContentH+=13;
   const summaryH=Math.min(232,summaryContentH+16);
-  const summary=chooseInfoPanelRect(body,cx,cy,summaryW,summaryH);
+  const summary=choosePlanetHoverPanelRect(cx,cy,summaryW,summaryH);
   drawInfoBackdrop(summary.x,summary.y,summary.w,summary.h);
   const sx=summary.x+8, sy=summary.y+8;
   ctx.save();ctx.beginPath();ctx.rect(summary.x+5,summary.y+5,summary.w-10,summary.h-10);ctx.clip();
@@ -3753,7 +3780,7 @@ function drawMoonHover(body,cx,cy,extraObstacles=[]){
     summaryH+=infoFieldHeight(vessel?'SIZE':'RADIUS',vessel?`${(m.displayLengthKm||1.6).toFixed(1)} KM VESSEL`:`${m.radiusKm.toLocaleString('en-US')} KM MOON`,innerW);
   }
   summaryH+=11;
-  const rect=chooseNearBodyPanelRect(body,cx,cy,panelW,summaryH+16,extraObstacles);
+  const rect=chooseMoonHoverPanelRect(body,panelW,summaryH+16);
   drawInfoBackdrop(rect.x,rect.y,rect.w,rect.h);
   const x=rect.x+8,y=rect.y+8;
   ctx.save();ctx.beginPath();ctx.rect(rect.x+5,rect.y+5,rect.w-10,rect.h-10);ctx.clip();
