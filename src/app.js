@@ -2361,6 +2361,55 @@ function fictionalGasGiantSurfaceColor(lon,lat,nx,z){
   }
   return surfaceShade(col,nx,z);
 }
+function polarCapPresence(p=planet){
+  // Named Solar System worlds keep their known two-pole behaviour. Procedural
+  // worlds can naturally generate one north cap, one south cap, or both.
+  if(p?.solar) return {north:true,south:true};
+  if(p?._polarCapPresence) return p._polarCapPresence;
+  const seed=((p?.terrainSeed||p?.seed||1)^0x1ceca9)>>>0;
+  const roll=h2(17,53,seed);
+  const presence=roll<.18?{north:true,south:false}:roll<.36?{north:false,south:true}:{north:true,south:true};
+  if(p) p._polarCapPresence=presence;
+  return presence;
+}
+function polarCapAt(lon,lat,baseReach,{forceBoth=false,seedSalt=0}={}){
+  const reach=clamp(baseReach,0,.34);
+  if(reach<=.003) return {ice:false,north:false,south:false,grain:0,depth:0};
+  // Most surface pixels are nowhere near a pole. Bail out before sampling the
+  // more detailed edge fields so textured caps stay cheap to render.
+  const maxEdgeRoughness=.045;
+  if(lat>reach+maxEdgeRoughness && lat<1-reach-maxEdgeRoughness) return {ice:false,north:false,south:false,grain:0,depth:0};
+  const seed=((planet.terrainSeed||planet.seed||1)^0x504f4c45^seedSalt)>>>0;
+  const presence=forceBoth?{north:true,south:true}:polarCapPresence(planet);
+  let north=false,south=false,depth=0;
+  if(lat<.5 && presence.north){
+    // Two wrap-safe noise scales make a ragged coastline rather than a straight
+    // latitude cut. The finer field also nibbles small bays out of the ice edge.
+    const wave=(periodicNoise01(lon,.173,18,5,seed)-.5)*.052
+      +(periodicNoise01(lon,.317,46,7,seed^0x6e6f7274)-.5)*.024;
+    const edge=clamp(reach+wave,.005,.38);
+    north=lat<edge; depth=north?edge-lat:0;
+  }else if(lat>=.5 && presence.south){
+    const wave=(periodicNoise01(lon,.827,18,5,seed^0x736f7574)-.5)*.052
+      +(periodicNoise01(lon,.683,46,7,seed^0x5a17c9e3)-.5)*.024;
+    const edge=clamp(reach+wave,.005,.38);
+    south=lat>1-edge; depth=south?lat-(1-edge):0;
+  }
+  if(!north&&!south) return {ice:false,north:false,south:false,grain:0,depth:0};
+  const grain=periodicNoise01(lon,lat,38,27,seed^0x46524f53);
+  // Break up only the outermost pixels so the cap stays coherent while its
+  // boundary develops fjords, islands and uneven tongues of ice.
+  if(depth<.026 && grain<.27){north=false;south=false;depth=0;}
+  return {ice:north||south,north,south,grain,depth};
+}
+function polarIceColor(cap){
+  if(!cap?.ice) return C.white;
+  if(cap.grain<.20) return mixHex(C.cyan,C.white,.68);
+  if(cap.grain>.82) return mixHex(C.white,C.blue,.10);
+  if(cap.depth<.018 && cap.grain<.42) return mixHex(C.cyan,C.white,.78);
+  return C.white;
+}
+
 function solarSurfaceColor(lon,lat,normY,nx,z){
   if(state.viewMode===2 && hasAtmosphereView()) return atmosphereViewColor(lon,lat,nx,z);
   if(state.viewMode===3){
@@ -2408,10 +2457,14 @@ function solarSurfaceColor(lon,lat,normY,nx,z){
   if(kind==='earth'){
     const land=earthLandValue(lon,lat,q);
     const coldShift=clamp((15-t)/100,-.08,.14);
-    const northIce=lat < clamp(.13+coldShift,.055,.26);
-    const antarctica=lat > clamp(.82-coldShift*.80,.69,.92);
-    const polar=northIce||antarctica;
-    if(polar) col=C.white;
+    const northReach=clamp(.13+coldShift,.055,.26);
+    const southReach=clamp(.18+coldShift*.80,.08,.31);
+    // Earth keeps both real polar regions, but each coastline is textured and
+    // longitude-dependent instead of being cut by a ruler-straight latitude.
+    const northCap=polarCapAt(lon,lat,northReach,{forceBoth:true,seedSalt:0x45415254});
+    const southCap=polarCapAt(lon,1-lat,southReach,{forceBoth:true,seedSalt:0x414e5441});
+    const polar=northCap.north||southCap.north;
+    if(polar) col=polarIceColor(northCap.north?northCap:southCap);
     else if(land<.01){
       if(t>105) col=mixHex(C.blue,C.brown,.65); else col=land>-.10?C.cyan:C.blue;
     }else if(land<.08) col=C.yellow;
@@ -2421,9 +2474,11 @@ function solarSurfaceColor(lon,lat,normY,nx,z){
     else col=land>.50?C.brown:C.green;
   }else if(kind==='mars'){
     const stage=marsTerraformStage();
-    const polar=Math.abs(lat-.5)>clamp(.42+(t+63)/520,.32,.48);
+    const marsReach=clamp(.5-clamp(.42+(t+63)/520,.32,.48),.01,.18);
+    const marsCap=polarCapAt(lon,lat,marsReach,{forceBoth:true,seedSalt:0x4d415253});
+    const polar=marsCap.ice;
     const ocean=periodicNoise01(lon,lat,56,33,planet.terrainSeed^0x544f);
-    if(polar && t<10) col=C.white;
+    if(polar && t<10) col=polarIceColor(marsCap);
     else if(stage>=2 && ocean<clamp(.18+stage*.06,0,.34)) col=stage>=3?mixHex(C.blue,C.cyan,.18):C.blue;
     else if(stage>=3 && q.n>.44) col=q.ridge>.79?mixHex(C.brown,C.green,.22):C.green;
     else if(q.ridge>.80) col=mixHex(C.red,C.black,.28);
@@ -2741,17 +2796,23 @@ function surfaceColor(lon,lat,normY,nx,z){
     return surfaceShade(col,nx,z);
   }
   const type=planet.worldType||'TERRESTRIAL';
-  const iceLine=clamp(.31+state.temp*.33,.25,.64), polar=Math.abs(lat-.5)>iceLine;
+  const iceLine=clamp(.31+state.temp*.33,.25,.64);
+  const cap=polarCapAt(lon,lat,.5-iceLine);
+  const polar=cap.ice, iceCol=polarIceColor(cap);
+  // Outside a generated cap, very low local temperature may still leave small
+  // frost/snow patches, but it no longer recreates a second straight-edged cap.
+  const coldFrost=tempLocal<.06 && periodicNoise01(lon,lat,34,23,planet.terrainSeed^0x534e4f57)>.64;
   let col=C.green;
   if(type==='OCEAN'){
     const threshold=.73+(planet.water-.82)*.24;
-    if(polar||tempLocal<.06) col=C.white;
+    if(polar) col=iceCol;
+    else if(coldFrost) col=mixHex(C.cyan,C.white,.76);
     else if(q.n<threshold-.045) col=q.n<threshold-.18?C.blue:C.cyan;
     else if(q.n<threshold+.015) col=C.yellow;
     else col=q.ridge>.86?C.brown:C.green;
   }else if(type==='DESERT'){
     const waterLine=.30+(planet.water-.08)*.35;
-    if(polar&&state.temp<.34) col=C.white;
+    if(polar&&state.temp<.34) col=iceCol;
     else if(q.n<waterLine) col=C.blue;
     else if(q.ridge>.79||q.n>.76) col=C.brown;
     else if(q.n<.42) col=mixHex(C.yellow,C.brown,.18);
@@ -2762,37 +2823,40 @@ function surfaceColor(lon,lat,normY,nx,z){
     else col=cracks?mixHex(C.blue,C.white,.42):C.white;
   }else if(type==='VOLCANIC'){
     const lava=q.ridge>.76||q.n<.27||periodicNoise01(lon,lat,28,21,planet.terrainSeed^0xc115)>.82;
-    if(tempLocal<.15&&polar) col=C.white;
+    if(tempLocal<.15&&polar) col=iceCol;
     else if(lava) col=q.ridge>.88?C.yellow:C.red;
     else col=q.n>.62?mixHex(C.brown,C.black,.30):mixHex(C.brown,C.red,.18);
   }else if(type==='TOXIC'){
     const threshold=.50+(planet.water-.24)*.22;
-    if(polar&&tempLocal<.08) col=C.white;
+    if(polar&&tempLocal<.08) col=iceCol;
     else if(q.n<threshold-planet.beach) col=q.n<threshold-.12?mixHex(C.blue,C.purple,.22):C.cyan;
     else if(q.ridge>.82) col=C.brown;
     else col=q.n>.60?mixHex(C.yellow,C.green,.28):mixHex(C.green,C.brown,.18);
   }else if(type==='BARREN'){
-    if(polar&&state.temp<.20) col=C.white;
+    if(polar&&state.temp<.20) col=iceCol;
     else if(q.ridge>.78) col=mixHex(C.brown,C.black,.35);
     else if(q.n>.66) col=mixHex(C.brown,C.white,.26);
     else if(q.n<.34) col=mixHex(C.purple,C.black,.38);
     else col=C.brown;
   }else if(type==='DWARF'){
     const frost=periodicNoise01(lon,lat,40,19,planet.terrainSeed^0x0d77);
-    if(polar || tempLocal<.18) col=frost>.42?C.white:mixHex(C.cyan,C.white,.45);
+    if(polar) col=cap.grain>.38?iceCol:mixHex(C.cyan,C.white,.48);
+    else if(tempLocal<.18) col=frost>.42?C.white:mixHex(C.cyan,C.white,.45);
     else if(q.ridge>.80) col=mixHex(C.brown,C.black,.34);
     else if(q.n>.60) col=mixHex(C.white,C.brown,.28);
     else col=mixHex(C.brown,C.purple,.14);
   }else if(type==='VERDANT'){
     const threshold=.59+(planet.water-.52)*.26;
-    if(polar||tempLocal<.055) col=C.white;
+    if(polar) col=iceCol;
+    else if(coldFrost) col=mixHex(C.cyan,C.white,.76);
     else if(q.n<threshold-planet.beach) col=q.n<threshold-.14?C.blue:C.cyan;
     else if(q.n<threshold+planet.beach) col=C.yellow;
     else if(q.ridge>.88) col=C.brown;
     else col=q.n>.67?mixHex(C.green,C.yellow,.14):C.green;
   }else{
     const threshold=.57+(planet.water-.5)*.28;
-    if(polar||tempLocal<.055) col=C.white;
+    if(polar) col=iceCol;
+    else if(coldFrost) col=mixHex(C.cyan,C.white,.76);
     else if(q.n<threshold-planet.beach) col=q.n<threshold-.14?C.blue:C.cyan;
     else if(q.n<threshold+planet.beach) col=C.yellow;
     else if(q.n>planet.mount||q.ridge>.86) col=C.brown;
@@ -2996,25 +3060,30 @@ function drawMoonOrbit(m,cx,cy,emphasis=false){
   const rx=m.orbit, ry=m.orbit*.34;
   const circumference=Math.PI*(3*(rx+ry)-Math.sqrt((3*rx+ry)*(rx+3*ry)));
   const spacing=clamp(Math.round(rx*.16),6,12);
-  const dots=Math.max(18,Math.round(circumference/spacing));
+  const dots=Math.max(22,Math.round(circumference/spacing));
+  const direction=m.direction||1;
+  const periodBias=clamp(1/Math.sqrt(Math.max(.25,m.periodDays||1)),.18,1.65);
+  // Orbit guides are UI feedback, so use real elapsed time instead of simDays:
+  // they keep visibly drifting even while simulation time is paused.  A few
+  // deterministic gaps/bright dots break the ellipse symmetry, making the
+  // rotation readable instead of looking like a static dotted ring.
+  const orbitTurns=emphasis ? (performance.now()/1000)*(.018+.010*periodBias)*direction : 0;
   ctx.fillStyle=emphasis?C.purple:C.blue;
-  ctx.globalAlpha=emphasis?.82:.62;
   for(let i=0;i<dots;i++){
-    const th=i/dots*Math.PI*2;
+    const pattern=mod(i,13);
+    if(emphasis && (pattern===5 || pattern===6 || mod(i,19)===11)) continue;
+    const th=mod(i/dots+orbitTurns,1)*Math.PI*2;
     const x=cx+Math.cos(th)*rx, y=cy+Math.sin(th)*ry;
-    ctx.fillRect(Math.round(x),Math.round(y),1,1);
+    ctx.globalAlpha=emphasis?(pattern===0?.96:.76):.62;
+    ctx.fillRect(Math.round(x),Math.round(y),pattern===0&&emphasis?2:1,1);
   }
   if(emphasis){
-    // The dotted ellipse itself is geometrically symmetric, so rotating it
-    // would otherwise look completely static. Moving guide particles along the
-    // path gives the user a readable sense of orbital direction and motion.
-    const inspectSlow=state.moonInspect && planet.moonData[state.moonInspect.index]===m ? .28 : 1;
-    const periodBias=clamp(1/Math.sqrt(Math.max(.25,m.periodDays||1)),.18,1.65);
-    const flowTurns=state.simDays*(.030+.014*periodBias)*(m.direction||1)*inspectSlow;
-    for(let k=0;k<4;k++){
-      const th=mod(flowTurns+k*.247,1)*Math.PI*2;
+    // A softly brighter leader rides with the moving dot pattern and makes the
+    // direction obvious without turning the orbit into a flashy animation.
+    for(let k=0;k<3;k++){
+      const th=mod(orbitTurns+k*.287,1)*Math.PI*2;
       const x=cx+Math.cos(th)*rx, y=cy+Math.sin(th)*ry;
-      ctx.globalAlpha=k===0?1:.78;
+      ctx.globalAlpha=k===0?1:.72;
       ctx.fillStyle=k===0?C.white:C.cyan;
       ctx.fillRect(Math.round(x),Math.round(y),k===0?2:1,1);
     }
