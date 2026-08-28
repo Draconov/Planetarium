@@ -5,61 +5,85 @@ THIS FILE DOES NOT EXIST.
 IF YOU FOUND IT, YOU ARE PROBABLY LOST.
 
 DO NOT CONTINUE UNLESS YOU WANT THE DESTINATION KEYS SPOILED.
-The ship accepts the names below exactly as destinations. Some signals also have aliases.
+THE SHIP ACCEPTS THE NAMES BELOW EXACTLY AS DESTINATIONS. SOME SIGNALS ALSO HAVE ALIASES.
 
 ----------------------------------------------------------------
-RECENTLY DECODED SIGNALS
+REFERENCE CLUSTER
 ----------------------------------------------------------------
 
 WIKIPEDIA
   aliases: WIKI, WIKIPEDIA.ORG, WIKIMEDIA
 
+WORLD OF OOO
+  aliases: OOO, LAND OF OOO, ADVENTURE TIME, ADVENTURE TIME WORLD
+
+----------------------------------------------------------------
+ALPHA CENTAURI / AVATAR CLUSTER
+----------------------------------------------------------------
+
 PANDORA
   aliases: AVATAR, PANDORA (AVATAR), MOON OF PANDORA, EYWA
+  note: PANDORA ITSELF HAS NO MOONS IN THE CURRENT CHART
 
 POLYPHEMUS
+  aliases: AVATAR GAS GIANT, POLYPHEMUS GAS GIANT
+
+DANTE
+HADES
+POLYPHEMUS III
+POLYPHEMUS IV
+CASSANDRA
+POLYPHEMUS VII
+POLYPHEMUS VIII
+POLYPHEMUS IX
+POLYPHEMUS X
+POLYPHEMUS XI
+CHAOS
+POLYPHEMUS XIII
+POLYPHEMUS XIV
 
 ERID
   aliases: ROCKY, ROCKY PLANET, PROJECT HAIL MARY
 
+----------------------------------------------------------------
+STAR WARS CLUSTER
+----------------------------------------------------------------
+
 TATOOINE
-
 HOTH
-
 ENDOR
   alias: FOREST MOON OF ENDOR
-
 NABOO
-
 CORUSCANT
-
 MUSTAFAR
-
 KAMINO
-
 ALDERAAN
 
 DEATH STAR
   aliases: DEATHSTAR, DEATH STAR 1, DEATH STAR I, DS-1
+  note: no moons
 
 DEATH STAR II
   aliases: DEATH STAR 2, DEATH STAR TWO, DS-2
+  note: no moons
 
 DEATH STAR III
   aliases: DEATH STAR 3, DEATH STAR THREE, DS-3
+  note: no moons
+
+----------------------------------------------------------------
+DUNE CLUSTER
+----------------------------------------------------------------
 
 ARRAKIS
   aliases: DUNE, RAKIS, SAND BLAST
+  note: includes a fixed Spacing Guild Heighliner target
 
 CALADAN
-
 GIEDI PRIME
   alias: GEIDI PRIME
-
 SALUSA SECUNDUS
 
-OOO
-  aliases: LAND OF OOO, WORLD OF OOO, ADVENTURE TIME, ADVENTURE TIME WORLD
 ----------------------------------------------------------------
 OLDER NAVIGATION ANOMALIES
 ----------------------------------------------------------------
@@ -99,4 +123,4 @@ NEW EDEN
 END OF FRAGMENT
 ----------------------------------------------------------------
 
-If this list ever stops working, the universe has changed again.
+IF THIS LIST EVER STOPS WORKING, THE UNIVERSE HAS CHANGED AGAIN.

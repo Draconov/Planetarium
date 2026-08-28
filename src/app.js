@@ -93,7 +93,11 @@ const SOLAR_MOON_COLORS = {
   MIRANDA:mixHex(C.white,C.blue,.18), ARIEL:C.cyan, UMBRIEL:mixHex(C.purple,C.black,.22), TITANIA:mixHex(C.cyan,C.blue,.22),
   PROTEUS:mixHex(C.brown,C.black,.18), TRITON:mixHex(C.cyan,C.purple,.18), NEREID:C.blue,
   WIKTIONARY:mixHex(C.white,C.black,.18), WIKIBOOKS:C.white, WIKIQUOTE:mixHex(C.white,C.blue,.12),
-  WIKISOURCE:mixHex(C.white,C.brown,.10), WIKISPECIES:mixHex(C.white,C.green,.10), WIKIVOYAGE:mixHex(C.white,C.cyan,.12), WIKIDATA:mixHex(C.white,C.purple,.10)
+  WIKISOURCE:mixHex(C.white,C.brown,.10), WIKISPECIES:mixHex(C.white,C.green,.10), WIKIVOYAGE:mixHex(C.white,C.cyan,.12), WIKIDATA:mixHex(C.white,C.purple,.10),
+  PANDORA:mixHex(C.green,C.cyan,.26), CASSANDRA:mixHex(C.green,C.blue,.20), DANTE:mixHex(C.red,C.yellow,.18), HADES:mixHex(C.brown,C.red,.16),
+  CHAOS:mixHex(C.purple,C.blue,.18), 'POLYPHEMUS III':mixHex(C.cyan,C.blue,.22), 'POLYPHEMUS IV':mixHex(C.white,C.cyan,.28),
+  'POLYPHEMUS VII':mixHex(C.blue,C.cyan,.30), 'POLYPHEMUS VIII':mixHex(C.white,C.blue,.18), 'POLYPHEMUS IX':C.brown,
+  'POLYPHEMUS X':mixHex(C.cyan,C.green,.18), 'POLYPHEMUS XI':mixHex(C.white,C.purple,.14), 'POLYPHEMUS XIII':mixHex(C.brown,C.white,.12), 'POLYPHEMUS XIV':mixHex(C.blue,C.black,.12)
 };
 
 const RING_STYLE_PROFILES = {
@@ -150,6 +154,7 @@ function tintedMoonSprite(frame,color){
 const moonTextureCache=new Map();
 function moonTextureEnabled(m,diameter){
   if(diameter>=10) return true;
+  if(planet?.name==='POLYPHEMUS' && diameter>=4) return true;
   return h2(hashString(m?.name||'MOON')&255,diameter,(planet?.seed||0)^0x5d19a6e3)<.085;
 }
 function moonTextureColors(m,base){
@@ -375,14 +380,31 @@ const FICTIONAL_ALIASES={
   'DEATH STAR 3':'DEATH STAR III','DEATH STAR THREE':'DEATH STAR III',
   'DS-1':'DEATH STAR','DS-2':'DEATH STAR II','DS-3':'DEATH STAR III',
   'WIKI':'WIKIPEDIA','WIKIPEDIA.ORG':'WIKIPEDIA','WIKIMEDIA':'WIKIPEDIA',
-  'LAND OF OOO':'OOO','WORLD OF OOO':'OOO','ADVENTURE TIME':'OOO','ADVENTURE TIME WORLD':'OOO'
+  'LAND OF OOO':'OOO','WORLD OF OOO':'OOO','ADVENTURE TIME':'OOO','ADVENTURE TIME WORLD':'OOO',
+  'POLYPHEMUS MOON 3':'POLYPHEMUS III','POLYPHEMUS MOON III':'POLYPHEMUS III',
+  'POLYPHEMUS MOON 4':'POLYPHEMUS IV','POLYPHEMUS MOON IV':'POLYPHEMUS IV',
+  'POLYPHEMUS MOON 7':'POLYPHEMUS VII','POLYPHEMUS MOON VII':'POLYPHEMUS VII',
+  'POLYPHEMUS MOON 8':'POLYPHEMUS VIII','POLYPHEMUS MOON VIII':'POLYPHEMUS VIII',
+  'POLYPHEMUS MOON 9':'POLYPHEMUS IX','POLYPHEMUS MOON IX':'POLYPHEMUS IX',
+  'POLYPHEMUS MOON 10':'POLYPHEMUS X','POLYPHEMUS MOON X':'POLYPHEMUS X',
+  'POLYPHEMUS MOON 11':'POLYPHEMUS XI','POLYPHEMUS MOON XI':'POLYPHEMUS XI',
+  'POLYPHEMUS MOON 13':'POLYPHEMUS XIII','POLYPHEMUS MOON XIII':'POLYPHEMUS XIII',
+  'POLYPHEMUS MOON 14':'POLYPHEMUS XIV','POLYPHEMUS MOON XIV':'POLYPHEMUS XIV'
 };
 function canonicalPlanetName(name){
   const upper=(name||'').trim().toUpperCase().slice(0,60) || 'PLANET';
   return FICTIONAL_ALIASES[upper] || SOLAR_ALIASES[upper] || upper;
 }
 function knownMoon(name,orbitKm,periodDays,radiusKm,visualOrbit,frame,size,scan={}){
-  return {name,orbitKm,periodDays,radiusKm,visualOrbit,frame,size,direction:scan.direction||1,scan};
+  const {
+    direction=1, kind=null, fixedPosition=null, displayLengthKm=null,
+    objectClass=null, hoverLabel=null, visualRenderer=null, ...scanData
+  }=scan||{};
+  return {
+    name,orbitKm,periodDays,radiusKm,visualOrbit,frame,size,direction,
+    kind,fixedPosition,displayLengthKm,objectClass,hoverLabel,visualRenderer,
+    scan:scanData
+  };
 }
 const SOLAR_SYSTEM_PLANETS = {
   MERCURY:{
@@ -495,7 +517,51 @@ const SOLAR_SYSTEM_PLANETS = {
     ], ring:false,
     scan:{ageBy:4.5,pressureAtm:0.00001,pressureText:'TRACE',magField:'WEAK',oxygen:0,nitrogen:97.5,co2:0,tectonics:'ACTIVE ICE',volcanism:'CRYOVOLCANIC?',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'TRACE',carbon:'COMMON',uranium:'TRACE',anomaly:'SPUTNIK PLANITIA - NITROGEN ICE BASIN',lossRisk:false}
   }};
+const AVATAR_POLYPHEMUS_MOONS=[
+  knownMoon('DANTE',150000,1.35,860,74,6,.50,{surface:'SULFUR / BASALT',atmosphere:'TRACE CO2 / SO2',waterIce:'TRACE',activity:'VOLCANIC',anomaly:'TIDAL HEATING / LAVA PLAINS',lossRisk:false}),
+  knownMoon('HADES',205000,2.10,1280,82,7,.54,{surface:'BASALT / ROCK',atmosphere:'THIN N2 / CO2',waterIce:'TRACE',activity:'TECTONIC',anomaly:'HEAVY IMPACT BASINS',lossRisk:false}),
+  knownMoon('POLYPHEMUS III',278000,3.12,3420,91,3,.73,{surface:'WATER / ROCK / ICE',atmosphere:'THIN N2 / CO2',waterIce:'ABUNDANT',activity:'TECTONIC',anomaly:'GLOBAL OCEAN / NO BIOSIGNATURES',lossRisk:false}),
+  knownMoon('POLYPHEMUS IV',362000,4.08,3540,100,2,.75,{surface:'ICE / OCEAN / ROCK',atmosphere:'THIN N2 / CO2',waterIce:'ABUNDANT',activity:'CRYOVOLCANIC',anomaly:'SUBSURFACE OCEAN',lossRisk:false}),
+  knownMoon('PANDORA',455000,5.32,2890,110,4,.78,{surface:'WATER / FOREST / ROCK',atmosphere:'N2 / O2 / CO2',waterIce:'COMMON',activity:'VOLCANIC / MAGNETIC',anomaly:'GLOBAL BIOSPHERE / UNOBTANIUM FLUX',lossRisk:false}),
+  knownMoon('CASSANDRA',548000,6.74,3320,120,3,.76,{surface:'OCEAN / FOREST / ROCK',atmosphere:'N2 / O2 / CO2',waterIce:'COMMON',activity:'TECTONIC',anomaly:'CARBON-CYCLE BIOSIGNATURES',lossRisk:false}),
+  knownMoon('POLYPHEMUS VII',665000,8.45,2680,131,5,.68,{surface:'WATER / ICE / ROCK',atmosphere:'THIN N2 / CO2',waterIce:'ABUNDANT',activity:'CRYOVOLCANIC',anomaly:'OCEAN WORLD / NO COMPLEX LIFE',lossRisk:false}),
+  knownMoon('POLYPHEMUS VIII',785000,10.6,2180,142,5,.64,{surface:'ICE / ROCK',atmosphere:'TRACE N2',waterIce:'ABUNDANT',activity:'DORMANT',anomaly:'FRACTURED ICE SHELL',lossRisk:false}),
+  knownMoon('POLYPHEMUS IX',925000,13.1,1620,153,7,.58,{surface:'ROCK / DUST',atmosphere:'TRACE',waterIce:'COMMON',activity:'DORMANT',anomaly:'ANCIENT IMPACT TERRAIN',lossRisk:false}),
+  knownMoon('POLYPHEMUS X',1080000,16.0,2520,164,4,.66,{surface:'WATER / ICE / ROCK',atmosphere:'THIN N2 / CO2',waterIce:'ABUNDANT',activity:'TECTONIC',anomaly:'CLOUD-COVERED OCEAN BASINS',lossRisk:false}),
+  knownMoon('POLYPHEMUS XI',1280000,20.2,1880,176,5,.60,{surface:'ICE / ROCK',atmosphere:'TRACE CH4 / N2',waterIce:'ABUNDANT',activity:'DORMANT',anomaly:'METHANE FROST',lossRisk:false}),
+  knownMoon('CHAOS',1510000,25.8,1160,188,8,.54,{surface:'CARBON-RICH ROCK / ICE',atmosphere:'TRACE CH4',waterIce:'RICH',activity:'CHAOTIC ROTATION',anomaly:'DARK CHAOTIC TERRAIN',lossRisk:false}),
+  knownMoon('POLYPHEMUS XIII',1780000,32.6,690,200,11,.48,{direction:-1,surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'RETROGRADE ORBIT',anomaly:'OUTER RETROGRADE MOON',lossRisk:false}),
+  knownMoon('POLYPHEMUS XIV',2110000,41.9,510,212,12,.44,{direction:-1,surface:'DARK ROCK / ICE',atmosphere:'NONE',waterIce:'COMMON',activity:'RETROGRADE ORBIT',anomaly:'DISTANT RETROGRADE MOON',lossRisk:false})
+];
+function avatarSisterPreset({worldType='BARREN',worldClass='LUNAR SISTER',radiusKm=1800,gravity=.22,water=.08,cloudCover=.08,temp=-70,atmos='TRACE',chem='N2 / CO2',weather='COLD HAZE',life=false,lifeType='NONE',surface='ROCK / ICE',observation,anomaly,retrograde=false}){
+  const radiusEarth=radiusKm/6371;
+  return {
+    worldType,worldClass,visualRadius:Math.round(clamp(25+radiusKm/180,28,43)),radiusKm,gravity,
+    massEarth:Math.max(.002,gravity*radiusEarth*radiusEarth),density:Math.max(.2,gravity/Math.max(.03,radiusEarth)),
+    water,cloudCover,cloudSpeed:.08,defaultTempC:temp,tempRange:[temp-80,temp+80],life,populationBase:life?3:0,
+    dayHours:retrograde?72:32,yearDays:440,distanceAU:4.37,axialTiltDeg:12,rotationDirection:retrograde?-1:1,
+    atmosDensity:atmos,atmosChemistry:chem,weather,ring:false,moons:[],
+    observation,
+    scan:{ageBy:4.4,pressureAtm:atmos==='NONE'?0:atmos==='TRACE'?.01:atmos==='THIN'?.22:.82,pressureText:atmos==='NONE'?'VACUUM':atmos,magField:'POLYPHEMUS-DRIVEN',oxygen:life?16:0,nitrogen:chem.includes('N2')?72:0,co2:chem.includes('CO2')?(life?8:80):0,tectonics:surface.includes('VOLCANIC')?'ACTIVE':'LOW',volcanism:surface.includes('VOLCANIC')?'HIGH':'LOW',oceanDepthKm:water>.5?3.2:0,lifeTypePotential:lifeType,techPotential:'NONE',iron:'COMMON',carbon:'COMMON',uranium:'TRACE',anomaly,lossRisk:false}
+  };
+}
+const AVATAR_SISTER_PRESETS={
+  DANTE:avatarSisterPreset({worldType:'VOLCANIC',worldClass:'VOLCANIC MOON',radiusKm:860,gravity:.11,water:.01,cloudCover:.12,temp:165,atmos:'TRACE',chem:'CO2 / SO2',weather:'ASH / LAVA HAZE',surface:'VOLCANIC BASALT',observation:'THE INNERMOST KNOWN MOON OF POLYPHEMUS, SCORCHED BY TIDAL HEATING AND ACTIVE VOLCANISM.',anomaly:'EXTREME TIDAL HEATING'}),
+  HADES:avatarSisterPreset({worldType:'BARREN',worldClass:'ROCKY MOON',radiusKm:1280,gravity:.16,water:.03,cloudCover:.05,temp:42,atmos:'THIN',chem:'N2 / CO2',weather:'DUST HAZE',surface:'BASALT / ROCK',observation:'THE SECOND MOON OF POLYPHEMUS, A DARK ROCKY WORLD WITH A THIN ATMOSPHERE AND OLD IMPACT BASINS.',anomaly:'HEAVY IMPACT TERRAIN'}),
+  'POLYPHEMUS III':avatarSisterPreset({worldType:'OCEAN',worldClass:'OCEANIC MOON',radiusKm:3420,gravity:.66,water:.78,cloudCover:.48,temp:9,atmos:'THIN',chem:'N2 / CO2',weather:'COLD OCEAN CLOUDS',surface:'WATER / ROCK / ICE',observation:'AN UNNAMED LARGE LUNAR SISTER OF PANDORA WITH OCEANS, CLOUDS AND A THIN NITROGEN-CARBON-DIOXIDE ATMOSPHERE. NO CONFIRMED LIFE IS DETECTED.',anomaly:'GLOBAL OCEAN / NO BIOSIGNATURES'}),
+  'POLYPHEMUS IV':avatarSisterPreset({worldType:'ICE',worldClass:'ICY OCEAN MOON',radiusKm:3540,gravity:.72,water:.64,cloudCover:.36,temp:-18,atmos:'THIN',chem:'N2 / CO2',weather:'ICE CLOUDS',surface:'ICE / OCEAN / ROCK',observation:'AN UNNAMED LARGE MOON OF POLYPHEMUS WITH A THICK ICE SHELL, OPEN WATER BASINS AND A THIN ATMOSPHERE.',anomaly:'SUBSURFACE OCEAN'}),
+  CASSANDRA:avatarSisterPreset({worldType:'VERDANT',worldClass:'LIFE-BEARING MOON',radiusKm:3320,gravity:.78,water:.61,cloudCover:.54,temp:22,atmos:'NORMAL',chem:'N2 / O2 / CO2',weather:'RAIN / MAGNETIC STORMS',life:true,lifeType:'COMPLEX',surface:'OCEAN / FOREST / ROCK',observation:'PANDORA\'S KNOWN SISTER MOON. ITS NITROGEN-OXYGEN ATMOSPHERE AND CARBON-CYCLE BIOSIGNATURES SUGGEST A LIVING WORLD.',anomaly:'CARBON-CYCLE BIOSPHERE'}),
+  'POLYPHEMUS VII':avatarSisterPreset({worldType:'OCEAN',worldClass:'OCEAN MOON',radiusKm:2680,gravity:.48,water:.83,cloudCover:.44,temp:-4,atmos:'THIN',chem:'N2 / CO2',weather:'COLD RAIN / ICE',surface:'WATER / ICE / ROCK',observation:'AN UNNAMED WATER-RICH MOON OF POLYPHEMUS WITH BROAD OCEANS AND A THIN ATMOSPHERE. NO COMPLEX BIOSPHERE IS CONFIRMED.',anomaly:'OCEAN BASINS / NO COMPLEX LIFE'}),
+  'POLYPHEMUS VIII':avatarSisterPreset({worldType:'ICE',worldClass:'ICE MOON',radiusKm:2180,gravity:.34,water:.46,cloudCover:.18,temp:-71,atmos:'TRACE',chem:'N2',weather:'ICE HAZE',surface:'ICE / ROCK',observation:'AN UNNAMED FROZEN LUNAR SISTER WITH A FRACTURED ICE SHELL AND TRACE NITROGEN.',anomaly:'FRACTURED ICE SHELL'}),
+  'POLYPHEMUS IX':avatarSisterPreset({worldType:'BARREN',worldClass:'BARREN MOON',radiusKm:1620,gravity:.24,water:.11,cloudCover:.04,temp:-88,atmos:'TRACE',chem:'N2 / CO2',weather:'NO WEATHER',surface:'ROCK / DUST',observation:'AN UNNAMED ROCKY MOON OF POLYPHEMUS COVERED IN ANCIENT IMPACT TERRAIN.',anomaly:'ANCIENT IMPACT BASINS'}),
+  'POLYPHEMUS X':avatarSisterPreset({worldType:'OCEAN',worldClass:'CLOUDY OCEAN MOON',radiusKm:2520,gravity:.43,water:.72,cloudCover:.57,temp:-21,atmos:'THIN',chem:'N2 / CO2',weather:'COLD CLOUD DECKS',surface:'WATER / ICE / ROCK',observation:'AN UNNAMED CLOUD-COVERED LUNAR SISTER WITH LARGE WATER BASINS AND A THIN ATMOSPHERE.',anomaly:'CLOUD-COVERED OCEAN BASINS'}),
+  'POLYPHEMUS XI':avatarSisterPreset({worldType:'ICE',worldClass:'METHANE ICE MOON',radiusKm:1880,gravity:.28,water:.34,cloudCover:.15,temp:-102,atmos:'TRACE',chem:'N2 / CH4',weather:'METHANE FROST',surface:'ICE / ROCK',observation:'AN UNNAMED COLD MOON WITH WATER ICE, METHANE FROST AND A VERY THIN ATMOSPHERE.',anomaly:'METHANE FROST FIELDS'}),
+  CHAOS:avatarSisterPreset({worldType:'BARREN',worldClass:'CHAOTIC OUTER MOON',radiusKm:1160,gravity:.14,water:.18,cloudCover:.03,temp:-125,atmos:'TRACE',chem:'N2 / CH4',weather:'NO WEATHER',surface:'CARBON-RICH ROCK / ICE',observation:'CHAOS ORBITS FAR BEYOND PANDORA AND CASSANDRA. ITS DARK, ICE-RICH SURFACE AND UNSTABLE ROTATION GIVE THE MOON ITS NAME.',anomaly:'CHAOTIC ROTATION'}),
+  'POLYPHEMUS XIII':avatarSisterPreset({worldType:'DWARF',worldClass:'RETROGRADE OUTER MOON',radiusKm:690,gravity:.07,water:.18,cloudCover:0,temp:-143,atmos:'NONE',chem:'NONE',weather:'NO WEATHER',surface:'ICE / ROCK',observation:'ONE OF POLYPHEMUS\' DISTANT UNNAMED OUTER MOONS, MOVING IN A RETROGRADE ORBIT.',anomaly:'RETROGRADE ORBIT',retrograde:true}),
+  'POLYPHEMUS XIV':avatarSisterPreset({worldType:'DWARF',worldClass:'RETROGRADE OUTER MOON',radiusKm:510,gravity:.04,water:.12,cloudCover:0,temp:-151,atmos:'NONE',chem:'NONE',weather:'NO WEATHER',surface:'DARK ROCK / ICE',observation:'THE OUTERMOST DESIGNATED LUNAR SISTER IN THIS CHART, A SMALL DARK BODY ON A RETROGRADE ORBIT.',anomaly:'DISTANT RETROGRADE ORBIT',retrograde:true})
+};
 const LORE_PRESETS={
+  ...AVATAR_SISTER_PRESETS,
   WIKIPEDIA:{
     worldType:'BARREN',worldClass:'ENCYCLOPEDIC WORLD',renderer:'wikipedia',visualRadius:39,radiusKm:4600,gravity:.58,massEarth:.31,density:.80,
     water:0,cloudCover:.08,cloudSpeed:.06,defaultTempC:20,tempRange:[-20,55],life:true,populationBase:8,
@@ -520,6 +586,7 @@ const LORE_PRESETS={
     water:.57,cloudCover:.66,cloudSpeed:.14,defaultTempC:17,tempRange:[-18,36],life:true,populationBase:6,
     dayHours:24.8,yearDays:394,distanceAU:1.08,axialTiltDeg:19,rotationDirection:1,
     atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'PATCHY STORMS / SWEET BREEZES',ring:false,
+    damage:{type:'BITE',angle:0,severity:.82,seed:0x00a0f00d},
     observation:'A STRANGE BLUE-GREEN WORLD OF CARTOONISH SEAS, KINGDOMS, RUINS AND A GREAT BITE-SHAPED SCAR REMOVED FROM ONE SIDE OF THE GLOBE.',
     scan:{ageBy:1.1,pressureAtm:1.02,pressureText:'1.02 ATM',magField:'MODERATE',oxygen:20.4,nitrogen:78.2,co2:.06,tectonics:'PATCHY',volcanism:'LOW',oceanDepthKm:2.8,lifeTypePotential:'INTELLIGENT',techPotential:'PATCHWORK / LOST HIGH TECH',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'MUTAGENIC RUINS / MAGIC SIGNATURES',lossRisk:false},
     loreReport:'KINGDOMS OF CANDY, ICE, FIRE AND MANY OTHER PEOPLES COVER THE SURFACE. RUINS OF OLDER HUMAN CIVILIZATION, UNUSUAL MAGIC SIGNATURES AND A HUGE MISSING CHUNK OF THE WORLD ARE ALL CLEARLY VISIBLE.'
@@ -528,18 +595,18 @@ const LORE_PRESETS={
     worldType:'VERDANT',worldClass:'LIFE-BEARING MOON',visualRadius:42,radiusKm:2890,gravity:.80,massEarth:.16,density:1.78,
     water:.44,cloudCover:.62,cloudSpeed:.18,defaultTempC:27,tempRange:[-20,42],life:true,populationBase:5,
     dayHours:21,yearDays:304,distanceAU:4.37,axialTiltDeg:17,rotationDirection:1,
-    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2 / CO2',weather:'MONSOONS / MISTS',ring:false,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2 / CO2',weather:'MONSOONS / MISTS',ring:false,moons:[],
     observation:'A DENSELY FORESTED MOON OF POLYPHEMUS. TOWERING JUNGLES, FLOATING MOUNTAINS AND A PLANET-WIDE BIOSPHERIC NETWORK DEFINE THIS WORLD.',
     scan:{ageBy:4.3,pressureAtm:.9,pressureText:'0.9 ATM',magField:'MODERATE',oxygen:20,nitrogen:72,co2:5,tectonics:'ACTIVE',volcanism:'LOW',oceanDepthKm:1.7,lifeTypePotential:'INTELLIGENT',techPotential:'PRE-INDUSTRIAL',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'PLANET-WIDE NEURAL BIOSPHERE',lossRisk:false},
     loreReport:'THE NA\'VI LIVE IN LARGE CLANS AMONG GIANT FORESTS, CLIFFS AND FLOATING MOUNTAINS. IKRAN, DIREHORSES AND COUNTLESS BIOLUMINESCENT SPECIES ARE TIED TO THE GLOBAL NETWORK KNOWN AS EYWA.'
   },
   POLYPHEMUS:{
-    worldType:'TOXIC',worldClass:'GAS GIANT',renderer:'jupiter',visualRadius:58,radiusKm:78000,gravity:2.1,massEarth:210,density:.95,
+    worldType:'TOXIC',worldClass:'GAS GIANT',renderer:'jupiter',visualRadius:58,radiusKm:61950,gravity:2.1,massEarth:210,density:.95,
     water:0,cloudCover:.54,cloudSpeed:.26,defaultTempC:-145,tempRange:[-210,-70],life:false,populationBase:0,
     dayHours:11.4,yearDays:10240,distanceAU:4.37,axialTiltDeg:12,rotationDirection:1,
-    atmosDensity:'SUPERDENSE',atmosChemistry:'H2 / HE / CH4',weather:'AMMONIA STORMS',ring:true,ringStyle:'FAINT',ringMaterial:'ICE / DUST',ringTilt:.06,ringScale:1.34,ringFlatness:.17,ringColor:C.cyan,ringAlpha:.28,
-    observation:'THE MASSIVE GAS GIANT THAT PANDORA ORBITS. ITS PALE STORM BANDS DOMINATE THE SKY OF THE SATURN-LIKE SYSTEM.',
-    scan:{ageBy:4.6,pressureAtm:1,pressureText:'1 BAR REF',magField:'STRONG',oxygen:0,nitrogen:0,co2:0,tectonics:'ATMOSPHERIC',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'COMMON',carbon:'RICH',uranium:'TRACE',anomaly:'EXTENSIVE MOON SYSTEM',lossRisk:false}
+    atmosDensity:'SUPERDENSE',atmosChemistry:'H2 / HE / CH4 / NH3 / H2S',weather:'AMMONIA / LIGHTNING STORMS',ring:false,moons:AVATAR_POLYPHEMUS_MOONS,
+    observation:'NARANAWM, THE GREAT EYE: A MASSIVE GAS GIANT ORBITED BY PANDORA AND THIRTEEN LUNAR SISTERS. ITS GRAVITY AND MAGNETIC FIELD STRONGLY SHAPE THE MOONS AROUND IT.',
+    scan:{ageBy:4.6,pressureAtm:1,pressureText:'1 BAR REF',magField:'EXTREME',oxygen:0,nitrogen:0,co2:0,tectonics:'ATMOSPHERIC',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'COMMON',carbon:'RICH',uranium:'TRACE',anomaly:'FOURTEEN-MOON SYSTEM / INTENSE MAGNETIC COUPLING',lossRisk:false}
   },
   ERID:{
     worldType:'TOXIC',worldClass:'AMMONIA WORLD',visualRadius:46,radiusKm:7120,gravity:2.05,massEarth:2.56,density:1.84,
@@ -627,7 +694,7 @@ const LORE_PRESETS={
     worldType:'BARREN',worldClass:'IMPERIAL BATTLE STATION',renderer:'deathstar',visualRadius:46,radiusKm:80000,gravity:1.08,massEarth:170,density:.19,
     water:0,cloudCover:0,cloudSpeed:0,defaultTempC:21,tempRange:[0,42],life:false,populationBase:0,
     dayHours:24,yearDays:365,distanceAU:0,axialTiltDeg:0,rotationDirection:1,
-    atmosDensity:'NONE',atmosChemistry:'NONE',weather:'NONE',ring:false,disableAutoCivilization:true,
+    atmosDensity:'NONE',atmosChemistry:'NONE',weather:'NONE',ring:false,moons:[],disableAutoCivilization:true,
     observation:'A MOON-SIZED ARTIFICIAL BATTLE STATION WITH A PLANET-KILLING SUPERLASER DISH AND AN IMPERIAL PANEL-ARMOURED SURFACE.',
     scan:{ageBy:.03,pressureAtm:0,pressureText:'CONTROLLED INTERIOR ONLY',magField:'ARTIFICIAL',oxygen:0,nitrogen:0,co2:0,tectonics:'NONE',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'INTERSTELLAR',iron:'ABUNDANT',carbon:'TRACE',uranium:'ABUNDANT',anomaly:'SUPERLASER CONDUIT GRID',lossRisk:false},
     lifeLabel:'NONE',populationLabel:'MASSIVE',lifeTypeLabel:'NONE',techLevelLabel:'INTERSTELLAR'
@@ -636,7 +703,8 @@ const LORE_PRESETS={
     worldType:'BARREN',worldClass:'INCOMPLETE BATTLE STATION',renderer:'deathstar2',visualRadius:46,radiusKm:90000,gravity:1.02,massEarth:165,density:.17,
     water:0,cloudCover:0,cloudSpeed:0,defaultTempC:18,tempRange:[0,40],life:false,populationBase:0,
     dayHours:24,yearDays:365,distanceAU:0,axialTiltDeg:0,rotationDirection:1,
-    atmosDensity:'NONE',atmosChemistry:'NONE',weather:'NONE',ring:false,disableAutoCivilization:true,
+    atmosDensity:'NONE',atmosChemistry:'NONE',weather:'NONE',ring:false,moons:[],disableAutoCivilization:true,
+    damage:{type:'CUSTOM_MASK',angle:0,severity:.82,seed:0xd5020002},
     observation:'THE SECOND DEATH STAR: A PARTIALLY COMPLETED SUPERWEAPON ABOVE ENDOR WITH LARGE EXPOSED SECTIONS OF INNER SUPERSTRUCTURE.',
     scan:{ageBy:.01,pressureAtm:0,pressureText:'PARTIAL INTERNAL LIFE SUPPORT',magField:'ARTIFICIAL',oxygen:0,nitrogen:0,co2:0,tectonics:'NONE',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'INTERSTELLAR',iron:'ABUNDANT',carbon:'TRACE',uranium:'ABUNDANT',anomaly:'EXPOSED REACTOR / CONSTRUCTION SUPERSTRUCTURE',lossRisk:false},
     lifeLabel:'NONE',populationLabel:'MANY',lifeTypeLabel:'NONE',techLevelLabel:'INTERSTELLAR'
@@ -645,7 +713,8 @@ const LORE_PRESETS={
     worldType:'BARREN',worldClass:'RUINED BATTLE STATION',renderer:'deathstar3',visualRadius:46,radiusKm:90000,gravity:.96,massEarth:140,density:.16,
     water:0,cloudCover:0,cloudSpeed:0,defaultTempC:-12,tempRange:[-120,25],life:false,populationBase:0,
     dayHours:24,yearDays:365,distanceAU:0,axialTiltDeg:0,rotationDirection:1,
-    atmosDensity:'NONE',atmosChemistry:'NONE',weather:'NONE',ring:false,disableAutoCivilization:true,
+    atmosDensity:'NONE',atmosChemistry:'NONE',weather:'NONE',ring:false,moons:[],disableAutoCivilization:true,
+    damage:{type:'EXPLOSION_DAMAGE',angle:.18,severity:.94,seed:0xd5030003},
     observation:'A BADLY DAMAGED DEATH-STAR-TYPE HULK. WHOLE REGIONS OF THE SHELL ARE TORN OPEN, LEAVING JAGGED SCARS AND EXPOSED INNER FRAMES.',
     scan:{ageBy:.02,pressureAtm:0,pressureText:'VACUUM',magField:'ARTIFICIAL',oxygen:0,nitrogen:0,co2:0,tectonics:'NONE',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'INTERSTELLAR',iron:'ABUNDANT',carbon:'TRACE',uranium:'ABUNDANT',anomaly:'CATASTROPHIC BATTLE DAMAGE',lossRisk:false},
     lifeLabel:'NONE',populationLabel:'NONE',lifeTypeLabel:'NONE',techLevelLabel:'INTERSTELLAR'
@@ -655,6 +724,7 @@ const LORE_PRESETS={
     water:.00,cloudCover:.01,cloudSpeed:.05,defaultTempC:47,tempRange:[10,92],life:true,populationBase:5,
     dayHours:26.5,yearDays:687,distanceAU:1.9,axialTiltDeg:19,rotationDirection:1,
     atmosDensity:'THIN',atmosChemistry:'N2 / O2',weather:'SPICE DUST / SANDSTORMS',ring:false,
+    moons:[knownMoon('SPACING GUILD HEIGHLINER',0,0,10,0,0,1,{kind:'heighliner',fixedPosition:{x:-88,y:-58,depth:1},displayLengthKm:20,objectClass:'GUILD HEIGHLINER',surface:'GUILD MEGASTRUCTURE HULL',atmosphere:'SEALED INTERIOR',waterIce:'NONE',activity:'FIXED TRANSPORT HOLD',anomaly:'HOLTZMAN / FOLDSPACE SIGNATURE',lossRisk:false})],
     observation:'THE DESERT WORLD OF DUNE, ALMOST ENTIRELY DRY AND FAMOUS AS THE ONLY SOURCE OF MELANGE.',
     scan:{ageBy:4.9,pressureAtm:.92,pressureText:'0.92 ATM',magField:'WEAK',oxygen:20,nitrogen:76,co2:1.6,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'INTELLIGENT',techPotential:'INTERPLANETARY',iron:'COMMON',carbon:'COMMON',uranium:'TRACE',anomaly:'SPICE BLOWS / TITANIC SANDWORM SIGNATURES',lossRisk:false},
     loreReport:'FREMEN SIETCHES, SCATTERED IMPERIAL OUTPOSTS AND ENORMOUS SANDWORMS DOMINATE THE DEEP DESERT. THE ENTIRE POLITICAL ECONOMY OF THE IMPERIUM ORBITS THE SPICE HARVESTED HERE.'
@@ -873,6 +943,30 @@ function makePlanetScan(p){
     lossRisk:r()<.045
   };
 }
+const PROCEDURAL_DAMAGE_TYPES=['SHATTERED_EDGE','MISSING_HEMISPHERE','EXPLOSION_DAMAGE','BITE','CRATER'];
+function configureRarePlanetDamage(p,r){
+  if(!p || p.solar || p.special || p.lorePreset || p.shape==='cube') return;
+  // Roughly one named procedural world in four hundred is born catastrophically damaged.
+  if(r()>=.0025) return;
+  const type=pick(r,PROCEDURAL_DAMAGE_TYPES);
+  const destructive=type!=='CRATER';
+  p.damageProfile={type,angle:r()*Math.PI*2,severity:.62+r()*.32,seed:((p.seed^0x44535452)>>>0)};
+  p.destroyedProcedural=destructive;
+  if(destructive){
+    p.populationBase=0;
+    p.lifeText='NO SURVIVING BIOSPHERE IS DETECTED. THE PLANET HAS SUFFERED CATASTROPHIC STRUCTURAL DAMAGE.';
+    p.noLifeText=p.lifeText;
+    if(p.scan){
+      p.scan.lifeTypePotential='NONE'; p.scan.techPotential='NONE';
+      p.scan.anomaly=`CATASTROPHIC PLANETARY DAMAGE / ${type.replaceAll('_',' ')}`;
+      p.scan.tectonics='CATASTROPHIC'; p.scan.volcanism=type==='EXPLOSION_DAMAGE'?'EXTREME':'HIGH';
+    }
+    p.civilization=null;
+  }else if(p.scan){
+    p.scan.anomaly='PLANET-SCALE IMPACT CRATER';
+  }
+}
+
 function makeMoonScan(p,m,index){
   const r=mulberry32(hashString(`${p.name}|MOON|${index}|DEEP-SCAN`));
   const rel=m.radiusKm/1737;
@@ -1006,10 +1100,14 @@ function applyLorePreset(p,preset,r){
   if(Array.isArray(preset.moons)){
     p.moonData=preset.moons.map((m,i)=>({
       name:m.name,orbit:m.visualOrbit,orbitKm:m.orbitKm,periodDays:m.periodDays,radiusKm:m.radiusKm,
-      phase:(i*.91+r()*.45)%(Math.PI*2),direction:m.direction||1,frame:m.frame%17,size:m.size,screenX:0,screenY:0,known:true,scan:{...m.scan}
+      phase:(i*.91+r()*.45)%(Math.PI*2),direction:m.direction||1,frame:m.frame%17,size:m.size,
+      kind:m.kind||null,fixedPosition:m.fixedPosition?{...m.fixedPosition}:null,displayLengthKm:m.displayLengthKm||null,
+      objectClass:m.objectClass||null,hoverLabel:m.hoverLabel||null,visualRenderer:m.visualRenderer||null,
+      screenX:0,screenY:0,known:true,scan:{...m.scan}
     }));
     p.moons=p.moonData.length;
   }
+  if(preset.damage) p.damageProfile={...preset.damage,seed:(preset.damage.seed??(p.seed^0x6d616765))>>>0};
   makePlanetScan(p);
   Object.assign(p.scan,preset.scan||{});
   if(preset.scan?.lifeTypePotential) p.scan.lifeTypePotential=preset.scan.lifeTypePotential;
@@ -1185,6 +1283,7 @@ function generatePlanet(name){
       p.moonData[0].periodDays=18;
     }
   }
+  if(!minecraft&&!lorePreset) configureRarePlanetDamage(p,r);
   if(lorePreset){
     applyLorePreset(p,lorePreset,r);
   }else{
@@ -1227,6 +1326,7 @@ document.title=`${planet.name} - Planetarium`;
 queueMicrotask(()=>syncUrl());
 
 function isAlive(){
+  if(planet.destroyedProcedural) return false;
   if(planet.solar){
     if(planet.name==='MARS') return marsTerraformStage()>=2;
     if(!planet.solar.life) return false;
@@ -1305,6 +1405,7 @@ function surfaceWaterPercent(){
   return Math.round(clamp(planet.water*freeze*boil,0,.95)*100);
 }
 function worldClass(){
+  if(planet.destroyedProcedural) return 'DESTROYED WORLD';
   if(planet.worldClassOverride) return planet.worldClassOverride;
   if(planet.solar){
     if(planet.name==='MARS'){
@@ -2076,7 +2177,7 @@ function drawOOOCloudSwirls(cx,cy){
     const ny=((y+.5)/size)*2-1;
     for(let x=0;x<size;x+=2){
       const nx=((x+.5)/size)*2-1;
-      if(nx*nx+ny*ny>1) continue;
+      if(nx*nx+ny*ny>1 || geometryMissingAt(nx,ny,planet)) continue;
       let on=false;
       for(const band of ribbons){
         if(nx<band.xmin||nx>band.xmax) continue;
@@ -2097,8 +2198,86 @@ function drawOOOCloudSwirls(cx,cy){
   }
   ctx.globalAlpha=1;
 }
+function damageSpace(nx,ny,profile){
+  const a=profile?.angle||0,ca=Math.cos(a),sa=Math.sin(a);
+  return {x:nx*ca+ny*sa,y:-nx*sa+ny*ca};
+}
+function damageNoise(x,y,seed=0){
+  return h2(Math.floor((x+1.2)*43),Math.floor((y+1.2)*43),seed>>>0)-.5;
+}
+function geometryMissingAt(nx,ny,p=planet){
+  if(!p) return false;
+  if(p.renderer==='wikipedia') return wikipediaMissingPiece(nx,ny);
+  const profile=p.damageProfile; if(!profile||profile.type==='NONE'||profile.type==='CRATER') return false;
+  if(profile.type==='PUZZLE_PIECE') return wikipediaMissingPiece(nx,ny);
+  const sev=clamp(profile.severity??.72,.2,1),q=damageSpace(nx,ny,profile),x=q.x,y=q.y,n=damageNoise(x,y,profile.seed);
+  if(profile.type==='BITE'){
+    const r=.27+sev*.16+n*.035;
+    const main=((x-.92)/r)**2+((y+.01)/(r*.88))**2<1;
+    const upper=((x-.78)/(r*.70))**2+((y+.26)/(r*.62))**2<1;
+    const lower=((x-.80)/(r*.74))**2+((y-.27)/(r*.64))**2<1;
+    return main||upper||lower;
+  }
+  if(profile.type==='SHATTERED_EDGE'){
+    const rag=.66-sev*.16+n*.18;
+    const wedge=x>rag && (Math.abs(y)<.84 || damageNoise(x*1.7,y*1.9,profile.seed^0x51a7)>.18);
+    const crack=x>.30 && Math.abs(y-(n*.55))<.025+sev*.018 && damageNoise(x*2.1,y*2.7,profile.seed^0x19d1)>.06;
+    return wedge||crack;
+  }
+  if(profile.type==='MISSING_HEMISPHERE'){
+    const boundary=.22-sev*.27+n*.13;
+    return x>boundary;
+  }
+  if(profile.type==='EXPLOSION_DAMAGE'){
+    const r=.19+sev*.12;
+    const a=((x-.79)/(r*1.12))**2+((y+.05)/r)**2<1+n*.16;
+    const b=((x-.61)/(r*.84))**2+((y-.34)/(r*.78))**2<1+n*.12;
+    const c=((x-.68)/(r*.72))**2+((y+.39)/(r*.70))**2<1-n*.10;
+    const torn=x>.74-sev*.18+n*.16 && Math.abs(y)<.82;
+    return a||b||c||torn;
+  }
+  if(profile.type==='CUSTOM_MASK'){
+    // Unfinished battle-station shell: a large construction sector is genuinely absent,
+    // with a noisy boundary and smaller punched-through gaps around it.
+    const open=x>.38+n*.16 && y>-.68+n*.08 && y<.70+n*.09;
+    const cavity=((x-.46)/.20)**2+((y+.40)/.18)**2<1+n*.12;
+    const lower=((x-.56)/.17)**2+((y-.50)/.15)**2<1-n*.10;
+    return open||cavity||lower;
+  }
+  return false;
+}
+function damageEdgeAt(nx,ny,p=planet){
+  if(!p||geometryMissingAt(nx,ny,p)) return false;
+  const profile=p.renderer==='wikipedia'?{type:'PUZZLE_PIECE'}:p.damageProfile;
+  if(!profile||profile.type==='NONE'||profile.type==='CRATER') return false;
+  const e=Math.max(1/Math.max(18,p.rx||40),1/Math.max(18,p.ry||40))*1.65;
+  return geometryMissingAt(nx+e,ny,p)||geometryMissingAt(nx-e,ny,p)||geometryMissingAt(nx,ny+e,p)||geometryMissingAt(nx,ny-e,p)||
+         geometryMissingAt(nx+e*.7,ny+e*.7,p)||geometryMissingAt(nx-e*.7,ny-e*.7,p);
+}
+function damageSurfaceColor(base,nx,ny,p=planet){
+  const profile=p?.damageProfile;
+  if(profile?.type==='CRATER'){
+    const q=damageSpace(nx,ny,profile),sev=clamp(profile.severity??.7,.2,1),cx=.26,cy=-.08;
+    const d=Math.sqrt(((q.x-cx)/(.22+sev*.10))**2+((q.y-cy)/(.18+sev*.08))**2);
+    if(d<1){
+      if(d<.68) return mixHex(base,C.black,.52);
+      return mixHex(base,p.worldType==='ICE'?C.cyan:C.brown,.42);
+    }
+  }
+  if(!damageEdgeAt(nx,ny,p)) return base;
+  if(p.renderer==='wikipedia') return mixHex(C.white,C.black,.36);
+  if(p.renderer==='deathstar2'||p.renderer==='deathstar3') return mixHex(C.white,C.black,.62);
+  if(p.renderer==='ooo'){
+    const layer=mod(Math.floor((ny+1)*18),4);
+    return [C.black,mixHex(C.brown,C.black,.34),mixHex(C.brown,C.red,.16),mixHex(C.yellow,C.brown,.34)][layer];
+  }
+  const q=damageNoise(nx,ny,(profile?.seed||p.seed)^0x4d414e54);
+  if(q>.24) return C.yellow;
+  if(q<-.18) return mixHex(C.red,C.black,.20);
+  return mixHex(C.brown,C.red,.24);
+}
 function specialSurfaceMask(nx,ny){
-  return wikipediaMissingPiece(nx,ny);
+  return geometryMissingAt(nx,ny,planet);
 }
 function loreSurfaceColor(lon,lat,normY,nx,z){
   if(state.viewMode===2 && hasAtmosphereView()) return atmosphereViewColor(lon,lat,nx,z);
@@ -2195,7 +2374,12 @@ function drawAtmosphereLimb(cx,cy){
   for(let layer=0;layer<layers;layer++){
     const rx=planet.rx+2+layer*2, ry=planet.ry+2+layer*2, steps=Math.max(90,Math.round((rx+ry)*2.6));
     ctx.globalAlpha=(diagnostic?.48:.16)-layer*.11;
-    for(let i=0;i<steps;i++){ if((i+layer*2)%Math.max(1,4-layer)!==0 && layer>0) continue; const a=i/steps*Math.PI*2; ctx.fillRect(Math.round(cx+Math.cos(a)*rx),Math.round(cy+Math.sin(a)*ry),1,1); }
+    for(let i=0;i<steps;i++){
+      if((i+layer*2)%Math.max(1,4-layer)!==0 && layer>0) continue;
+      const a=i/steps*Math.PI*2,nx=Math.cos(a),ny=Math.sin(a);
+      if(geometryMissingAt(nx*.985,ny*.985,planet)) continue;
+      ctx.fillRect(Math.round(cx+nx*rx),Math.round(cy+ny*ry),1,1);
+    }
   }
   ctx.globalAlpha=1;
 }
@@ -2223,6 +2407,7 @@ function drawWeatherSystems(cx,cy){
   const label=weatherLabel(), atmosphereMode=state.viewMode===2, base=atmosphereAccentColor();
   for(let i=0;i<planet.weatherSystems.length;i++){
     const w=planet.weatherSystems[i],pos=weatherSystemPosition(w,cx,cy); if(!pos) continue;
+    if((planet.damageProfile||planet.renderer==='wikipedia')&&!planetContainsPoint(pos.x,pos.y,cx,cy,1)) continue;
     const alpha=(atmosphereMode?.86:.42)*w.intensity,size=Math.max(2,w.size*(.72+pos.depth*.28));
     const electrical=label.includes('STORM')||label.includes('HURRICANE')||label.includes('MONSOON')||label.includes('ELECTRIC');
     const flashTick=Math.floor(performance.now()/150)+(planet.seed%97)+i*11;
@@ -2276,21 +2461,26 @@ function ringPoints(cx,cy,front){
 }
 
 function normalMoonAngle(m){
-  return m.phase+(state.simDays/m.periodDays)*Math.PI*2*m.direction;
+  if(m?.fixedPosition) return 0;
+  return m.phase+(state.simDays/Math.max(.0001,m.periodDays))*Math.PI*2*m.direction;
 }
 function inspectedMoonAngle(m){
+  if(m?.fixedPosition) return 0;
   const inspect=state.moonInspect;
   if(!inspect || planet.moonData[inspect.index]!==m) return normalMoonAngle(m);
   const elapsed=state.simDays-inspect.startSimDays;
-  return inspect.startAngle+(elapsed/m.periodDays)*Math.PI*2*m.direction*.06;
+  return inspect.startAngle+(elapsed/Math.max(.0001,m.periodDays))*Math.PI*2*m.direction*.06;
 }
 function moonPosition(m,cx,cy){
+  if(m?.fixedPosition){
+    return {ang:0,x:cx+(m.fixedPosition.x||0),y:cy+(m.fixedPosition.y||0),depth:m.fixedPosition.depth??1,fixed:true};
+  }
   const ang=inspectedMoonAngle(m);
   return {ang,x:cx+Math.cos(ang)*m.orbit,y:cy+Math.sin(ang)*m.orbit*.34,depth:Math.sin(ang)};
 }
 function beginMoonInspection(index){
   const m=planet.moonData[index];
-  if(!m) return;
+  if(!m||m.fixedPosition) return;
   if(state.moonInspect?.index===index) return;
   releaseMoonInspection();
   state.moonInspect={index,startSimDays:state.simDays,startAngle:normalMoonAngle(m)};
@@ -2299,14 +2489,14 @@ function releaseMoonInspection(){
   const inspect=state.moonInspect;
   if(!inspect) return;
   const m=planet.moonData[inspect.index];
-  if(m){
-    const current=inspect.startAngle+((state.simDays-inspect.startSimDays)/m.periodDays)*Math.PI*2*m.direction*.06;
+  if(m&&!m.fixedPosition){
+    const current=inspect.startAngle+((state.simDays-inspect.startSimDays)/Math.max(.0001,m.periodDays))*Math.PI*2*m.direction*.06;
     m.phase=current-(state.simDays/m.periodDays)*Math.PI*2*m.direction;
   }
   state.moonInspect=null;
 }
 function pointNearMoonOrbit(p,m,cx,cy){
-  if(!p || !m) return false;
+  if(!p || !m || m.fixedPosition) return false;
   const rx=Math.max(8,m.orbit), ry=Math.max(4,m.orbit*.34);
   const ang=Math.atan2((p.y-cy)/ry,(p.x-cx)/rx);
   const ox=cx+Math.cos(ang)*rx, oy=cy+Math.sin(ang)*ry;
@@ -2346,7 +2536,7 @@ function moonSpriteVisibleDiameter(frame){
   return MOON_SPRITE_VISIBLE_DIAMETERS[clamp(Math.round(frame||0),0,MOON_SPRITE_VISIBLE_DIAMETERS.length-1)]||22;
 }
 function drawMoonOrbit(m,cx,cy,emphasis=false){
-  if(!m) return;
+  if(!m||m.fixedPosition) return;
   const rx=m.orbit, ry=m.orbit*.34;
   const circumference=Math.PI*(3*(rx+ry)-Math.sqrt((3*rx+ry)*(rx+3*ry)));
   const spacing=clamp(Math.round(rx*.16),6,12);
@@ -2389,6 +2579,11 @@ function drawMoons(cx,cy,t,front){
   for(const m of planet.moonData){
     const pos=moonPosition(m,cx,cy); m.screenX=pos.x; m.screenY=pos.y; m.depth=pos.depth;
     if((front && pos.depth<0)||(!front && pos.depth>=0)) continue;
+    if(m.kind==='heighliner'){
+      drawHeighliner(pos.x,pos.y);
+      m.visualDiameter=34; m.hitRadius=18; m.renderFrame=-2;
+      continue;
+    }
     const requestedDiameter=moonVisualDiameter(m);
     if(isCubePlanet() && m.name==='BLOCK MOON'){
       drawBlockMoon(pos,m,requestedDiameter);
@@ -2484,10 +2679,6 @@ function drawLoreSetpieces(cx,cy,front){
     const pos=specialSetpiecePosition(cx,cy,planet.radius+17,.38,52,1.2);
     if((front&&pos.depth<0)||(!front&&pos.depth>=0)) return;
     drawPandoraOrbiter(pos.x,pos.y);
-  }else if(planet.name==='ARRAKIS'){
-    const pos=specialSetpiecePosition(cx,cy,planet.radius+26,.20,88,-.75);
-    if((front&&pos.depth<0)||(!front&&pos.depth>=0)) return;
-    drawHeighliner(pos.x,pos.y);
   }
 }
 const cloudTintCache=new Map();
@@ -2652,6 +2843,7 @@ function collectCloudPixels(cx,cy,spec){
     const ny=(y-cy)/ry; if(Math.abs(ny)>1) continue;
     for(let x=Math.floor(cx-rx-1);x<=Math.ceil(cx+rx+1);x++){
       const nx=(x-cx)/rx, rr=nx*nx+ny*ny; if(rr>1) continue;
+      if(geometryMissingAt(nx,ny,planet)) continue;
       const z=Math.sqrt(Math.max(0,1-rr));
       const lon=mod(.5+Math.atan2(nx,z)/(Math.PI*2)+state.phase,1), lat=clamp(.5+Math.asin(ny)/Math.PI,0,1);
       const value=cloudFieldValue(lon,lat,spec); if(value<threshold) continue;
@@ -2713,7 +2905,9 @@ function drawAuroras(cx,cy){
     for(let i=-10;i<=10;i+=2){
       const wave=Math.sin(i*.7+phase)*2;
       if(((i+planet.seed)&3)===0) continue;
-      ctx.fillRect(Math.round(cx+i),Math.round(yy+wave),1,1);
+      const ax=Math.round(cx+i),ay=Math.round(yy+wave);
+      if(!planetContainsPoint(ax,ay,cx,cy,1)) continue;
+      ctx.fillRect(ax,ay,1,1);
     }
   }
   ctx.globalAlpha=1;
@@ -2725,6 +2919,7 @@ function drawVolcanicPlumes(cx,cy){
   const count=planet.name==='VENUS'?2:1+(planet.scan?.volcanism==='VIOLENT'?2:0);
   for(let i=0;i<count;i++){
     const lon=h2(i,19,planet.seed^0x7ca1),lat=.28+h2(i,31,planet.seed^0x2a9d)*.45,p=spherePointFromLonLat(lon,lat,cx,cy,.96); if(!p)continue;
+    if(!planetContainsPoint(p.x,p.y,cx,cy,1)) continue;
     const height=3+Math.floor(h2(i,7,planet.seed)*5), col=planet.name==='VENUS'?C.brown:mixHex(C.brown,C.black,.30);
     ctx.fillStyle=col;ctx.globalAlpha=state.viewMode===2?.78:.55;
     for(let k=0;k<height;k++){ctx.fillRect(Math.round(p.x+(k%2?1:0)),Math.round(p.y-k),1+(k>height*.6?1:0),1);}
@@ -2754,6 +2949,7 @@ function drawNormalAtmosphereHaze(cx,cy){
   for(let i=0;i<count;i++){
     const a=h2(i,17,planet.seed)*Math.PI*2, rr=Math.sqrt(h2(i,31,planet.seed^0x51ac))*Math.min(planet.rx,planet.ry)*.93;
     const x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr*(planet.ry/planet.rx);
+    if(!planetContainsPoint(x,y,cx,cy,0)) continue;
     if((i+planet.seed)%3===0)ctx.fillRect(Math.round(x),Math.round(y),2,1);else ctx.fillRect(Math.round(x),Math.round(y),1,1);
   }
   ctx.globalAlpha=1;
@@ -2762,7 +2958,10 @@ function isCubePlanet(p=planet){ return p?.shape==='cube'; }
 function planetContainsPoint(px,py,cx,cy,padding=0){
   if(isCubePlanet()) return Math.abs(px-cx)<=planet.rx+padding && Math.abs(py-cy)<=planet.ry+padding;
   const nx=(px-cx)/Math.max(1,planet.rx+padding), ny=(py-cy)/Math.max(1,planet.ry+padding);
-  return nx*nx+ny*ny<=1;
+  if(nx*nx+ny*ny>1) return false;
+  const baseNx=(px-cx)/Math.max(1,planet.rx),baseNy=(py-cy)/Math.max(1,planet.ry);
+  if(baseNx*baseNx+baseNy*baseNy<=1 && geometryMissingAt(baseNx,baseNy,planet)) return false;
+  return true;
 }
 function minecraftBlockColor(u,v,shade=0){
   const tempLocal=clamp(state.temp-Math.abs(v-.5)*.28,0,1);
@@ -2872,7 +3071,8 @@ function drawPlanet(cx,cy,t){
       const z=Math.sqrt(Math.max(0,1-rr));
       const lon=mod(.5+Math.atan2(nx,z)/(Math.PI*2)+rot,1);
       const lat=clamp(.5+Math.asin(ny)/Math.PI,0,1);
-      ctx.fillStyle=surfaceColor(lon,lat,ny,nx,z); ctx.fillRect(x,y,1,1);
+      const baseSurface=surfaceColor(lon,lat,ny,nx,z);
+      ctx.fillStyle=damageSurfaceColor(baseSurface,nx,ny,planet); ctx.fillRect(x,y,1,1);
     }
   }
   if(normalView) drawNormalAtmosphereHaze(cx,cy);
@@ -2961,7 +3161,10 @@ function drawPlanetHover(cx,cy){
   drawText(planet.name,x,y,C.white,1); drawText(worldClass(),x,y+9,C.green,1); drawText(`TEMP       ${tempC()} C`,x,y+22,C.white,1); drawText(`RADIUS     ${planet.radiusEarth.toFixed(2)} EARTH`,x,y+31,C.blue,1);
   drawText(`GRAVITY    ${planet.gravity.toFixed(2)} G`,x,y+40,C.white,1); drawText(`WATER      ${surfaceWaterPercent()}%`,x,y+49,C.cyan,1); drawText(`ATMOS      ${atmosphereLabel()}`,x,y+58,C.yellow,1);
   drawText(`WEATHER    ${compactWeatherLabel()}`,x,y+67,atmosphereAccentColor(),1); drawText(`BIOSPHERE  ${lifeLabel()}`,x,y+76,isAlive()?C.green:C.brown,1); drawText(`POPULATION ${populationLabel()}`,x,y+85,isAlive()?C.green:C.brown,1);
-  drawText(`DAY        ${planet.dayHours.toFixed(1)} H`,x,y+94,C.white,1); drawText(`YEAR       ${planet.yearDays} D`,x,y+103,C.white,1); drawText(`${planet.solar&&['JUPITER','SATURN','URANUS','NEPTUNE'].includes(planet.name)?'SHOWN MOONS':'MOONS      '} ${planet.moons}`,x,y+112,C.purple,1);
+  drawText(`DAY        ${planet.dayHours.toFixed(1)} H`,x,y+94,C.white,1); drawText(`YEAR       ${planet.yearDays} D`,x,y+103,C.white,1);
+  const artificialOrbitals=planet.moonData?.some(m=>!!m.kind);
+  const bodyCountLabel=artificialOrbitals?'OBJECTS    ':(planet.solar&&['JUPITER','SATURN','URANUS','NEPTUNE'].includes(planet.name)?'SHOWN MOONS':'MOONS      ');
+  drawText(`${bodyCountLabel} ${planet.moons}`,x,y+112,C.purple,1);
   const ringOffset=planet.ring?9:0; if(planet.ring)drawText(`RING       ${ringStyleLabel()}`,x,y+121,planet.ringColor||C.purple,1); const scanned=isScanned({type:'planet'});
   if(scanned){
     drawPlanetDeepScan(x+130,y);
@@ -2971,6 +3174,19 @@ function drawPlanetHover(cx,cy){
 function drawMoonDeepScan(m,x,y){
   const d=m.scan;
   drawText('DEEP SCAN',x,y,C.purple,1);
+  if(m.kind==='heighliner'){
+    drawText('TYPE     GUILD HEIGHLINER',x,y+11,C.white,1);
+    drawText('POSITION FIXED HOLD',x,y+20,C.blue,1);
+    drawText(`HULL     ${d.surface}`,x,y+29,C.brown,1);
+    drawText(`INTERIOR ${d.atmosphere}`,x,y+38,C.yellow,1);
+    drawText(`ACTIVITY ${d.activity}`,x,y+47,C.red,1);
+    if(hasAnomaly(d)){
+      drawText('ANOMALY',x,y+59,C.purple,1);
+      const lines=wrapText(d.anomaly,126,1).slice(0,4);
+      lines.forEach((line,i)=>drawText(line,x,y+69+i*8,C.yellow,1));
+    }
+    return;
+  }
   drawText(`TEMP     ${moonTemperatureC(m)} C`,x,y+11,C.white,1);
   drawText(`GRAVITY  ${d.gravity.toFixed(2)} G`,x,y+20,C.white,1);
   drawText(`SURFACE  ${d.surface}`,x,y+29,C.brown,1);
@@ -2986,14 +3202,20 @@ function drawMoonDeepScan(m,x,y){
 function formatPeriodDays(days){ return days<10?days.toFixed(3):days<100?days.toFixed(2):days.toFixed(1); }
 function drawMoonHover(body){
   const m=planet.moonData[body.index]; if(!m) return;
-  const scanned=isScanned(body), panelW=136;
+  const scanned=isScanned(body), panelW=146;
   let x=Math.round(m.screenX+12); if(x+panelW>W-5) x=Math.round(m.screenX-panelW-12);
   x=clamp(x,5,W-panelW-5);
   const y=clamp(Math.round(m.screenY-28),8,scanned?114:190);
   drawText(m.name,x,y,C.white,1);
-  drawText(`${m.orbitKm.toLocaleString('en-US')} KM ORBIT`,x,y+11,C.blue,1);
-  drawText(`${formatPeriodDays(m.periodDays)} DAYS`,x,y+20,C.green,1);
-  drawText(`${m.radiusKm.toLocaleString('en-US')} KM MOON`,x,y+29,C.brown,1);
+  if(m.kind==='heighliner'){
+    drawText('FIXED GUILD POSITION',x,y+11,C.blue,1);
+    drawText('NO LOCAL ORBIT',x,y+20,C.green,1);
+    drawText(`${m.displayLengthKm||20} KM VESSEL`,x,y+29,C.brown,1);
+  }else{
+    drawText(`${m.orbitKm.toLocaleString('en-US')} KM ORBIT`,x,y+11,C.blue,1);
+    drawText(`${formatPeriodDays(m.periodDays)} DAYS`,x,y+20,C.green,1);
+    drawText(`${m.radiusKm.toLocaleString('en-US')} KM MOON`,x,y+29,C.brown,1);
+  }
   if(scanned) drawMoonDeepScan(m,x,y+43);
   else drawText('PROBE DATA LOCKED',x,y+42,C.purple,1);
 }
