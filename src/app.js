@@ -271,9 +271,22 @@ function drawText(text,x,y,color=C.white,scale=1,align='left'){
 }
 function wrapText(text,maxPx,scale=1){
   const paras=String(text).split('#'); const lines=[];
+  const splitWord=(word)=>{
+    const parts=[]; let part='';
+    for(const ch of word){
+      const test=part+ch;
+      if(part && textWidth(test,scale)>maxPx){ parts.push(part); part=ch; }
+      else part=test;
+    }
+    if(part) parts.push(part);
+    return parts.length?parts:[''];
+  };
   for(let pi=0;pi<paras.length;pi++){
-    const words=paras[pi].split(/\s+/).filter(Boolean); let line='';
-    if(!words.length){ lines.push(''); continue; }
+    const rawWords=paras[pi].split(/\s+/).filter(Boolean), words=[]; let line='';
+    if(!rawWords.length){ lines.push(''); continue; }
+    for(const word of rawWords){
+      if(textWidth(word,scale)>maxPx) words.push(...splitWord(word)); else words.push(word);
+    }
     for(const word of words){
       const test=line ? line+' '+word : word;
       if(line && textWidth(test,scale)>maxPx){ lines.push(line); line=word; } else line=test;
@@ -315,6 +328,113 @@ function drawInfoBackdrop(x,y,w,h){
   ctx.globalAlpha=.18;ctx.fillStyle=C.white;ctx.fillRect(rx,ry,rw,1);ctx.fillRect(rx,ry,1,rh);
   ctx.globalAlpha=.10;ctx.fillRect(rx,ry+rh-1,rw,1);ctx.fillRect(rx+rw-1,ry,1,rh);
   ctx.globalAlpha=1;
+}
+
+function rectOverlapArea(a,b){
+  const x=Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x));
+  const y=Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));
+  return x*y;
+}
+function bodyScreenRect(body,cx,cy,pad=4){
+  if(body?.type==='moon'){
+    const m=planet.moonData?.[body.index]; if(!m) return {x:cx-pad,y:cy-pad,w:pad*2,h:pad*2};
+    const r=Math.max(5,m.hitRadius||Math.ceil((m.visualDiameter||10)/2));
+    return {x:m.screenX-r-pad,y:m.screenY-r-pad,w:(r+pad)*2,h:(r+pad)*2};
+  }
+  return {x:cx-planet.rx-pad,y:cy-planet.ry-pad,w:planet.rx*2+pad*2,h:planet.ry*2+pad*2};
+}
+function visibleBodyRects(cx,cy,excludeBody=null){
+  const out=[];
+  if(!excludeBody||excludeBody.type!=='planet') out.push(bodyScreenRect({type:'planet'},cx,cy,3));
+  for(let i=0;i<(planet.moonData?.length||0);i++){
+    if(excludeBody?.type==='moon'&&excludeBody.index===i) continue;
+    const m=planet.moonData[i]; if(!Number.isFinite(m.screenX)||!Number.isFinite(m.screenY)) continue;
+    out.push(bodyScreenRect({type:'moon',index:i},cx,cy,2));
+  }
+  return out;
+}
+function chooseInfoPanelRect(body,cx,cy,w,h,extraObstacles=[]){
+  const margin=6,bottomLimit=246,target=bodyScreenRect(body,cx,cy,5);
+  w=Math.min(Math.round(w),W-margin*2); h=Math.min(Math.round(h),bottomLimit-margin*2);
+  const centeredX=target.x+target.w/2-w/2, centeredY=target.y+target.h/2-h/2;
+  const raw=[
+    {x:target.x+target.w+8,y:centeredY},
+    {x:target.x-w-8,y:centeredY},
+    {x:centeredX,y:target.y+target.h+8},
+    {x:centeredX,y:target.y-h-8},
+    {x:margin,y:margin},{x:W-w-margin,y:margin},
+    {x:margin,y:bottomLimit-h-margin},{x:W-w-margin,y:bottomLimit-h-margin}
+  ];
+  const obstacles=visibleBodyRects(cx,cy,body);
+  let best=null,bestScore=Infinity;
+  for(const c of raw){
+    const r={x:clamp(Math.round(c.x),margin,W-w-margin),y:clamp(Math.round(c.y),margin,bottomLimit-h-margin),w,h};
+    let score=rectOverlapArea(r,target)*80;
+    for(const o of obstacles) score+=rectOverlapArea(r,o)*8;
+    for(const o of (extraObstacles||[])) score+=rectOverlapArea(r,o)*60;
+    score+=Math.hypot((r.x+r.w/2)-(target.x+target.w/2),(r.y+r.h/2)-(target.y+target.h/2))*.02;
+    if(score<bestScore){bestScore=score;best=r;}
+  }
+  return best||{x:margin,y:margin,w,h};
+}
+function infoFieldLines(value,label,maxPx){
+  const prefix=(String(label||'').toUpperCase()+'        ').slice(0,9),prefixW=textWidth(prefix,1);
+  const valueLines=wrapText(String(value??''),Math.max(28,maxPx-prefixW),1);
+  return {prefix,prefixW,lines:valueLines.length?valueLines:['']};
+}
+function infoFieldHeight(label,value,maxPx){ return Math.max(1,infoFieldLines(value,label,maxPx).lines.length)*9; }
+function drawInfoField(label,value,x,y,maxPx,color=C.white){
+  const f=infoFieldLines(value,label,maxPx);
+  drawText(f.prefix,x,y,color,1);
+  f.lines.forEach((line,i)=>drawText(line,x+f.prefixW,y+i*9,color,1));
+  return y+Math.max(1,f.lines.length)*9;
+}
+function deepScanModelForPlanet(){
+  const d=planet.scan;
+  if(isHaloRingWorld()) return {
+    rows:[
+      ['TYPE','FORERUNNER HALO',C.white],['DIAMETER',`${(planet.radiusKm*2).toLocaleString('en-US')} KM`,C.blue],['WIDTH',`${planet.haloSurfaceWidthKm||318} KM`,C.blue],
+      ['GRAVITY',`${planet.gravity.toFixed(3)} G`,C.white],['STATUS',(planet.haloStatus||'UNKNOWN').replace('PARTIALLY ','').replace(' / DEACTIVATED',' / OFFLINE').replace(' / BANISHED OCCUPATION',' / BANISHED'),C.red],
+      ['MONITOR',(planet.haloMonitor||'UNKNOWN').split(' ').slice(0,2).join(' '),C.cyan],['BIOME',(planet.haloBiome||'CURATED').split(' / ')[0],C.green],['FUNCTION','HALO ARRAY WEAPON',C.purple],
+      ['LIFE',lifeTypeLabel(),isAlive()?C.green:C.brown],['TECH','FORERUNNER',C.purple]
+    ],anomaly:hasAnomaly(d)?d.anomaly:'',anomalyLines:6
+  };
+  if(planet.solar) return {
+    rows:[
+      ['AGE',`${d.ageBy.toFixed(1)} BY`,C.white],['PRESS',d.pressureText||`${d.pressureAtm.toFixed(2)} ATM`,C.white],['MAG',d.magField,C.cyan],['DIST SUN',`${planet.distanceAU.toFixed(3)} AU`,C.blue],
+      ['TILT',`${planet.axialTiltDeg.toFixed(2)} DEG`,C.white],['ATMOS',compactAtmosphereChemistry(),C.yellow],['WEATHER',compactWeatherLabel(),atmosphereAccentColor()],['CLOUDS',`${Math.round(dynamicCloudCover()*100)}% ${cloudTypeLabel()}`,C.white],
+      ['PRECIP',precipitationLabel(),C.cyan],['ROTATION',`${planet.dayHours.toFixed(2)} H`,C.white],['YEAR',`${planet.yearDays} D`,C.white],...(planet.ring?[['RINGS',ringStyleLabel().replace(' MULTIBAND',''),planet.ringColor||C.purple]]:[])
+    ],anomaly:hasAnomaly(d)?d.anomaly:'',anomalyLines:6
+  };
+  return {
+    rows:[
+      ['AGE',`${d.ageBy.toFixed(1)} BY`,C.white],['PRESS',`${d.pressureAtm.toFixed(2)} ATM`,C.white],['MAG',d.magField,C.cyan],['O2',`${d.oxygen.toFixed(1)}%`,C.green],['N2',`${d.nitrogen.toFixed(1)}%`,C.blue],['CO2',`${d.co2.toFixed(1)}%`,C.yellow],
+      ['WEATHER',compactWeatherLabel(),atmosphereAccentColor()],['CLOUDS',`${Math.round(dynamicCloudCover()*100)}% ${cloudTypeLabel()}`,C.white],['PRECIP',precipitationLabel(),C.cyan],['TECTONIC',d.tectonics,C.white],['VOLCANIC',d.volcanism,C.red],
+      ['OCEAN',`${d.oceanDepthKm.toFixed(1)} KM`,C.cyan],['ICE',`${iceCoverPercent()}%`,C.white],['LIFE',lifeTypeLabel(),isAlive()?C.green:C.brown],['TECH',techLevelLabel(),C.purple],['FE',`${d.iron}  C ${d.carbon}`,C.brown],['U',d.uranium,C.brown]
+    ],anomaly:hasAnomaly(d)?d.anomaly:'',anomalyLines:4
+  };
+}
+function deepScanModelForMoon(m){
+  const d=m.scan;
+  if(m.kind==='heighliner') return {rows:[['TYPE','GUILD HEIGHLINER',C.white],['POSITION','FIXED HOLD',C.blue],['HULL',d.surface,C.brown],['INTERIOR',d.atmosphere,C.yellow],['ACTIVITY',d.activity,C.red]],anomaly:hasAnomaly(d)?d.anomaly:'',anomalyLines:4};
+  if(m.kind==='human_ship') return {rows:[['TYPE',d.type||m.objectClass||'HUMAN VESSEL',C.white],['ORIGIN',d.origin||'HUMAN',C.blue],['STATUS',d.status||'ACTIVE ORBIT',C.green],['ROLE',d.role||'COLONIAL SUPPORT',C.brown],['ACTIVITY',d.activity||'SHUTTLE TRAFFIC',C.red]],anomaly:hasAnomaly(d)?d.anomaly:'',anomalyLines:4};
+  return {rows:[['TEMP',`${moonTemperatureC(m)} C`,C.white],['GRAVITY',`${d.gravity.toFixed(2)} G`,C.white],['SURFACE',d.surface,C.brown],['ATMOS',d.atmosphere,C.yellow],['WATER ICE',d.waterIce,C.cyan],['ACTIVITY',d.activity,C.red]],anomaly:hasAnomaly(d)?d.anomaly:'',anomalyLines:4};
+}
+function measureDeepScanModel(model,maxPx){
+  let h=12;
+  for(const [label,value] of model.rows) h+=infoFieldHeight(label,value,maxPx);
+  if(model.anomaly) h+=10+wrapText(model.anomaly,maxPx,1).slice(0,model.anomalyLines||4).length*8;
+  return h;
+}
+function drawDeepScanModel(model,x,y,maxPx){
+  drawText('DEEP SCAN',x,y,C.purple,1); let yy=y+12;
+  for(const [label,value,color] of model.rows) yy=drawInfoField(label,value,x,yy,maxPx,color);
+  if(model.anomaly){
+    yy+=2; drawText('ANOMALY',x,yy,C.purple,1); yy+=10;
+    const lines=wrapText(model.anomaly,maxPx,1).slice(0,model.anomalyLines||4);
+    lines.forEach((line,i)=>drawText(line,x,yy+i*8,C.yellow,1)); yy+=lines.length*8;
+  }
+  return yy;
 }
 
 const syllA=['AR','BEL','CA','DA','EL','FEN','GA','HEL','IO','JAR','KA','LUM','MER','NO','OR','PHA','QUA','RAN','SOL','TA','UR','VEL','WY','XAN','YOR','ZEN'];
@@ -3353,59 +3473,8 @@ function drawObjectMarker(body,cx,cy){
     drawFocusFrame(cx-planet.rx-5,cy-planet.ry-5,planet.rx*2+11,planet.ry*2+11);
   }
 }
-function drawPlanetDeepScan(x,y){
-  const d=planet.scan; drawText('DEEP SCAN',x,y,C.purple,1);
-  if(isHaloRingWorld()){
-    drawText('TYPE     FORERUNNER HALO',x,y+12,C.white,1);
-    drawText(`DIAMETER ${(planet.radiusKm*2).toLocaleString('en-US')} KM`,x,y+21,C.blue,1);
-    drawText(`WIDTH    ${planet.haloSurfaceWidthKm||318} KM`,x,y+30,C.blue,1);
-    drawText(`GRAVITY  ${planet.gravity.toFixed(3)} G`,x,y+39,C.white,1);
-    const status=(planet.haloStatus||'UNKNOWN').replace('PARTIALLY ','').replace(' / DEACTIVATED',' / OFFLINE').replace(' / BANISHED OCCUPATION',' / BANISHED');
-    drawText(`STATUS   ${status}`,x,y+48,C.red,1);
-    const mon=(planet.haloMonitor||'UNKNOWN').split(' ').slice(0,2).join(' ');
-    const biome=(planet.haloBiome||'CURATED').split(' / ')[0];
-    drawText(`MONITOR  ${mon}`,x,y+57,C.cyan,1);
-    drawText(`BIOME    ${biome}`,x,y+66,C.green,1);
-    drawText('FUNCTION HALO ARRAY WEAPON',x,y+75,C.purple,1);
-    drawText(`LIFE     ${lifeTypeLabel()}`,x,y+84,isAlive()?C.green:C.brown,1);
-    drawText('TECH     FORERUNNER',x,y+93,C.purple,1);
-    if(hasAnomaly(d)){
-      drawText('ANOMALY',x,y+105,C.purple,1);
-      const lines=wrapText(d.anomaly,Math.max(72,W-x-6),1).slice(0,6);
-      lines.forEach((line,i)=>drawText(line,x,y+115+i*8,C.yellow,1));
-    }
-    return;
-  }
-  if(planet.solar){
-    const pressure=d.pressureText||`${d.pressureAtm.toFixed(2)} ATM`;
-    drawText(`AGE      ${d.ageBy.toFixed(1)} BY`,x,y+12,C.white,1); drawText(`PRESS    ${pressure}`,x,y+21,C.white,1); drawText(`MAG      ${d.magField}`,x,y+30,C.cyan,1);
-    drawText(`DIST SUN ${planet.distanceAU.toFixed(3)} AU`,x,y+39,C.blue,1); drawText(`TILT     ${planet.axialTiltDeg.toFixed(2)} DEG`,x,y+48,C.white,1);
-    drawText(`ATMOS    ${compactAtmosphereChemistry()}`,x,y+57,C.yellow,1); drawText(`WEATHER  ${compactWeatherLabel()}`,x,y+66,atmosphereAccentColor(),1);
-    drawText(`CLOUDS   ${Math.round(dynamicCloudCover()*100)}% ${cloudTypeLabel()}`,x,y+75,C.white,1);
-    drawText(`PRECIP   ${precipitationLabel()}`,x,y+84,C.cyan,1);
-    drawText(`ROTATION ${planet.dayHours.toFixed(2)} H`,x,y+93,C.white,1); drawText(`YEAR     ${planet.yearDays} D`,x,y+102,C.white,1);
-    if(planet.ring) drawText(`RINGS    ${ringStyleLabel().replace(' MULTIBAND','')}`,x,y+111,planet.ringColor||C.purple,1);
-    if(hasAnomaly(d)){
-      const anomalyY=y+(planet.ring?123:114), ay=y+(planet.ring?133:124);
-      drawText('ANOMALY',x,anomalyY,C.purple,1);
-      const lines=wrapText(d.anomaly,Math.max(72,W-x-6),1).slice(0,6);
-      lines.forEach((line,i)=>drawText(line,x,ay+i*8,C.yellow,1));
-    }
-    return;
-  }
-  drawText(`AGE      ${d.ageBy.toFixed(1)} BY`,x,y+12,C.white,1); drawText(`PRESS    ${d.pressureAtm.toFixed(2)} ATM`,x,y+21,C.white,1); drawText(`MAG      ${d.magField}`,x,y+30,C.cyan,1);
-  drawText(`O2       ${d.oxygen.toFixed(1)}%`,x,y+39,C.green,1); drawText(`N2       ${d.nitrogen.toFixed(1)}%`,x,y+48,C.blue,1); drawText(`CO2      ${d.co2.toFixed(1)}%`,x,y+57,C.yellow,1);
-  drawText(`WEATHER  ${compactWeatherLabel()}`,x,y+66,atmosphereAccentColor(),1);
-  drawText(`CLOUDS   ${Math.round(dynamicCloudCover()*100)}% ${cloudTypeLabel()}`,x,y+75,C.white,1);
-  drawText(`PRECIP   ${precipitationLabel()}`,x,y+84,C.cyan,1);
-  drawText(`TECTONIC ${d.tectonics}`,x,y+93,C.white,1); drawText(`VOLCANIC ${d.volcanism}`,x,y+102,C.red,1);
-  drawText(`OCEAN    ${d.oceanDepthKm.toFixed(1)} KM`,x,y+111,C.cyan,1); drawText(`ICE      ${iceCoverPercent()}%`,x,y+120,C.white,1); drawText(`LIFE     ${lifeTypeLabel()}`,x,y+129,isAlive()?C.green:C.brown,1);
-  drawText(`TECH     ${techLevelLabel()}`,x,y+138,C.purple,1); drawText(`FE ${d.iron}  C ${d.carbon}`,x,y+147,C.brown,1); drawText(`U  ${d.uranium}`,x,y+156,C.brown,1);
-  if(hasAnomaly(d)){
-    drawText('ANOMALY',x,y+168,C.purple,1);
-    const lines=wrapText(d.anomaly,Math.max(72,W-x-6),1).slice(0,4);
-    lines.forEach((line,i)=>drawText(line,x,y+178+i*8,C.yellow,1));
-  }
+function drawPlanetDeepScan(x,y,maxPx=128){
+  return drawDeepScanModel(deepScanModelForPlanet(),x,y,maxPx);
 }
 function drawHaloLoreFact(x,y,maxPx=124,maxBottom=232){
   const fact=planet.loreReport||planet.lifeText||'';
@@ -3416,103 +3485,101 @@ function drawHaloLoreFact(x,y,maxPx=124,maxBottom=232){
   return true;
 }
 function drawPlanetHover(cx,cy){
-  const x=clamp(Math.round(cx+planet.rx+18),202,220),y=38;
-  if(isHaloRingWorld()){
-    const scanned=isScanned({type:'planet'});drawInfoBackdrop(x-8,y-8,W-x-4,scanned?206:126);
-    drawText(planet.name,x,y,C.white,1);drawText('FORERUNNER HALO',x,y+9,C.green,1);
-    drawText(`TEMP       ${tempC()} C`,x,y+22,C.white,1);drawText(`DIAMETER   ${(planet.radiusKm*2).toLocaleString('en-US')} KM`,x,y+31,C.blue,1);
-    drawText(`WIDTH      ${planet.haloSurfaceWidthKm||318} KM`,x,y+40,C.blue,1);drawText(`GRAVITY    ${planet.gravity.toFixed(3)} G`,x,y+49,C.white,1);
-    drawText(`ATMOS      ${atmosphereLabel()}`,x,y+58,C.yellow,1);drawText(`BIOSPHERE  ${lifeLabel()}`,x,y+67,isAlive()?C.green:C.brown,1);
-    drawText(`STATUS     ${planet.haloStatus||'UNKNOWN'}`,x,y+76,C.red,1);drawText(`MONITOR    ${planet.haloMonitor||'UNKNOWN'}`,x,y+85,C.cyan,1);
-    drawText('ROTATION   ARTIFICIAL',x,y+94,C.white,1);
-    if(scanned){drawPlanetDeepScan(x+130,y);drawHaloLoreFact(x,y+108,124,232);}else drawText('PROBE DATA LOCKED',x,y+108,C.purple,1);
-    return;
-  }
+  const body={type:'planet'}, scanned=isScanned(body), innerW=132, summaryW=154;
+  const halo=isHaloRingWorld();
   const artificialOrbitals=planet.moonData?.some(m=>!!m.kind);
-  const bodyCountLabel=artificialOrbitals?'OBJECTS    ':(planet.solar&&['JUPITER','SATURN','URANUS','NEPTUNE'].includes(planet.name)?'SHOWN MOONS':'MOONS      ');
+  const bodyCountLabel=artificialOrbitals?'OBJECTS':(planet.solar&&['JUPITER','SATURN','URANUS','NEPTUNE'].includes(planet.name)?'SHOWN MOONS':'MOONS');
   const bodyCount=artificialOrbitals?(planet.moonData?.length||0):planet.moons;
-  const ringOffset=planet.ring?9:0,scanned=isScanned({type:'planet'});
-  const panelBottom=scanned?244:Math.min(244,y+142+ringOffset);
-  drawInfoBackdrop(x-8,y-8,W-x-4,panelBottom-(y-8));
-  drawText(planet.name,x,y,C.white,1); drawText(worldClass(),x,y+9,C.green,1); drawText(`TEMP       ${tempC()} C`,x,y+22,C.white,1); drawText(`RADIUS     ${planet.radiusEarth.toFixed(2)} EARTH`,x,y+31,C.blue,1);
-  drawText(`GRAVITY    ${planet.gravity.toFixed(2)} G`,x,y+40,C.white,1); drawText(`WATER      ${surfaceWaterPercent()}%`,x,y+49,C.cyan,1); drawText(`ATMOS      ${atmosphereLabel()}`,x,y+58,C.yellow,1);
-  drawText(`WEATHER    ${compactWeatherLabel()}`,x,y+67,atmosphereAccentColor(),1); drawText(`BIOSPHERE  ${lifeLabel()}`,x,y+76,isAlive()?C.green:C.brown,1); drawText(`POPULATION ${populationLabel()}`,x,y+85,isAlive()?C.green:C.brown,1);
-  drawText(`DAY        ${planet.dayHours.toFixed(1)} H`,x,y+94,C.white,1); drawText(`YEAR       ${planet.yearDays} D`,x,y+103,C.white,1);
-  drawText(`${bodyCountLabel} ${bodyCount}`,x,y+112,C.purple,1);
-  if(planet.ring)drawText(`RING       ${ringStyleLabel()}`,x,y+121,planet.ringColor||C.purple,1);
+  const ringOffset=planet.ring?9:0;
+  const baseRows=halo?[
+    ['TEMP',`${tempC()} C`,C.white],['DIAMETER',`${(planet.radiusKm*2).toLocaleString('en-US')} KM`,C.blue],['WIDTH',`${planet.haloSurfaceWidthKm||318} KM`,C.blue],['GRAVITY',`${planet.gravity.toFixed(3)} G`,C.white],
+    ['ATMOS',atmosphereLabel(),C.yellow],['BIOSPHERE',lifeLabel(),isAlive()?C.green:C.brown],['STATUS',planet.haloStatus||'UNKNOWN',C.red],['MONITOR',planet.haloMonitor||'UNKNOWN',C.cyan],['ROTATION','ARTIFICIAL',C.white]
+  ]:[
+    ['TEMP',`${tempC()} C`,C.white],['RADIUS',`${planet.radiusEarth.toFixed(2)} EARTH`,C.blue],['GRAVITY',`${planet.gravity.toFixed(2)} G`,C.white],['WATER',`${surfaceWaterPercent()}%`,C.cyan],['ATMOS',atmosphereLabel(),C.yellow],
+    ['WEATHER',compactWeatherLabel(),atmosphereAccentColor()],['BIOSPHERE',lifeLabel(),isAlive()?C.green:C.brown],['POPULATION',populationLabel(),isAlive()?C.green:C.brown],['DAY',`${planet.dayHours.toFixed(1)} H`,C.white],['YEAR',`${planet.yearDays} D`,C.white],
+    [bodyCountLabel,String(bodyCount),C.purple],...(planet.ring?[['RING',ringStyleLabel(),planet.ringColor||C.purple]]:[])
+  ];
+  const nameLines=wrapText(planet.name,innerW,1).slice(0,2);
+  const classLines=wrapText(halo?'FORERUNNER HALO':worldClass(),innerW,1).slice(0,2);
+  const headingH=Math.max(1,nameLines.length)*9+Math.max(1,classLines.length)*9+4;
+  let summaryContentH=headingH;
+  for(const [label,value] of baseRows) summaryContentH+=infoFieldHeight(label,value,innerW);
+  if(scanned) summaryContentH+=halo?92:96; else summaryContentH+=13;
+  const summaryH=Math.min(232,summaryContentH+16);
+  const summary=chooseInfoPanelRect(body,cx,cy,summaryW,summaryH);
+  drawInfoBackdrop(summary.x,summary.y,summary.w,summary.h);
+  const sx=summary.x+8, sy=summary.y+8;
+  ctx.save();ctx.beginPath();ctx.rect(summary.x+5,summary.y+5,summary.w-10,summary.h-10);ctx.clip();
+  nameLines.forEach((line,i)=>drawText(line,sx,sy+i*9,C.white,1));
+  let yy=sy+Math.max(1,nameLines.length)*9;
+  classLines.forEach((line,i)=>drawText(line,sx,yy+i*9,C.green,1));
+  yy+=Math.max(1,classLines.length)*9+4;
+  for(const [label,value,color] of baseRows) yy=drawInfoField(label,value,sx,yy,innerW,color);
   if(scanned){
-    drawPlanetDeepScan(x+130,y);
-    drawLifeProbeFact(x,y+132+ringOffset,124,232);
-  }else drawText('PROBE DATA LOCKED',x,y+125+ringOffset,C.purple,1);
+    const maxBottom=summary.y+summary.h-8;
+    if(halo) drawHaloLoreFact(sx,yy+2,innerW,maxBottom);
+    else drawLifeProbeFact(sx,yy+2,innerW,maxBottom);
+  }else drawText('PROBE DATA LOCKED',sx,Math.min(summary.y+summary.h-14,yy+3),C.purple,1);
+  ctx.restore();
+
+  if(scanned){
+    const deepW=176, deepInner=deepW-16, model=deepScanModelForPlanet();
+    const deepH=Math.min(232,measureDeepScanModel(model,deepInner)+16);
+    const deep=chooseInfoPanelRect(body,cx,cy,deepW,deepH,[summary]);
+    drawInfoBackdrop(deep.x,deep.y,deep.w,deep.h);
+    ctx.save();
+    ctx.beginPath();ctx.rect(deep.x+5,deep.y+5,deep.w-10,deep.h-10);ctx.clip();
+    drawPlanetDeepScan(deep.x+8,deep.y+8,deepInner);
+    ctx.restore();
+  }
 }
-function drawMoonDeepScan(m,x,y){
-  const d=m.scan;
-  drawText('DEEP SCAN',x,y,C.purple,1);
-  if(m.kind==='heighliner'){
-    drawText('TYPE     GUILD HEIGHLINER',x,y+11,C.white,1);
-    drawText('POSITION FIXED HOLD',x,y+20,C.blue,1);
-    drawText(`HULL     ${d.surface}`,x,y+29,C.brown,1);
-    drawText(`INTERIOR ${d.atmosphere}`,x,y+38,C.yellow,1);
-    drawText(`ACTIVITY ${d.activity}`,x,y+47,C.red,1);
-    if(hasAnomaly(d)){
-      drawText('ANOMALY',x,y+59,C.purple,1);
-      const lines=wrapText(d.anomaly,126,1).slice(0,4);
-      lines.forEach((line,i)=>drawText(line,x,y+69+i*8,C.yellow,1));
-    }
-    return;
-  }
-  if(m.kind==='human_ship'){
-    drawText(`TYPE     ${d.type||m.objectClass||'HUMAN VESSEL'}`,x,y+11,C.white,1);
-    drawText(`ORIGIN   ${d.origin||'HUMAN'}`,x,y+20,C.blue,1);
-    drawText(`STATUS   ${d.status||'ACTIVE ORBIT'}`,x,y+29,C.green,1);
-    drawText(`ROLE     ${d.role||'COLONIAL SUPPORT'}`,x,y+38,C.brown,1);
-    drawText(`ACTIVITY ${d.activity||'SHUTTLE TRAFFIC'}`,x,y+47,C.red,1);
-    if(hasAnomaly(d)){
-      drawText('ANOMALY',x,y+59,C.purple,1);
-      const lines=wrapText(d.anomaly,126,1).slice(0,4);
-      lines.forEach((line,i)=>drawText(line,x,y+69+i*8,C.yellow,1));
-    }
-    return;
-  }
-  drawText(`TEMP     ${moonTemperatureC(m)} C`,x,y+11,C.white,1);
-  drawText(`GRAVITY  ${d.gravity.toFixed(2)} G`,x,y+20,C.white,1);
-  drawText(`SURFACE  ${d.surface}`,x,y+29,C.brown,1);
-  drawText(`ATMOS    ${d.atmosphere}`,x,y+38,C.yellow,1);
-  drawText(`WATER ICE ${d.waterIce}`,x,y+47,C.cyan,1);
-  drawText(`ACTIVITY ${d.activity}`,x,y+56,C.red,1);
-  if(hasAnomaly(d)){
-    drawText('ANOMALY',x,y+68,C.purple,1);
-    const lines=wrapText(d.anomaly,126,1).slice(0,4);
-    lines.forEach((line,i)=>drawText(line,x,y+78+i*8,C.yellow,1));
-  }
+function drawMoonDeepScan(m,x,y,maxPx=132){
+  return drawDeepScanModel(deepScanModelForMoon(m),x,y,maxPx);
 }
 function formatPeriodDays(days){ return days<10?days.toFixed(3):days<100?days.toFixed(2):days.toFixed(1); }
-function drawMoonHover(body){
+function drawMoonHover(body,cx,cy){
   const m=planet.moonData[body.index]; if(!m) return;
-  const scanned=isScanned(body),vessel=m.kind==='human_ship',hasClass=!!m.loreWorldClass,panelW=vessel?174:150;
-  let x=Math.round(m.screenX+12); if(x+panelW>W-5) x=Math.round(m.screenX-panelW-12);
-  x=clamp(x,5,W-panelW-5);
-  const y=clamp(Math.round(m.screenY-28),8,scanned?104:184),classOffset=hasClass?9:0;
-  const desiredH=scanned?(vessel||m.kind==='heighliner'?128+classOffset:154+classOffset):58+classOffset;
-  drawInfoBackdrop(x-8,y-8,panelW,Math.min(desiredH,249-(y-8)));
-  drawText(m.name,x,y,C.white,1);
-  if(hasClass) drawText(m.loreWorldClass,x,y+9,C.green,1);
+  const scanned=isScanned(body),vessel=m.kind==='human_ship',hasClass=!!m.loreWorldClass;
+  const panelW=vessel?180:(m.kind==='heighliner'?176:158),innerW=panelW-16;
+  const nameLines=wrapText(m.name,innerW,1).slice(0,2),classLines=hasClass?wrapText(m.loreWorldClass,innerW,1).slice(0,2):[];
+  const classH=classLines.length*9;
+  let summaryH=Math.max(1,nameLines.length)*9+classH+2;
   if(m.kind==='heighliner'){
-    drawText('FIXED GUILD POSITION',x,y+11+classOffset,C.blue,1);
-    drawText('NO LOCAL ORBIT',x,y+20+classOffset,C.green,1);
-    drawText(`${m.displayLengthKm||20} KM VESSEL`,x,y+29+classOffset,C.brown,1);
+    summaryH+=infoFieldHeight('POSITION','FIXED GUILD HOLD',innerW);
+    summaryH+=infoFieldHeight('ORBIT','NONE / STANDOFF',innerW);
+    summaryH+=infoFieldHeight('SIZE',`${m.displayLengthKm||20} KM VESSEL`,innerW);
   }else{
-    drawText(`${m.orbitKm.toLocaleString('en-US')} KM ORBIT`,x,y+11+classOffset,C.blue,1);
-    drawText(`${formatPeriodDays(m.periodDays)} DAYS`,x,y+20+classOffset,C.green,1);
-    drawText(vessel?`${(m.displayLengthKm||1.6).toFixed(1)} KM VESSEL`:`${m.radiusKm.toLocaleString('en-US')} KM MOON`,x,y+29+classOffset,C.brown,1);
+    summaryH+=infoFieldHeight('ORBIT',`${m.orbitKm.toLocaleString('en-US')} KM`,innerW);
+    summaryH+=infoFieldHeight('PERIOD',`${formatPeriodDays(m.periodDays)} DAYS`,innerW);
+    summaryH+=infoFieldHeight(vessel?'SIZE':'RADIUS',vessel?`${(m.displayLengthKm||1.6).toFixed(1)} KM VESSEL`:`${m.radiusKm.toLocaleString('en-US')} KM MOON`,innerW);
   }
-  if(scanned) drawMoonDeepScan(m,x,y+43+classOffset);
-  else drawText('PROBE DATA LOCKED',x,y+42+classOffset,C.purple,1);
+  const deepModel=scanned?deepScanModelForMoon(m):null;
+  const deepH=scanned?measureDeepScanModel(deepModel,innerW):9;
+  const panelH=Math.min(232,summaryH+deepH+21);
+  const rect=chooseInfoPanelRect(body,cx,cy,panelW,panelH);
+  drawInfoBackdrop(rect.x,rect.y,rect.w,rect.h);
+  const x=rect.x+8,y=rect.y+8;
+  ctx.save();ctx.beginPath();ctx.rect(rect.x+5,rect.y+5,rect.w-10,rect.h-10);ctx.clip();
+  nameLines.forEach((line,i)=>drawText(line,x,y+i*9,C.white,1));
+  let yy=y+Math.max(1,nameLines.length)*9+2;
+  if(hasClass){classLines.forEach((line,i)=>drawText(line,x,yy+i*9,C.green,1));yy+=classLines.length*9;}
+  if(m.kind==='heighliner'){
+    yy=drawInfoField('POSITION','FIXED GUILD HOLD',x,yy,innerW,C.blue);
+    yy=drawInfoField('ORBIT','NONE / STANDOFF',x,yy,innerW,C.green);
+    yy=drawInfoField('SIZE',`${m.displayLengthKm||20} KM VESSEL`,x,yy,innerW,C.brown);
+  }else{
+    yy=drawInfoField('ORBIT',`${m.orbitKm.toLocaleString('en-US')} KM`,x,yy,innerW,C.blue);
+    yy=drawInfoField('PERIOD',`${formatPeriodDays(m.periodDays)} DAYS`,x,yy,innerW,C.green);
+    yy=drawInfoField(vessel?'SIZE':'RADIUS',vessel?`${(m.displayLengthKm||1.6).toFixed(1)} KM VESSEL`:`${m.radiusKm.toLocaleString('en-US')} KM MOON`,x,yy,innerW,C.brown);
+  }
+  if(scanned) drawMoonDeepScan(m,x,yy+4,innerW);
+  else drawText('PROBE DATA LOCKED',x,yy+4,C.purple,1);
+  ctx.restore();
 }
 function drawContextInfo(body,cx,cy){
   if(!body) return;
   drawObjectMarker(body,cx,cy);
-  if(body.type==='moon') drawMoonHover(body); else drawPlanetHover(cx,cy);
+  if(body.type==='moon') drawMoonHover(body,cx,cy); else drawPlanetHover(cx,cy);
 }
 function drawHelpCard(){
   if(!state.info) return;
