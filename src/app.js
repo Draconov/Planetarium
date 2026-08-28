@@ -307,6 +307,15 @@ function drawFocusFrame(x,y,w,h){
   ctx.fillRect(x,y+h-1,arm,1); ctx.fillRect(x,y+h-arm,1,arm);
   ctx.fillRect(x+w-arm,y+h-1,arm,1); ctx.fillRect(x+w-1,y+h-arm,1,arm);
 }
+function drawInfoBackdrop(x,y,w,h){
+  const rx=Math.max(0,Math.round(x)),ry=Math.max(0,Math.round(y));
+  const rw=Math.min(W-rx,Math.max(0,Math.round(w))),rh=Math.min(H-ry,Math.max(0,Math.round(h)));
+  if(rw<=0||rh<=0)return;
+  ctx.globalAlpha=.80;ctx.fillStyle=C.black;ctx.fillRect(rx,ry,rw,rh);
+  ctx.globalAlpha=.18;ctx.fillStyle=C.white;ctx.fillRect(rx,ry,rw,1);ctx.fillRect(rx,ry,1,rh);
+  ctx.globalAlpha=.10;ctx.fillRect(rx,ry+rh-1,rw,1);ctx.fillRect(rx+rw-1,ry,1,rh);
+  ctx.globalAlpha=1;
+}
 
 const syllA=['AR','BEL','CA','DA','EL','FEN','GA','HEL','IO','JAR','KA','LUM','MER','NO','OR','PHA','QUA','RAN','SOL','TA','UR','VEL','WY','XAN','YOR','ZEN'];
 const syllB=['A','AE','ARA','EN','ER','IA','ION','IS','ON','ORA','OS','UM','US','YR'];
@@ -595,7 +604,9 @@ const LORE_PRESETS={
     worldType:'VERDANT',worldClass:'LIFE-BEARING MOON',visualRadius:42,radiusKm:2890,gravity:.80,massEarth:.16,density:1.78,
     water:.44,cloudCover:.62,cloudSpeed:.18,defaultTempC:27,tempRange:[-20,42],life:true,populationBase:5,
     dayHours:21,yearDays:304,distanceAU:4.37,axialTiltDeg:17,rotationDirection:1,
-    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2 / CO2',weather:'MONSOONS / MISTS',ring:false,moons:[],
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2 / CO2',weather:'MONSOONS / MISTS',ring:false,
+    moons:[knownMoon('ISV VENTURE STAR',18600,.72,1,61,15,.34,{kind:'human_ship',displayLengthKm:1.6,objectClass:'HUMAN COLONIAL VESSEL',hoverLabel:'RDA INTERSTELLAR SHIP',visualRenderer:'pandora_ship',type:'HUMAN COLONIAL VESSEL',origin:'RDA / HUMAN',status:'ACTIVE ORBIT',role:'INTERSTELLAR TRANSPORT / COLONIAL SUPPORT',surface:'ENGINEERED METAL HULL',atmosphere:'SEALED HUMAN INTERIOR',waterIce:'NONE',activity:'SHUTTLE TRAFFIC / COLONIAL LOGISTICS',anomaly:'HIGH-ENERGY DRIVE / HUMAN INDUSTRIAL SIGNATURES',lossRisk:false})],
+    surface:'FOREST / OCEAN / ROCK',
     observation:'A DENSELY FORESTED MOON OF POLYPHEMUS. TOWERING JUNGLES, FLOATING MOUNTAINS AND A PLANET-WIDE BIOSPHERIC NETWORK DEFINE THIS WORLD.',
     scan:{ageBy:4.3,pressureAtm:.9,pressureText:'0.9 ATM',magField:'MODERATE',oxygen:20,nitrogen:72,co2:5,tectonics:'ACTIVE',volcanism:'LOW',oceanDepthKm:1.7,lifeTypePotential:'INTELLIGENT',techPotential:'PRE-INDUSTRIAL',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'PLANET-WIDE NEURAL BIOSPHERE',lossRisk:false},
     loreReport:'THE NA\'VI LIVE IN LARGE CLANS AMONG GIANT FORESTS, CLIFFS AND FLOATING MOUNTAINS. IKRAN, DIREHORSES AND COUNTLESS BIOLUMINESCENT SPECIES ARE TIED TO THE GLOBAL NETWORK KNOWN AS EYWA.'
@@ -985,6 +996,7 @@ function makeMoonScan(p,m,index){
 }
 const SPACE_TECH_RANK={NONE:0,PRIMITIVE:0,'PRE-INDUSTRIAL':1,INDUSTRIAL:2,'EARLY SPACEFLIGHT':3,ORBITAL:4,INTERPLANETARY:5,INTERSTELLAR:6};
 function spaceTechRank(level){ return SPACE_TECH_RANK[level]||0; }
+function noLocalOrbit(p=planet){ return p?.name==='ARRAKIS'; }
 function makeOrbitalObject(r,p,type,index,rank){
   const base=p.radius+10;
   const orbit=base+index*5+r()*(13+rank*2);
@@ -1011,16 +1023,23 @@ function configureCivilization(p){
   for(let i=0;i<stationCount;i++) stations.push(makeOrbitalObject(r,p,'station',i+2,rank));
   for(let i=0;i<trafficCount;i++) traffic.push(makeOrbitalObject(r,p,'traffic',i+1,rank));
   let moonMissionIndex=null;
-  if(p.moonData?.length && (rank>=5 || (rank===4&&r()<.70) || (rank===3&&r()<.28))) moonMissionIndex=Math.floor(r()*p.moonData.length);
-  if(p.name==='EARTH' && p.moonData?.length) moonMissionIndex=0;
-  const story=rank>=5
-    ? `MULTIPLE ORBITAL STATIONS, ${satelliteCount} ACTIVE SATELLITE GROUPS AND REGULAR MOON MISSIONS ARE DETECTED`
-    : rank===4
-      ? `${stationCount?'CREWED ORBITAL STATIONS AND ':''}${satelliteCount} ACTIVE SATELLITE GROUPS SUPPORT A BUSY SPACE PROGRAM`
-      : `${satelliteCount} SATELLITE GROUP${satelliteCount===1?'':'S'}${stationCount?' AND A SMALL CREWED STATION':''} MARK THE CIVILIZATION'S FIRST PERMANENT STEPS INTO SPACE`;
+  const naturalMoonIndices=(p.moonData||[]).map((m,i)=>m.kind?null:i).filter(i=>i!==null);
+  if(naturalMoonIndices.length && (rank>=5 || (rank===4&&r()<.70) || (rank===3&&r()<.28))) moonMissionIndex=naturalMoonIndices[Math.floor(r()*naturalMoonIndices.length)];
+  if(p.name==='EARTH' && naturalMoonIndices.length) moonMissionIndex=naturalMoonIndices[0];
+  if(noLocalOrbit(p)){
+    satelliteCount=0; stationCount=0; trafficCount=0; moonMissionIndex=null;
+    satellites.length=0; stations.length=0; traffic.length=0;
+  }
+  const story=noLocalOrbit(p)
+    ? 'NO LOCAL ORBITAL TRAFFIC IS MAINTAINED ABOVE ARRAKIS; THE SPACING GUILD HOLDS AT FIXED STANDOFF POSITIONS AWAY FROM FREMEN-CONTROLLED ORBIT.'
+    : rank>=5
+      ? `MULTIPLE ORBITAL STATIONS, ${satelliteCount} ACTIVE SATELLITE GROUPS AND REGULAR MOON MISSIONS ARE DETECTED`
+      : rank===4
+        ? `${stationCount?'CREWED ORBITAL STATIONS AND ':''}${satelliteCount} ACTIVE SATELLITE GROUPS SUPPORT A BUSY SPACE PROGRAM`
+        : `${satelliteCount} SATELLITE GROUP${satelliteCount===1?'':'S'}${stationCount?' AND A SMALL CREWED STATION':''} MARK THE CIVILIZATION'S FIRST PERMANENT STEPS INTO SPACE`;
   p.civilization={rank,satellites,stations,traffic,launched:[],moonMissionIndex,missionPhase:r(),missionPeriodDays:9+r()*16,story};
 }
-function canLaunchCivilizationRocket(){ return !!planet?.civilization && isAlive() && planet.civilization.rank>=3; }
+function canLaunchCivilizationRocket(){ return !!planet?.civilization && !noLocalOrbit() && isAlive() && planet.civilization.rank>=3; }
 const ATMOS_DENSITY_STRENGTH={NONE:0,TRACE:.08,THIN:.28,NORMAL:.58,DENSE:.82,SUPERDENSE:1};
 function atmosphereStrength(p=planet){ return ATMOS_DENSITY_STRENGTH[p?.atmosDensity] ?? .5; }
 function hasAtmosphereView(p=planet){
@@ -1105,7 +1124,7 @@ function applyLorePreset(p,preset,r){
       objectClass:m.objectClass||null,hoverLabel:m.hoverLabel||null,visualRenderer:m.visualRenderer||null,
       screenX:0,screenY:0,known:true,scan:{...m.scan}
     }));
-    p.moons=p.moonData.length;
+    p.moons=p.moonData.filter(m=>!m.kind).length;
   }
   if(preset.damage) p.damageProfile={...preset.damage,seed:(preset.damage.seed??(p.seed^0x6d616765))>>>0};
   makePlanetScan(p);
@@ -1115,6 +1134,27 @@ function applyLorePreset(p,preset,r){
   p.moonData=(p.moonData||[]).map((m,i)=>{
     const scan=makeMoonScan(p,m,i);
     m.scan={...scan,...(m.scan||{})};
+    const loreMoon=!m.kind?lorePresetForName(m.name):null;
+    if(loreMoon){
+      m.radiusKm=loreMoon.radiusKm||m.radiusKm;
+      m.loreWorldClass=loreMoon.worldClass||'';
+      m.scan.gravity=loreMoon.gravity ?? m.scan.gravity;
+      m.scan.tempBias=(loreMoon.defaultTempC ?? 0)-(p.defaultTempC ?? 0);
+      m.scan.atmosphere=loreMoon.atmosChemistry||m.scan.atmosphere;
+      m.scan.surface=loreMoon.surface||(
+        loreMoon.worldType==='VERDANT'?'FOREST / OCEAN / ROCK':
+        loreMoon.worldType==='OCEAN'?'WATER / ROCK / ICE':
+        loreMoon.worldType==='ICE'?'ICE / ROCK':
+        loreMoon.worldType==='VOLCANIC'?'VOLCANIC BASALT':
+        loreMoon.worldType==='DESERT'?'DUST / ROCK':'ROCK / ICE'
+      );
+      m.scan.waterIce=(loreMoon.water??0)>.55?'ABUNDANT':(loreMoon.water??0)>.25?'COMMON':(loreMoon.water??0)>.08?'TRACE':'NONE';
+      const activity=[];
+      if(loreMoon.scan?.tectonics&&loreMoon.scan.tectonics!=='NONE') activity.push(`${loreMoon.scan.tectonics} TECTONICS`);
+      if(loreMoon.scan?.volcanism&&loreMoon.scan.volcanism!=='NONE') activity.push(`${loreMoon.scan.volcanism} VOLCANISM`);
+      m.scan.activity=activity.length?activity.join(' / '):m.scan.activity;
+      m.scan.anomaly=loreMoon.scan?.anomaly||m.scan.anomaly;
+    }
     return m;
   });
   p.loreReport=preset.loreReport||'';
@@ -1668,7 +1708,9 @@ function lifeProbeObservation(){
     const body=pick(r,env==='OCEAN'?['AQUATIC CEPHALOPODS','ARMOURED SWIMMERS','AMPHIBIOUS HEXAPODS']:env==='DENSE'?['WINGED HEXAPODS','FLOATING COLONIAL BEINGS','GAS-BLADDERED FLIERS']:env==='DRY'?['BURROWING HEXAPODS','ARMOURED BIPEDS','LONG-LIMBED DESERT DWELLERS']:env==='COLD'?['FUR-BEARING HEXAPODS','SUBGLACIAL AQUATIC BEINGS','STOCKY FOUR-ARMED BIPEDS']:['TOOL-USING HEXAPODS','FEATHERED BIPEDS','CEPHALOPOD-LIKE LAND DWELLERS','ARMOURED QUADRUPEDS','SOCIAL INSECTOID BEINGS','FOUR-ARMED BIPEDS']);
     const settlement=pick(r,env==='OCEAN'?['REEF CITIES','FLOATING SETTLEMENTS','SUBMERGED CITIES']:env==='DENSE'?['CLOUD COLONIES','SUSPENDED SETTLEMENTS','HIGH-ALTITUDE CITIES']:env==='DRY'?['CANYON SETTLEMENTS','SUBTERRANEAN CITIES','OASIS CITADELS']:env==='COLD'?['GEOTHERMAL CITIES','SUBGLACIAL SETTLEMENTS','INSULATED VALLEY CITIES']:['RIVER CITIES','TERRACED SETTLEMENTS','FOREST CITIES','COASTAL SETTLEMENTS','UNDERGROUND CITIES']);
     const tech=techLevelLabel();
-    const signal=tech==='INTERPLANETARY'?'DENSE ORBITAL TRAFFIC, STATIONS AND REGULAR MOON MISSIONS ARE DETECTED':tech==='ORBITAL'?'MULTIPLE SATELLITES, CREWED STATIONS AND RADIO TRAFFIC SURROUND THE PLANET':tech==='EARLY SPACEFLIGHT'?'A SMALL SATELLITE NETWORK AND RADIO EMISSIONS ARE DETECTED':tech==='INDUSTRIAL'?'RADIO EMISSIONS AND LARGE INDUSTRIAL SITES ARE DETECTED':tech==='PRE-INDUSTRIAL'?'LARGE ROAD NETWORKS AND AGRICULTURAL REGIONS ARE VISIBLE':'STONEWORK, TOOLS AND ORGANIZED SETTLEMENTS ARE VISIBLE';
+    const signal=noLocalOrbit()
+      ? 'NO STABLE ORBITAL TRAFFIC IS PRESENT; LONG-RANGE TRADE AND TRANSIT HOLD FAR FROM THE PLANET WHILE SURFACE SETTLEMENTS, SPICE OPERATIONS AND RADIO EMISSIONS REMAIN CLEARLY DETECTABLE'
+      : tech==='INTERPLANETARY'?'DENSE ORBITAL TRAFFIC, STATIONS AND REGULAR MOON MISSIONS ARE DETECTED':tech==='ORBITAL'?'MULTIPLE SATELLITES, CREWED STATIONS AND RADIO TRAFFIC SURROUND THE PLANET':tech==='EARLY SPACEFLIGHT'?'A SMALL SATELLITE NETWORK AND RADIO EMISSIONS ARE DETECTED':tech==='INDUSTRIAL'?'RADIO EMISSIONS AND LARGE INDUSTRIAL SITES ARE DETECTED':tech==='PRE-INDUSTRIAL'?'LARGE ROAD NETWORKS AND AGRICULTURAL REGIONS ARE VISIBLE':'STONEWORK, TOOLS AND ORGANIZED SETTLEMENTS ARE VISIBLE';
     const space=planet.civilization?.story?` ${planet.civilization.story}.`:'';
     return `THE ${people}, ${body}, BUILD ${settlement}. ${signal}.${space}`;
   }
@@ -1932,6 +1974,38 @@ function plutoTextureColor(lon,lat){
   const i=(y*tex.width+x)*4;
   return '#'+[tex.data[i],tex.data[i+1],tex.data[i+2]].map(v=>v.toString(16).padStart(2,'0')).join('');
 }
+function fictionalGasGiantSurfaceColor(lon,lat,nx,z){
+  const style=planet.name==='POLYPHEMUS'?0:(hashString(planet.name)%6);
+  const seed=planet.terrainSeed^0x6a6173;
+  const coarse=periodicNoise01(lon,lat,18+style*3,7+style,seed^0x1111)-.5;
+  const streak=periodicNoise01(lon,lat,58+style*7,23+style*2,seed^0x2222)-.5;
+  const grain=periodicNoise01(lon,lat,92,44,seed^0x3333)-.5;
+  const curls=Math.sin(lon*Math.PI*(6+style)+coarse*(2.2+style*.18))*((style%2)?.046:.032);
+  const bandLat=lat+curls+coarse*(.022+style*.003);
+  const band=Math.sin((bandLat*(13+style*2)+streak*(.30+style*.035))*Math.PI);
+  const palettes=[
+    [mixHex(C.white,C.cyan,.18),mixHex(C.white,C.yellow,.16),mixHex(C.cyan,C.white,.34),mixHex(C.blue,C.cyan,.28),mixHex(C.purple,C.cyan,.26)],
+    [mixHex(C.yellow,C.white,.20),mixHex(C.green,C.cyan,.24),mixHex(C.brown,C.yellow,.28),mixHex(C.cyan,C.green,.18),mixHex(C.brown,C.black,.18)],
+    [mixHex(C.white,C.purple,.18),mixHex(C.purple,C.blue,.22),mixHex(C.blue,C.cyan,.26),mixHex(C.cyan,C.white,.24),mixHex(C.purple,C.black,.18)],
+    [mixHex(C.white,C.yellow,.12),mixHex(C.red,C.yellow,.28),mixHex(C.brown,C.red,.22),mixHex(C.yellow,C.brown,.18),mixHex(C.red,C.black,.16)],
+    [mixHex(C.cyan,C.white,.24),mixHex(C.green,C.cyan,.20),mixHex(C.blue,C.green,.16),mixHex(C.white,C.blue,.22),mixHex(C.blue,C.black,.15)],
+    [mixHex(C.white,C.brown,.14),mixHex(C.brown,C.purple,.18),mixHex(C.purple,C.red,.18),mixHex(C.yellow,C.white,.18),mixHex(C.brown,C.black,.24)]
+  ];
+  const pal=palettes[style];
+  let col=band>.58?pal[0]:band>.12?pal[1]:band>-.30?pal[2]:band>-.66?pal[3]:pal[4];
+  const s1=((planet.seed>>>5)%100)/100, s2=((planet.seed>>>13)%100)/100;
+  const storm1=(lonDistance(lon,.18+s1*.58)/(.065+(style%3)*.014))**2+((lat-(.35+s2*.28))/(.045+(style%2)*.018))**2;
+  const storm2=(lonDistance(lon,.12+s2*.72)/(.045+((style+1)%3)*.010))**2+((lat-(.68-s1*.24))/(.036+((style+1)%2)*.012))**2;
+  if(storm1<1) col=mixHex(pal[0],style===3?C.red:C.white,.34);
+  else if(storm2<1 && style!==4) col=mixHex(pal[3],C.white,.22);
+  else if(grain>.34) col=mixHex(col,C.white,.11);
+  else if(grain<-.38) col=mixHex(col,C.black,.11);
+  if(style===0 && planet.name==='POLYPHEMUS'){
+    const eye=(lonDistance(lon,.36)/.095)**2+((lat-.47)/.060)**2;
+    if(eye<1) col=eye<.48?mixHex(C.cyan,C.white,.52):mixHex(C.blue,C.cyan,.28);
+  }
+  return surfaceShade(col,nx,z);
+}
 function solarSurfaceColor(lon,lat,normY,nx,z){
   if(state.viewMode===2 && hasAtmosphereView()) return atmosphereViewColor(lon,lat,nx,z);
   if(state.viewMode===3){
@@ -1940,6 +2014,7 @@ function solarSurfaceColor(lon,lat,normY,nx,z){
     return surfaceShade(c,nx,z);
   }
   const kind=planet.renderer, t=tempC();
+  if(!planet.solar && (kind==='jupiter'||kind==='saturn'||kind==='uranus'||kind==='neptune')) return fictionalGasGiantSurfaceColor(lon,lat,nx,z);
   if(kind==='jupiter'||kind==='saturn'||kind==='uranus'||kind==='neptune'){
     // Wrap-safe giant planet bands so the texture closes cleanly with no seam.
     const coarse=periodicNoise01(lon,lat,24,9,planet.terrainSeed^0x51e2)-.5;
@@ -2060,23 +2135,22 @@ function deathStarSurfaceColor(lon,lat,nx,z,variant=1){
   const cap=((lonDistance(lon,.50)/.11)**2)+(((lat-.06)/.09)**2);
   if(cap<1) col=cap<.25?mixHex(C.black,C.white,.28):mixHex(C.white,C.black,.30);
   if(variant>=2){
-    const damage=((lonDistance(lon,.92)/.23)**2)+(((lat-.48)/.34)**2);
-    if(damage<1.18){
-      const scaff=periodicNoise01(lon,lat,90,46,planet.terrainSeed^0x5201);
-      const strut=(Math.abs(mod(lon*52,1)-.5)<.08)||(Math.abs(mod(lat*34,1)-.5)<.08);
+    const latA=(lat-.5)*Math.PI, localY=Math.sin(latA), localX=Math.sin((lon-.5)*Math.PI*2)*Math.cos(latA);
+    const q=damageSpace(localX,localY,planet.damageProfile||{angle:0});
+    const scaff=periodicNoise01(lon,lat,90,46,planet.terrainSeed^0x5201);
+    const strut=(Math.abs(mod(lon*52,1)-.5)<.08)||(Math.abs(mod(lat*34,1)-.5)<.08);
+    const nearOpen=variant===2 ? q.x>.18 && Math.abs(q.y)<.82 : q.x>.08 && Math.abs(q.y)<.90;
+    if(nearOpen){
       if(variant===2){
-        col=scaff>.60||strut?mixHex(C.white,C.black,.42):mixHex(C.black,C.white,.04);
+        if(scaff>.58||strut) col=mixHex(C.white,C.black,.42);
+        else if(q.x>.32) col=mixHex(C.black,C.white,.05);
       }else{
         const ragged=periodicNoise01(lon,lat,24,14,planet.terrainSeed^0x5301)-.5;
-        if(scaff>.54||strut) col=mixHex(C.white,C.black,.48);
-        else if(ragged>.06) col=C.black;
-        else col=mixHex(C.black,C.white,.07);
+        if(scaff>.52||strut) col=mixHex(C.white,C.black,.48);
+        else if(ragged>.04||q.x>.42) col=mixHex(C.black,C.white,.05);
+        else col=mixHex(col,C.black,.30);
       }
     }
-  }
-  if(variant===3){
-    const scar=((lonDistance(lon,.78)/.16)**2)+(((lat-.68)/.11)**2);
-    if(scar<1) col=scar<.72?C.black:mixHex(C.white,C.black,.50);
   }
   return surfaceShade(col,nx,z);
 }
@@ -2147,7 +2221,6 @@ function oooSurfaceColor(lon,lat,nx,z){
   const north=((lonDistance(lon,.24)/.26)**2)+(((lat-.24)/.18)**2);
   const south=((lonDistance(lon,.29)/.20)**2)+(((lat-.66)/.30)**2);
   const island=((lonDistance(lon,.49)/.11)**2)+(((lat-.63)/.10)**2);
-  const cut=((lonDistance(lon,.97)/.16)**2)+(((lat-.49)/.37)**2);
   let col=deepOcean;
   let land=(north<1||south<1||island<1);
   if(!land && n>.14 && Math.abs(lat-.5)<.40) land=true;
@@ -2155,14 +2228,7 @@ function oooSurfaceColor(lon,lat,nx,z){
     col=detail>.10?grass:darkGrass;
     if(north>.86||south>.86||island>.86||Math.abs(n-.14)<.04) col=beach;
   }
-  if(cut<1.08){
-    const layer=Math.floor((lat*22)+(periodicNoise01(lon,lat,20,12,planet.terrainSeed^0x0aa2)-.5)*2);
-    const palette=[C.black,mixHex(C.brown,C.black,.36),mixHex(C.brown,C.black,.16),mixHex(C.brown,C.red,.10)];
-    col=palette[mod(layer,palette.length)];
-    if(cut>.92) col=mixHex(col,C.black,.22);
-    if(detail>.22) col=mixHex(col,C.black,.10);
-  }
-  if(Math.abs(lat-.50)>.44 && cut>1.02) col=mixHex(col,C.white,.18);
+  if(Math.abs(lat-.50)>.44) col=mixHex(col,C.white,.18);
   return surfaceShade(col,nx,z);
 }
 function drawOOOCloudSwirls(cx,cy){
@@ -2198,6 +2264,17 @@ function drawOOOCloudSwirls(cx,cy){
   }
   ctx.globalAlpha=1;
 }
+function planetFixedDamageCoords(nx,ny){
+  const rr=nx*nx+ny*ny;
+  if(rr>1) return {x:nx,y:ny,z:0};
+  const screenZ=Math.sqrt(Math.max(0,1-rr));
+  const a=(state.phase||0)*Math.PI*2,ca=Math.cos(a),sa=Math.sin(a);
+  return {
+    x:nx*ca+screenZ*sa,
+    y:ny,
+    z:screenZ*ca-nx*sa
+  };
+}
 function damageSpace(nx,ny,profile){
   const a=profile?.angle||0,ca=Math.cos(a),sa=Math.sin(a);
   return {x:nx*ca+ny*sa,y:-nx*sa+ny*ca};
@@ -2207,10 +2284,12 @@ function damageNoise(x,y,seed=0){
 }
 function geometryMissingAt(nx,ny,p=planet){
   if(!p) return false;
-  if(p.renderer==='wikipedia') return wikipediaMissingPiece(nx,ny);
+  const fixed=planetFixedDamageCoords(nx,ny);
+  if(fixed.z<0) return false;
+  if(p.renderer==='wikipedia') return wikipediaMissingPiece(fixed.x,fixed.y);
   const profile=p.damageProfile; if(!profile||profile.type==='NONE'||profile.type==='CRATER') return false;
-  if(profile.type==='PUZZLE_PIECE') return wikipediaMissingPiece(nx,ny);
-  const sev=clamp(profile.severity??.72,.2,1),q=damageSpace(nx,ny,profile),x=q.x,y=q.y,n=damageNoise(x,y,profile.seed);
+  if(profile.type==='PUZZLE_PIECE') return wikipediaMissingPiece(fixed.x,fixed.y);
+  const sev=clamp(profile.severity??.72,.2,1),q=damageSpace(fixed.x,fixed.y,profile),x=q.x,y=q.y,n=damageNoise(x,y,profile.seed);
   if(profile.type==='BITE'){
     const r=.27+sev*.16+n*.035;
     const main=((x-.92)/r)**2+((y+.01)/(r*.88))**2<1;
@@ -2257,7 +2336,8 @@ function damageEdgeAt(nx,ny,p=planet){
 function damageSurfaceColor(base,nx,ny,p=planet){
   const profile=p?.damageProfile;
   if(profile?.type==='CRATER'){
-    const q=damageSpace(nx,ny,profile),sev=clamp(profile.severity??.7,.2,1),cx=.26,cy=-.08;
+    const fixed=planetFixedDamageCoords(nx,ny);
+    const q=damageSpace(fixed.x,fixed.y,profile),sev=clamp(profile.severity??.7,.2,1),cx=.26,cy=-.08;
     const d=Math.sqrt(((q.x-cx)/(.22+sev*.10))**2+((q.y-cy)/(.18+sev*.08))**2);
     if(d<1){
       if(d<.68) return mixHex(base,C.black,.52);
@@ -2584,6 +2664,11 @@ function drawMoons(cx,cy,t,front){
       m.visualDiameter=34; m.hitRadius=18; m.renderFrame=-2;
       continue;
     }
+    if(m.kind==='human_ship'){
+      drawPandoraOrbiter(pos.x,pos.y);
+      m.visualDiameter=18; m.hitRadius=11; m.renderFrame=-3;
+      continue;
+    }
     const requestedDiameter=moonVisualDiameter(m);
     if(isCubePlanet() && m.name==='BLOCK MOON'){
       drawBlockMoon(pos,m,requestedDiameter);
@@ -2628,7 +2713,7 @@ function drawCivilizationCraft(x,y,type,tint=C.white){
 }
 function drawCivilizationOrbitObjects(cx,cy,front){
   const civ=planet.civilization;
-  if(!civ || !isAlive()) return;
+  if(!civ || !isAlive() || noLocalOrbit()) return;
   const groups=[civ.satellites,civ.stations,civ.traffic,civ.launched||[]];
   for(const group of groups){
     for(const o of group){
@@ -2640,7 +2725,7 @@ function drawCivilizationOrbitObjects(cx,cy,front){
 }
 function drawCivilizationMoonMission(cx,cy){
   const civ=planet.civilization;
-  if(!civ || !isAlive() || civ.moonMissionIndex==null) return;
+  if(!civ || !isAlive() || noLocalOrbit() || civ.moonMissionIndex==null) return;
   const m=planet.moonData[civ.moonMissionIndex]; if(!m) return;
   const q=mod(civ.missionPhase+state.simDays/civ.missionPeriodDays,1);
   const u=q<.5?smooth(q*2):smooth((1-q)*2);
@@ -2675,11 +2760,6 @@ function drawHeighliner(x,y){
 }
 function drawLoreSetpieces(cx,cy,front){
   if(state.viewMode>1) return;
-  if(planet.name==='PANDORA'){
-    const pos=specialSetpiecePosition(cx,cy,planet.radius+17,.38,52,1.2);
-    if((front&&pos.depth<0)||(!front&&pos.depth>=0)) return;
-    drawPandoraOrbiter(pos.x,pos.y);
-  }
 }
 const cloudTintCache=new Map();
 function cloudTintColor(){
@@ -3158,14 +3238,18 @@ function drawPlanetDeepScan(x,y){
 }
 function drawPlanetHover(cx,cy){
   const x=clamp(Math.round(cx+planet.rx+18),202,220),y=38;
+  const artificialOrbitals=planet.moonData?.some(m=>!!m.kind);
+  const bodyCountLabel=artificialOrbitals?'OBJECTS    ':(planet.solar&&['JUPITER','SATURN','URANUS','NEPTUNE'].includes(planet.name)?'SHOWN MOONS':'MOONS      ');
+  const bodyCount=artificialOrbitals?(planet.moonData?.length||0):planet.moons;
+  const ringOffset=planet.ring?9:0,scanned=isScanned({type:'planet'});
+  const panelBottom=scanned?244:Math.min(244,y+142+ringOffset);
+  drawInfoBackdrop(x-8,y-8,W-x-4,panelBottom-(y-8));
   drawText(planet.name,x,y,C.white,1); drawText(worldClass(),x,y+9,C.green,1); drawText(`TEMP       ${tempC()} C`,x,y+22,C.white,1); drawText(`RADIUS     ${planet.radiusEarth.toFixed(2)} EARTH`,x,y+31,C.blue,1);
   drawText(`GRAVITY    ${planet.gravity.toFixed(2)} G`,x,y+40,C.white,1); drawText(`WATER      ${surfaceWaterPercent()}%`,x,y+49,C.cyan,1); drawText(`ATMOS      ${atmosphereLabel()}`,x,y+58,C.yellow,1);
   drawText(`WEATHER    ${compactWeatherLabel()}`,x,y+67,atmosphereAccentColor(),1); drawText(`BIOSPHERE  ${lifeLabel()}`,x,y+76,isAlive()?C.green:C.brown,1); drawText(`POPULATION ${populationLabel()}`,x,y+85,isAlive()?C.green:C.brown,1);
   drawText(`DAY        ${planet.dayHours.toFixed(1)} H`,x,y+94,C.white,1); drawText(`YEAR       ${planet.yearDays} D`,x,y+103,C.white,1);
-  const artificialOrbitals=planet.moonData?.some(m=>!!m.kind);
-  const bodyCountLabel=artificialOrbitals?'OBJECTS    ':(planet.solar&&['JUPITER','SATURN','URANUS','NEPTUNE'].includes(planet.name)?'SHOWN MOONS':'MOONS      ');
-  drawText(`${bodyCountLabel} ${planet.moons}`,x,y+112,C.purple,1);
-  const ringOffset=planet.ring?9:0; if(planet.ring)drawText(`RING       ${ringStyleLabel()}`,x,y+121,planet.ringColor||C.purple,1); const scanned=isScanned({type:'planet'});
+  drawText(`${bodyCountLabel} ${bodyCount}`,x,y+112,C.purple,1);
+  if(planet.ring)drawText(`RING       ${ringStyleLabel()}`,x,y+121,planet.ringColor||C.purple,1);
   if(scanned){
     drawPlanetDeepScan(x+130,y);
     drawLifeProbeFact(x,y+132+ringOffset,124,232);
@@ -3180,6 +3264,19 @@ function drawMoonDeepScan(m,x,y){
     drawText(`HULL     ${d.surface}`,x,y+29,C.brown,1);
     drawText(`INTERIOR ${d.atmosphere}`,x,y+38,C.yellow,1);
     drawText(`ACTIVITY ${d.activity}`,x,y+47,C.red,1);
+    if(hasAnomaly(d)){
+      drawText('ANOMALY',x,y+59,C.purple,1);
+      const lines=wrapText(d.anomaly,126,1).slice(0,4);
+      lines.forEach((line,i)=>drawText(line,x,y+69+i*8,C.yellow,1));
+    }
+    return;
+  }
+  if(m.kind==='human_ship'){
+    drawText(`TYPE     ${d.type||m.objectClass||'HUMAN VESSEL'}`,x,y+11,C.white,1);
+    drawText(`ORIGIN   ${d.origin||'HUMAN'}`,x,y+20,C.blue,1);
+    drawText(`STATUS   ${d.status||'ACTIVE ORBIT'}`,x,y+29,C.green,1);
+    drawText(`ROLE     ${d.role||'COLONIAL SUPPORT'}`,x,y+38,C.brown,1);
+    drawText(`ACTIVITY ${d.activity||'SHUTTLE TRAFFIC'}`,x,y+47,C.red,1);
     if(hasAnomaly(d)){
       drawText('ANOMALY',x,y+59,C.purple,1);
       const lines=wrapText(d.anomaly,126,1).slice(0,4);
@@ -3202,22 +3299,25 @@ function drawMoonDeepScan(m,x,y){
 function formatPeriodDays(days){ return days<10?days.toFixed(3):days<100?days.toFixed(2):days.toFixed(1); }
 function drawMoonHover(body){
   const m=planet.moonData[body.index]; if(!m) return;
-  const scanned=isScanned(body), panelW=146;
+  const scanned=isScanned(body),vessel=m.kind==='human_ship',hasClass=!!m.loreWorldClass,panelW=vessel?174:150;
   let x=Math.round(m.screenX+12); if(x+panelW>W-5) x=Math.round(m.screenX-panelW-12);
   x=clamp(x,5,W-panelW-5);
-  const y=clamp(Math.round(m.screenY-28),8,scanned?114:190);
+  const y=clamp(Math.round(m.screenY-28),8,scanned?104:184),classOffset=hasClass?9:0;
+  const desiredH=scanned?(vessel||m.kind==='heighliner'?128+classOffset:154+classOffset):58+classOffset;
+  drawInfoBackdrop(x-8,y-8,panelW,Math.min(desiredH,249-(y-8)));
   drawText(m.name,x,y,C.white,1);
+  if(hasClass) drawText(m.loreWorldClass,x,y+9,C.green,1);
   if(m.kind==='heighliner'){
-    drawText('FIXED GUILD POSITION',x,y+11,C.blue,1);
-    drawText('NO LOCAL ORBIT',x,y+20,C.green,1);
-    drawText(`${m.displayLengthKm||20} KM VESSEL`,x,y+29,C.brown,1);
+    drawText('FIXED GUILD POSITION',x,y+11+classOffset,C.blue,1);
+    drawText('NO LOCAL ORBIT',x,y+20+classOffset,C.green,1);
+    drawText(`${m.displayLengthKm||20} KM VESSEL`,x,y+29+classOffset,C.brown,1);
   }else{
-    drawText(`${m.orbitKm.toLocaleString('en-US')} KM ORBIT`,x,y+11,C.blue,1);
-    drawText(`${formatPeriodDays(m.periodDays)} DAYS`,x,y+20,C.green,1);
-    drawText(`${m.radiusKm.toLocaleString('en-US')} KM MOON`,x,y+29,C.brown,1);
+    drawText(`${m.orbitKm.toLocaleString('en-US')} KM ORBIT`,x,y+11+classOffset,C.blue,1);
+    drawText(`${formatPeriodDays(m.periodDays)} DAYS`,x,y+20+classOffset,C.green,1);
+    drawText(vessel?`${(m.displayLengthKm||1.6).toFixed(1)} KM VESSEL`:`${m.radiusKm.toLocaleString('en-US')} KM MOON`,x,y+29+classOffset,C.brown,1);
   }
-  if(scanned) drawMoonDeepScan(m,x,y+43);
-  else drawText('PROBE DATA LOCKED',x,y+42,C.purple,1);
+  if(scanned) drawMoonDeepScan(m,x,y+43+classOffset);
+  else drawText('PROBE DATA LOCKED',x,y+42+classOffset,C.purple,1);
 }
 function drawContextInfo(body,cx,cy){
   if(!body) return;
@@ -3337,7 +3437,7 @@ function drawButtons(){
     const target=state.hovered.id==='probe'?(state.pinnedBody||state.hoverBody||{type:'planet'}):null;
     let tip=target?`LAUNCH PROBE: ${bodyName(target)}`:state.hovered.tip;
     if(state.hovered.id==='temp') tip=`VIEW ${viewModeName()} -> ${viewModeName(nextViewMode())}`;
-    if(state.hovered.id==='rocket') tip=canLaunchCivilizationRocket()?'LAUNCH CIVILIZATION ROCKET':'ROCKET LOCKED: NO ACTIVE SPACEFLIGHT';
+    if(state.hovered.id==='rocket') tip=canLaunchCivilizationRocket()?'LAUNCH CIVILIZATION ROCKET':noLocalOrbit()?'ROCKET LOCKED: LOCAL ORBIT RESTRICTED':'ROCKET LOCKED: NO ACTIVE SPACEFLIGHT';
     if(state.hovered.id==='camera') tip='CLICK: PICTURE  HOLD 2S: FULL SCREENSHOT';
     if(state.cameraHold?.active && state.hovered.id==='camera' && !state.cameraHold.triggered){
       const left=Math.max(0,2-(performance.now()-state.cameraHold.startAt)/1000);
@@ -3381,11 +3481,14 @@ function finishRocketMission(r){
   const civ=planet.civilization;
   if(r.mission==='moon') showToast(`MOON MISSION ARRIVED AT ${planet.moonData[r.moonIndex]?.name||'MOON'}`,2100);
   else if(civ){
-    const rr=mulberry32(hashString(`${planet.seed}:LAUNCH:${state.spaceLaunchSerial}`));
-    civ.launched=civ.launched||[];
-    civ.launched.push(makeOrbitalObject(rr,planet,'satellite',civ.launched.length+7,civ.rank));
-    civ.launched=civ.launched.slice(-4);
-    showToast('SATELLITE DEPLOYED',1800);
+    if(noLocalOrbit()) showToast('LOCAL ORBIT RESTRICTED',1800);
+    else{
+      const rr=mulberry32(hashString(`${planet.seed}:LAUNCH:${state.spaceLaunchSerial}`));
+      civ.launched=civ.launched||[];
+      civ.launched.push(makeOrbitalObject(rr,planet,'satellite',civ.launched.length+7,civ.rank));
+      civ.launched=civ.launched.slice(-4);
+      showToast('SATELLITE DEPLOYED',1800);
+    }
   }
   state.rocket=null;
 }
@@ -3409,6 +3512,7 @@ function drawRocket(t){
 }
 function launchCivilizationRocket(){
   if(state.rocket){ showToast('ROCKET ALREADY IN FLIGHT'); return; }
+  if(noLocalOrbit()){ showToast('LOCAL ORBIT RESTRICTED',1800); return; }
   if(!isAlive()){ showToast('NO ACTIVE SPACEFARING CIVILIZATION'); return; }
   if(!planet.civilization || planet.civilization.rank<3){ showToast('CIVILIZATION HAS NO SPACEFLIGHT'); return; }
   state.spaceLaunchSerial++;
