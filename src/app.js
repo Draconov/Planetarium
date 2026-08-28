@@ -922,6 +922,21 @@ function syncSolarTemperatureState(p=planet){
   if(p.name==='MARS'){
     const t=tempCFromState(state.temp,p);
     const stage=t>=34?3:t>=8?2:t>=-8?1:0;
+    if(p._marsClimateStage!==stage){
+      p._marsClimateStage=stage;
+      const covers=[.06,.17,.46,.66], waters=[.03,.08,.30,.50];
+      p.cloudCover=covers[stage]; p.water=waters[stage];
+      p.atmosDensity=stage>=2?'NORMAL':'THIN';
+      p.atmosChemistry=stage>=3?'N2 / O2 / CO2':stage>=2?'N2 / CO2 / O2':'CO2 / N2 / AR';
+      p.weatherPreset=stage>=3?'RAIN / STORMS':stage>=2?'CLOUDS / SHOWERS':stage>=1?'THAW MISTS':'DUST STORMS';
+      p._atmosBaseColor=null; p._atmosAccentColor=null;
+      if(stage===0){p.scan.pressureAtm=.006;p.scan.pressureText='0.006 ATM';p.scan.oxygen=.13;p.scan.nitrogen=1.9;p.scan.co2=95.3;p.scan.oceanDepthKm=0;}
+      else if(stage===1){p.scan.pressureAtm=.05;p.scan.pressureText='0.05 ATM';p.scan.oxygen=.4;p.scan.nitrogen=9;p.scan.co2=89;p.scan.oceanDepthKm=.2;}
+      else if(stage===2){p.scan.pressureAtm=.42;p.scan.pressureText='0.42 ATM';p.scan.oxygen=7.8;p.scan.nitrogen=62;p.scan.co2=28;p.scan.oceanDepthKm=1.2;}
+      else {p.scan.pressureAtm=.86;p.scan.pressureText='0.86 ATM';p.scan.oxygen=18.2;p.scan.nitrogen=73;p.scan.co2=5.5;p.scan.oceanDepthKm=2.7;}
+      configureWeatherSystems(p,mulberry32(hashString(`MARS:CLIMATE:${stage}`)));
+      p.hurricanePotential=stage>=3;
+    }
     if(stage>=2){
       p.scan.lifeTypePotential=stage>=3?'INTELLIGENT':'MICROBIAL';
       p.scan.techPotential='INTERPLANETARY';
@@ -1650,6 +1665,15 @@ function drawSpiralWeather(x,y,size,spin,color,alpha){
   for(let i=0;i<24;i++){ const q=i/23,a=q*Math.PI*4.6*spin+state.simDays*.22*spin,rr=1+q*size; ctx.fillRect(Math.round(x+Math.cos(a)*rr),Math.round(y+Math.sin(a)*rr*.46),1,1); }
   ctx.fillStyle=C.black; ctx.globalAlpha=alpha*.75; ctx.fillRect(Math.round(x),Math.round(y),1,1); ctx.globalAlpha=1;
 }
+function drawLightningBolt(x,y,seed,alpha=1){
+  ctx.fillStyle=C.white;ctx.globalAlpha=alpha;
+  const bend=(seed&1)?1:-1;
+  ctx.fillRect(Math.round(x),Math.round(y),1,2);
+  ctx.fillRect(Math.round(x+bend),Math.round(y+2),1,2);
+  ctx.fillRect(Math.round(x),Math.round(y+4),1,2);
+  if((seed&4)!==0){ctx.fillStyle=C.cyan;ctx.fillRect(Math.round(x-bend),Math.round(y+3),1,1);}
+  ctx.globalAlpha=1;
+}
 function drawWeatherSystems(cx,cy){
   if(state.viewMode!==0 && state.viewMode!==2) return;
   if(!planet.weatherSystems?.length || atmosphereStrength(planet)<=.08) return;
@@ -1657,6 +1681,9 @@ function drawWeatherSystems(cx,cy){
   for(let i=0;i<planet.weatherSystems.length;i++){
     const w=planet.weatherSystems[i],pos=weatherSystemPosition(w,cx,cy); if(!pos) continue;
     const alpha=(atmosphereMode?.86:.42)*w.intensity,size=Math.max(2,w.size*(.72+pos.depth*.28));
+    const electrical=label.includes('STORM')||label.includes('HURRICANE')||label.includes('MONSOON')||label.includes('ELECTRIC');
+    const flashTick=Math.floor(performance.now()/150)+(planet.seed%97)+i*11;
+    if(electrical && flashTick%31===0) drawLightningBolt(pos.x+(i%3-1)*2,pos.y-2,(planet.seed^i)>>>0,atmosphereMode?.95:.72);
     if(label.includes('HURRICANE')&&i<2){drawSpiralWeather(pos.x,pos.y,size+3,w.spin,C.white,atmosphereMode?.95:.70);continue;}
     if(label.includes('SUPERSTORM')&&i<3){drawSpiralWeather(pos.x,pos.y,size+4,w.spin,base,Math.min(1,alpha+.20));continue;}
     if(label.includes('DUST')){ctx.fillStyle=mixHex(C.brown,C.red,.22);ctx.globalAlpha=alpha;for(let k=0;k<14;k++){const a=w.phase+k*2.17,rr=(k%5)*size*.28;ctx.fillRect(Math.round(pos.x+Math.cos(a)*rr),Math.round(pos.y+Math.sin(a)*rr*.38),k%4===0?2:1,1);}ctx.globalAlpha=1;continue;}
@@ -1872,6 +1899,244 @@ function tintedCloudSprite(frame,color){
   const g=c.getContext('2d');g.imageSmoothingEnabled=false;g.drawImage(im,0,0);g.globalCompositeOperation='source-in';g.fillStyle=color;g.fillRect(0,0,c.width,c.height);g.globalCompositeOperation='source-over';
   cloudTintCache.set(key,c);return c;
 }
+
+function planetIsAtmosphericGiant(p=planet){
+  return !!p && ['jupiter','saturn','uranus','neptune'].includes(p.renderer);
+}
+function seasonalCloudModifier(p=planet){
+  const year=Math.max(40,p?.yearDays||365), phase=((p?.seed||0)%997)/997*Math.PI*2;
+  return Math.sin((state.simDays/year)*Math.PI*2+phase)*.055;
+}
+function dynamicCloudCover(p=planet){
+  if(!p || !hasAtmosphereView(p)) return 0;
+  let cover=clamp(p.cloudCover||0,0,.99);
+  if(p.name==='EARTH') cover=.52;
+  if(p.name==='VENUS') cover=.97;
+  if(p.name==='MARS') cover=[.06,.17,.46,.66][marsTerraformStage()] ?? cover;
+  if(planetIsAtmosphericGiant(p)){
+    const upper={JUPITER:.22,SATURN:.16,URANUS:.10,NEPTUNE:.24};
+    return upper[p.name] ?? .14;
+  }
+  const type=p.worldType||'';
+  if(type==='OCEAN') cover+=.10;
+  else if(type==='VERDANT') cover+=.07;
+  else if(type==='TOXIC') cover+=.12;
+  else if(type==='VOLCANIC') cover+=.08;
+  else if(type==='DESERT') cover-=.10;
+  else if(type==='BARREN') cover-=.14;
+  const chemistry=(p.atmosChemistry||'').toUpperCase(), t=tempC();
+  if((chemistry.includes('WATER')||chemistry.includes('N2')||chemistry.includes('O2')) && t>60) cover-=clamp((t-60)/160,0,.20);
+  if(t<-35 && !chemistry.includes('CH4')) cover+=.04;
+  cover+=seasonalCloudModifier(p);
+  return clamp(cover,.01,.985);
+}
+function cloudChemistryTypes(p=planet){
+  const c=(p?.atmosChemistry||'').toUpperCase();
+  if(p?.name==='VENUS'||c.includes('SULF')||c.includes('SO2')) return {low:'H2SO4',high:'SULFUR HAZE'};
+  if(c.includes('CHLORINE')) return {low:'CHLORINE',high:'CL2 HAZE'};
+  if(c.includes('H2S')) return {low:'SULFIDE',high:'TOXIC HAZE'};
+  if(c.includes('CH4')||c.includes('METHANE')) return {low:'METHANE',high:'CH4 ICE'};
+  if(c.includes('AMMONIA')||c.includes('H2')||c.includes('HE')) return {low:'AMMONIA',high:'ICE HAZE'};
+  if(c.includes('METALLIC')) return {low:'METAL VAPOR',high:'MINERAL HAZE'};
+  if(c.includes('EXOTIC')) return {low:'EXOTIC AEROSOL',high:'IONIC HAZE'};
+  if((p?.worldType||'')==='VOLCANIC') return {low:'ASH / SO2',high:'SULFUR HAZE'};
+  if((p?.worldType||'')==='DESERT' && surfaceWaterPercent()<16) return {low:'DUST',high:'ICE HAZE'};
+  if(tempC()<-35) return {low:'ICE',high:'ICE CRYSTALS'};
+  return {low:'WATER',high:'ICE'};
+}
+function cloudTypeLabel(p=planet){
+  if(!hasAtmosphereView(p)) return 'NONE';
+  const t=cloudChemistryTypes(p), raw=t.low===t.high?t.low:`${t.low}/${t.high}`;
+  return raw
+    .replace('WATER/ICE','H2O/ICE')
+    .replace('H2SO4/SULFUR HAZE','H2SO4/SULFUR')
+    .replace('CHLORINE/CL2 HAZE','CL2/HAZE')
+    .replace('SULFIDE/TOXIC HAZE','H2S/HAZE')
+    .replace('METHANE/CH4 ICE','CH4/ICE')
+    .replace('AMMONIA/ICE HAZE','NH3/ICE')
+    .replace('METAL VAPOR/MINERAL HAZE','METAL/HAZE')
+    .replace('EXOTIC AEROSOL/IONIC HAZE','EXOTIC/IONIC')
+    .replace('ASH / SO2/SULFUR HAZE','ASH/SULFUR')
+    .replace('DUST/ICE HAZE','DUST/ICE')
+    .replace('ICE/ICE CRYSTALS','ICE/CRYSTALS');
+}
+function precipitationLabel(p=planet){
+  if(!hasAtmosphereView(p)) return 'NONE';
+  const c=(p.atmosChemistry||'').toUpperCase(), w=weatherLabel(), water=surfaceWaterPercent(), t=tempC();
+  if(c.includes('SULF')||c.includes('SO2')||c.includes('CHLORINE')||c.includes('H2S')) return 'ACID / CHEMICAL';
+  if(c.includes('CH4')||c.includes('METHANE')) return t<-20?'METHANE SNOW':'METHANE RAIN';
+  if(c.includes('AMMONIA')) return 'AMMONIA SNOW';
+  if(c.includes('METALLIC')) return 'MINERAL DUST';
+  if((p.worldType||'')==='VOLCANIC') return 'ASH';
+  if(w.includes('DUST')) return 'DUST';
+  if(w.includes('BLIZZARD')||w.includes('SNOW')||t<-12) return 'SNOW / ICE';
+  if(water>12 && (w.includes('RAIN')||w.includes('MONSOON')||w.includes('HURRICANE')||w.includes('SHOWERS'))) return 'RAIN';
+  return dynamicCloudCover(p)>.55?'TRACE':'NONE';
+}
+function cloudLayerSpec(layer,p=planet){
+  if(!hasAtmosphereView(p)) return null;
+  const giant=planetIsAtmosphericGiant(p), cover=dynamicCloudCover(p), types=cloudChemistryTypes(p);
+  if(giant && layer===0) return null; // the visible giant surface is already atmosphere
+  const seedSign=((hashString(`${p.seed}:CLOUD:${layer}`)&1)?1:-1);
+  const baseSpeed=Math.max(.035,Math.abs(p.cloudSpeed||.18));
+  const chemistry=(p.atmosChemistry||'').toUpperCase();
+  let coverage=layer===0?cover*.90:cover*.58+.035;
+  if(p.name==='VENUS') coverage=layer===0?.97:.88;
+  if(giant) coverage=cover;
+  coverage=clamp(coverage,.015,.985);
+  let base=cloudTintColor(), accent=mixHex(base,C.white,layer===0?.20:.42);
+  if(layer===0 && (p.worldType==='VOLCANIC'||chemistry.includes('METALLIC'))) accent=mixHex(base,C.black,.15);
+  const altitude=giant?1:(layer===0?1:2);
+  const weather=weatherLabel();
+  const stormCenters=(p.weatherSystems||[]).slice(0,3).map(w=>({
+    lon:mod(w.lon+state.simDays*w.speed,1),lat:w.lat,intensity:w.intensity,spin:w.spin
+  }));
+  return {
+    layer, giant, coverage, altitude,
+    type:layer===0?types.low:types.high,
+    speed:seedSign*baseSpeed*(layer===0?.026:.043)*(layer===0?1:1.31),
+    opacity:layer===0?.82:.64,
+    diagnosticOpacity:layer===0?.97:.84,
+    base,accent,weather,stormCenters,
+    seed:(p.seed^(layer===0?0x6b7d4f21:0xa913cc5d))>>>0,
+    shadow:layer===0&&!giant
+  };
+}
+function cloudThreshold(coverage){ return clamp(.805-coverage*.56,.245,.80); }
+function cloudStormInfluence(lon,lat,spec){
+  const systems=spec.stormCenters||[]; if(!systems.length) return 0;
+  const weather=spec.weather||''; let boost=0;
+  for(const w of systems){
+    const dx=mod(lon-w.lon+.5,1)-.5, dy=lat-w.lat;
+    const sx=weather.includes('HURRICANE')?.105:.13, sy=weather.includes('HURRICANE')?.075:.10;
+    const d=Math.sqrt((dx/sx)**2+(dy/sy)**2);
+    if(d>1.55) continue;
+    let influence=(1-d/1.55)*.34*w.intensity;
+    if(weather.includes('HURRICANE')){
+      const ang=Math.atan2(dy/sy,dx/sx), spiral=Math.sin(ang*2.2+d*11*w.spin+state.simDays*.14*w.spin);
+      influence+=Math.max(0,spiral)*.24*(1-d/1.55);
+      if(d<.17) influence-=.48; // clear eye
+    }else if(weather.includes('SUPERSTORM')||weather.includes('SUPERSONIC')) influence*=1.45;
+    boost=Math.max(boost,influence);
+  }
+  return boost;
+}
+function cloudFieldValue(lon,lat,spec){
+  const drift=state.simDays*spec.speed;
+  const u=mod(lon+drift,1);
+  const latWarp=(periodicNoise01(u,lat,12,6,spec.seed^0x3121)-.5)*.055;
+  const l1=periodicNoise01(u,lat+latWarp,spec.layer?14:10,spec.layer?8:6,spec.seed);
+  const l2=periodicNoise01(u,lat-latWarp*.6,spec.layer?36:26,spec.layer?18:14,spec.seed^0x77a1);
+  const l3=periodicNoise01(u,lat,spec.layer?78:58,spec.layer?36:28,spec.seed^0x2359);
+  let v=l1*.54+l2*.31+l3*.15;
+  const latitude=Math.abs(lat-.5)*2;
+  if(spec.type.includes('ICE')) v+=latitude*.035;
+  if(spec.type.includes('DUST')) v+=(1-latitude)*.035;
+  v+=cloudStormInfluence(lon,lat,spec);
+  return v;
+}
+function collectCloudPixels(cx,cy,spec){
+  if(!spec) return [];
+  const rx=planet.rx+spec.altitude, ry=planet.ry+spec.altitude;
+  const threshold=cloudThreshold(spec.coverage), points=[];
+  for(let y=Math.floor(cy-ry-1);y<=Math.ceil(cy+ry+1);y++){
+    const ny=(y-cy)/ry; if(Math.abs(ny)>1) continue;
+    for(let x=Math.floor(cx-rx-1);x<=Math.ceil(cx+rx+1);x++){
+      const nx=(x-cx)/rx, rr=nx*nx+ny*ny; if(rr>1) continue;
+      const z=Math.sqrt(Math.max(0,1-rr));
+      const lon=mod(.5+Math.atan2(nx,z)/(Math.PI*2)+state.phase,1), lat=clamp(.5+Math.asin(ny)/Math.PI,0,1);
+      const value=cloudFieldValue(lon,lat,spec); if(value<threshold) continue;
+      const intensity=clamp((value-threshold)/Math.max(.05,1-threshold),0,1);
+      points.push({x,y,nx,ny,z,lon,lat,intensity});
+    }
+  }
+  return points;
+}
+function drawCloudShadows(points,cx,cy,spec){
+  if(!spec?.shadow||state.viewMode!==0||!points.length) return;
+  ctx.fillStyle=C.black;
+  for(const q of points){
+    if(q.intensity<.13 || h2(q.x,q.y,spec.seed^0x1145)<.34) continue;
+    const sx=q.x+1,sy=q.y+1,nx=(sx-cx)/planet.rx,ny=(sy-cy)/planet.ry;
+    if(nx*nx+ny*ny>1) continue;
+    ctx.globalAlpha=.08+q.intensity*.12;
+    ctx.fillRect(sx,sy,1,1);
+  }
+  ctx.globalAlpha=1;
+}
+function drawCloudPixels(points,spec,diagnostic=false){
+  if(!spec||!points.length) return;
+  const opacity=diagnostic?spec.diagnosticOpacity:spec.opacity;
+  for(const q of points){
+    const bright=h2(q.x,q.y,spec.seed^0x8f13)>.58;
+    let col=bright?spec.accent:spec.base;
+    if(spec.type.includes('DUST')) col=bright?mixHex(C.brown,C.yellow,.20):mixHex(C.brown,C.red,.16);
+    if(spec.type.includes('ASH')) col=bright?C.brown:mixHex(C.brown,C.black,.38);
+    ctx.fillStyle=col;ctx.globalAlpha=opacity*(.48+q.intensity*.52);
+    ctx.fillRect(q.x,q.y,1,1);
+  }
+  ctx.globalAlpha=1;
+}
+function drawProceduralCloudLayers(cx,cy){
+  if(state.viewMode!==0&&state.viewMode!==2) return;
+  if(!hasAtmosphereView()) return;
+  const diagnostic=state.viewMode===2;
+  const lowSpec=cloudLayerSpec(0), highSpec=cloudLayerSpec(1);
+  const low=collectCloudPixels(cx,cy,lowSpec), high=collectCloudPixels(cx,cy,highSpec);
+  drawCloudShadows(low,cx,cy,lowSpec);
+  drawCloudPixels(low,lowSpec,diagnostic);
+  drawCloudPixels(high,highSpec,diagnostic);
+}
+function spherePointFromLonLat(lon,lat,cx,cy,scale=1){
+  const a=(mod(lon-state.phase,1)-.5)*Math.PI*2, depth=Math.cos(a); if(depth<-.08) return null;
+  return {x:cx+Math.sin(a)*planet.rx*scale,y:cy+(lat-.5)*2*planet.ry*.80*scale,depth};
+}
+function drawAuroras(cx,cy){
+  if((state.viewMode!==0&&state.viewMode!==2)||!hasAtmosphereView()) return;
+  const field=(planet.scan?.magField||'').toUpperCase();
+  if(!['MODERATE','STRONG','EXTREME'].includes(field)) return;
+  if((hashString(`${planet.seed}:AURORA`)%100)<28 && planet.name!=='EARTH') return;
+  const diagnostic=state.viewMode===2, col=planet.atmosChemistry?.includes('CH4')?C.cyan:C.green;
+  ctx.fillStyle=col;ctx.globalAlpha=diagnostic?.72:.30;
+  const phase=state.simDays*.06+(planet.seed%17);
+  for(const pole of [-1,1]){
+    const yy=cy+pole*planet.ry*.74;
+    for(let i=-10;i<=10;i+=2){
+      const wave=Math.sin(i*.7+phase)*2;
+      if(((i+planet.seed)&3)===0) continue;
+      ctx.fillRect(Math.round(cx+i),Math.round(yy+wave),1,1);
+    }
+  }
+  ctx.globalAlpha=1;
+}
+function drawVolcanicPlumes(cx,cy){
+  if((state.viewMode!==0&&state.viewMode!==2)) return;
+  const volcanic=(planet.worldType==='VOLCANIC'||planet.name==='VENUS'||['HIGH','VIOLENT'].includes(planet.scan?.volcanism));
+  if(!volcanic) return;
+  const count=planet.name==='VENUS'?2:1+(planet.scan?.volcanism==='VIOLENT'?2:0);
+  for(let i=0;i<count;i++){
+    const lon=h2(i,19,planet.seed^0x7ca1),lat=.28+h2(i,31,planet.seed^0x2a9d)*.45,p=spherePointFromLonLat(lon,lat,cx,cy,.96); if(!p)continue;
+    const height=3+Math.floor(h2(i,7,planet.seed)*5), col=planet.name==='VENUS'?C.brown:mixHex(C.brown,C.black,.30);
+    ctx.fillStyle=col;ctx.globalAlpha=state.viewMode===2?.78:.55;
+    for(let k=0;k<height;k++){ctx.fillRect(Math.round(p.x+(k%2?1:0)),Math.round(p.y-k),1+(k>height*.6?1:0),1);}
+    ctx.globalAlpha=1;
+  }
+}
+function drawPolarVortices(cx,cy){
+  if((state.viewMode!==0&&state.viewMode!==2)||!hasAtmosphereView()) return;
+  if(!(planetIsAtmosphericGiant()||planet.atmosDensity==='SUPERDENSE')) return;
+  const diagnostic=state.viewMode===2, col=atmosphereAccentColor();
+  ctx.strokeStyle=col;ctx.globalAlpha=diagnostic?.78:.28;
+  for(const pole of [-1,1]){
+    const py=cy+pole*planet.ry*.70;
+    if(planet.name==='SATURN'&&pole<0){
+      ctx.beginPath();for(let i=0;i<6;i++){const a=i/6*Math.PI*2,x=cx+Math.cos(a)*5,y=py+Math.sin(a)*2.2;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.closePath();ctx.stroke();
+    }else{
+      for(let a=0;a<Math.PI*2;a+=.45) if(((a*10)|0)%2===0)ctx.fillRect(Math.round(cx+Math.cos(a)*5),Math.round(py+Math.sin(a)*2),1,1);
+    }
+  }
+  ctx.globalAlpha=1;
+}
 function drawNormalAtmosphereHaze(cx,cy){
   if(state.viewMode!==0||!hasAtmosphereView()) return;
   const strength=atmosphereStrength(planet); if(strength<.28) return;
@@ -1903,20 +2168,13 @@ function drawPlanet(cx,cy,t){
     }
   }
   if(normalView) drawNormalAtmosphereHaze(cx,cy);
-  // CLEAN and TEMPERATURE deliberately remove clouds/weather so the underlying surface is readable.
+  // NORMAL shows the full atmosphere. CLEAN and TEMPERATURE intentionally strip it away.
   if(showEnvironment){
-    const cloudColor=cloudTintColor();
-    for(const cl of planet.clouds){
-      const lon=mod(cl.lon+rot*1.18+state.simDays*planet.cloudSpeed*.025+cl.off*.001,1);
-      const ang=(lon-.5)*Math.PI*2;
-      if(Math.cos(ang)<-.1) continue;
-      const lat=(cl.lat-.5)*2;
-      const px=cx+Math.sin(ang)*planet.rx*.93, py=cy+lat*planet.ry*.78;
-      const im=tintedCloudSprite(cl.frame,cloudColor);
-      if(im && im.width){ctx.globalAlpha=atmosphereView?.96:.82;ctx.drawImage(im,Math.round(px-im.width/2),Math.round(py-im.height/2));ctx.globalAlpha=1;}
-      else {ctx.fillStyle=cloudColor;ctx.fillRect(Math.round(px),Math.round(py),4,2);}
-    }
+    drawProceduralCloudLayers(cx,cy);
     drawWeatherSystems(cx,cy);
+    drawVolcanicPlumes(cx,cy);
+    drawPolarVortices(cx,cy);
+    drawAuroras(cx,cy);
   }
   ringPoints(cx,cy,true); drawMoons(cx,cy,t,true);
   if(normalView){drawCivilizationOrbitObjects(cx,cy,true);drawCivilizationMoonMission(cx,cy);}
@@ -1964,10 +2222,12 @@ function drawPlanetDeepScan(x,y){
     drawText(`AGE      ${d.ageBy.toFixed(1)} BY`,x,y+12,C.white,1); drawText(`PRESS    ${pressure}`,x,y+21,C.white,1); drawText(`MAG      ${d.magField}`,x,y+30,C.cyan,1);
     drawText(`DIST SUN ${planet.distanceAU.toFixed(3)} AU`,x,y+39,C.blue,1); drawText(`TILT     ${planet.axialTiltDeg.toFixed(2)} DEG`,x,y+48,C.white,1);
     drawText(`ATMOS    ${compactAtmosphereChemistry()}`,x,y+57,C.yellow,1); drawText(`WEATHER  ${compactWeatherLabel()}`,x,y+66,atmosphereAccentColor(),1);
-    drawText(`ROTATION ${planet.dayHours.toFixed(2)} H`,x,y+75,C.white,1); drawText(`YEAR     ${planet.yearDays} D`,x,y+84,C.white,1);
-    if(planet.ring) drawText(`RINGS    ${ringStyleLabel().replace(' MULTIBAND','')}`,x,y+93,planet.ringColor||C.purple,1);
+    drawText(`CLOUDS   ${Math.round(dynamicCloudCover()*100)}% ${cloudTypeLabel()}`,x,y+75,C.white,1);
+    drawText(`PRECIP   ${precipitationLabel()}`,x,y+84,C.cyan,1);
+    drawText(`ROTATION ${planet.dayHours.toFixed(2)} H`,x,y+93,C.white,1); drawText(`YEAR     ${planet.yearDays} D`,x,y+102,C.white,1);
+    if(planet.ring) drawText(`RINGS    ${ringStyleLabel().replace(' MULTIBAND','')}`,x,y+111,planet.ringColor||C.purple,1);
     if(hasAnomaly(d)){
-      const anomalyY=y+(planet.ring?105:96), ay=y+(planet.ring?115:106);
+      const anomalyY=y+(planet.ring?123:114), ay=y+(planet.ring?133:124);
       drawText('ANOMALY',x,anomalyY,C.purple,1);
       const lines=wrapText(d.anomaly,Math.max(72,W-x-6),1).slice(0,6);
       lines.forEach((line,i)=>drawText(line,x,ay+i*8,C.yellow,1));
@@ -1976,13 +2236,16 @@ function drawPlanetDeepScan(x,y){
   }
   drawText(`AGE      ${d.ageBy.toFixed(1)} BY`,x,y+12,C.white,1); drawText(`PRESS    ${d.pressureAtm.toFixed(2)} ATM`,x,y+21,C.white,1); drawText(`MAG      ${d.magField}`,x,y+30,C.cyan,1);
   drawText(`O2       ${d.oxygen.toFixed(1)}%`,x,y+39,C.green,1); drawText(`N2       ${d.nitrogen.toFixed(1)}%`,x,y+48,C.blue,1); drawText(`CO2      ${d.co2.toFixed(1)}%`,x,y+57,C.yellow,1);
-  drawText(`WEATHER  ${compactWeatherLabel()}`,x,y+66,atmosphereAccentColor(),1); drawText(`TECTONIC ${d.tectonics}`,x,y+75,C.white,1); drawText(`VOLCANIC ${d.volcanism}`,x,y+84,C.red,1);
-  drawText(`OCEAN    ${d.oceanDepthKm.toFixed(1)} KM`,x,y+93,C.cyan,1); drawText(`ICE      ${iceCoverPercent()}%`,x,y+102,C.white,1); drawText(`LIFE     ${lifeTypeLabel()}`,x,y+111,isAlive()?C.green:C.brown,1);
-  drawText(`TECH     ${techLevelLabel()}`,x,y+120,C.purple,1); drawText(`FE ${d.iron}  C ${d.carbon}`,x,y+129,C.brown,1); drawText(`U  ${d.uranium}`,x,y+138,C.brown,1);
+  drawText(`WEATHER  ${compactWeatherLabel()}`,x,y+66,atmosphereAccentColor(),1);
+  drawText(`CLOUDS   ${Math.round(dynamicCloudCover()*100)}% ${cloudTypeLabel()}`,x,y+75,C.white,1);
+  drawText(`PRECIP   ${precipitationLabel()}`,x,y+84,C.cyan,1);
+  drawText(`TECTONIC ${d.tectonics}`,x,y+93,C.white,1); drawText(`VOLCANIC ${d.volcanism}`,x,y+102,C.red,1);
+  drawText(`OCEAN    ${d.oceanDepthKm.toFixed(1)} KM`,x,y+111,C.cyan,1); drawText(`ICE      ${iceCoverPercent()}%`,x,y+120,C.white,1); drawText(`LIFE     ${lifeTypeLabel()}`,x,y+129,isAlive()?C.green:C.brown,1);
+  drawText(`TECH     ${techLevelLabel()}`,x,y+138,C.purple,1); drawText(`FE ${d.iron}  C ${d.carbon}`,x,y+147,C.brown,1); drawText(`U  ${d.uranium}`,x,y+156,C.brown,1);
   if(hasAnomaly(d)){
-    drawText('ANOMALY',x,y+150,C.purple,1);
+    drawText('ANOMALY',x,y+168,C.purple,1);
     const lines=wrapText(d.anomaly,Math.max(72,W-x-6),1).slice(0,4);
-    lines.forEach((line,i)=>drawText(line,x,y+160+i*8,C.yellow,1));
+    lines.forEach((line,i)=>drawText(line,x,y+178+i*8,C.yellow,1));
   }
 }
 function drawPlanetHover(cx,cy){
