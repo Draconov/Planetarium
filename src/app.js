@@ -431,17 +431,17 @@ function choosePlanetHoverPanelRect(cx,cy,w,h){
   return {x,y,w,h};
 }
 function chooseMoonHoverPanelRect(body,w,h){
-  // A moon/object tooltip should move WITH the body, not re-plan its side on
-  // every frame. Prefer the classic fixed right-hand offset; flip left only
-  // when there genuinely is not enough room at the screen edge.
+  // Keep the card attached to the moon/object with a stable offset. Anchor it
+  // OUTSIDE the rendered body so the card never paints over the moon texture.
   const margin=5,bottomLimit=246,m=planet.moonData?.[body?.index];
   w=Math.min(Math.round(w),W-margin*2);h=Math.min(Math.round(h),bottomLimit-margin*2);
   if(!m||!Number.isFinite(m.screenX)||!Number.isFinite(m.screenY)) return {x:margin,y:margin,w,h};
-  const gap=12;
-  let x=Math.round(m.screenX+gap);
-  if(x+w>W-margin) x=Math.round(m.screenX-w-gap);
+  const bodyRadius=Math.max(6,Math.ceil(m.hitRadius||((m.visualDiameter||10)*.55+3)));
+  const gap=8;
+  let x=Math.round(m.screenX+bodyRadius+gap);
+  if(x+w>W-margin) x=Math.round(m.screenX-bodyRadius-gap-w);
   x=clamp(x,margin,W-w-margin);
-  const y=clamp(Math.round(m.screenY-28),8,Math.max(8,bottomLimit-h-margin));
+  const y=clamp(Math.round(m.screenY-h*.32),8,Math.max(8,bottomLimit-h-margin));
   return {x,y,w,h};
 }
 
@@ -492,7 +492,7 @@ function deepScanModelForMoon(m){
 function measureDeepScanModel(model,maxPx){
   let h=12;
   for(const [label,value] of model.rows) h+=infoFieldHeight(label,value,maxPx);
-  if(model.anomaly) h+=10+wrapText(model.anomaly,maxPx,1).slice(0,model.anomalyLines||4).length*8;
+  if(model.anomaly) h+=12+wrapText(model.anomaly,maxPx,1).length*8;
   return h;
 }
 function drawDeepScanModel(model,x,y,maxPx){
@@ -500,10 +500,51 @@ function drawDeepScanModel(model,x,y,maxPx){
   for(const [label,value,color] of model.rows) yy=drawInfoField(label,value,x,yy,maxPx,color);
   if(model.anomaly){
     yy+=2; drawText('ANOMALY',x,yy,C.purple,1); yy+=10;
-    const lines=wrapText(model.anomaly,maxPx,1).slice(0,model.anomalyLines||4);
+    const lines=wrapText(model.anomaly,maxPx,1);
     lines.forEach((line,i)=>drawText(line,x,yy+i*8,C.yellow,1)); yy+=lines.length*8;
   }
   return yy;
+}
+function infoPanelHovered(){
+  const r=state.infoPanelRect;
+  return !!r && state.mouse.inside && pointInRect(state.mouse,r.x,r.y,r.w,r.h);
+}
+function scrollInfoPanel(delta){
+  if(!state.infoPanelRect || state.infoScrollMax<=0) return false;
+  state.infoScroll=clamp(state.infoScroll+delta,0,state.infoScrollMax);
+  return true;
+}
+function beginScrollableInfoPanel(key,rect,contentHeight,pad=8){
+  const viewportH=Math.max(1,rect.h-pad*2);
+  if(state.infoPanelKey!==key){state.infoPanelKey=key;state.infoScroll=0;state.infoPanelFocused=false;}
+  state.infoPanelRect={...rect};
+  state.infoScrollMax=Math.max(0,Math.ceil(contentHeight-viewportH));
+  state.infoScroll=clamp(state.infoScroll,0,state.infoScrollMax);
+  drawInfoBackdrop(rect.x,rect.y,rect.w,rect.h);
+  ctx.save();
+  ctx.beginPath();ctx.rect(rect.x+5,rect.y+5,rect.w-10,rect.h-10);ctx.clip();
+  ctx.translate(0,-state.infoScroll);
+  return {x:rect.x+pad,y:rect.y+pad,viewportH};
+}
+function endScrollableInfoPanel(rect,contentHeight,pad=8){
+  ctx.restore();
+  if(state.infoScrollMax<=0) return;
+  const trackX=rect.x+rect.w-5,trackY=rect.y+6,trackH=Math.max(8,rect.h-12);
+  const viewportH=Math.max(1,rect.h-pad*2);
+  ctx.globalAlpha=.48;ctx.fillStyle=C.purple;
+  for(let py=trackY;py<trackY+trackH;py+=3)ctx.fillRect(trackX,py,1,1);
+  const thumbH=Math.max(5,Math.round(trackH*clamp(viewportH/Math.max(viewportH,contentHeight),.08,1)));
+  const travel=Math.max(0,trackH-thumbH);
+  const thumbY=trackY+Math.round(travel*(state.infoScroll/state.infoScrollMax));
+  ctx.globalAlpha=1;ctx.fillStyle=(infoPanelHovered()||state.infoPanelFocused)?C.white:C.purple;ctx.fillRect(trackX-1,thumbY,2,thumbH);
+}
+function measureNarrative(text,maxPx){return text?10+wrapText(text,maxPx,1).length*8:0;}
+function drawNarrative(title,text,x,y,maxPx,titleColor=C.green,textColor=C.green){
+  if(!text)return y;
+  drawText(title,x,y,titleColor,1);y+=10;
+  const lines=wrapText(text,maxPx,1);
+  lines.forEach((line,i)=>drawText(line,x,y+i*8,textColor,1));
+  return y+lines.length*8;
 }
 
 const syllA=['AR','BEL','CA','DA','EL','FEN','GA','HEL','IO','JAR','KA','LUM','MER','NO','OR','PHA','QUA','RAN','SOL','TA','UR','VEL','WY','XAN','YOR','ZEN'];
@@ -1091,6 +1132,7 @@ const state = {
   draggingSlider:false, hovered:null, hoverBody:null, pinnedBody:null, moonHoverGrace:null, moonHoverUntil:0, moonInspect:null, rocket:null, probe:null, spaceLaunchSerial:0,
   history:[], historyPos:-1, favorites:[], scannedWorlds:[], libraryOpen:false, libraryTab:'favorites', librarySelection:0, libraryRows:[], libraryActionRects:[], resetConfirmUntil:0,
   lifeScroll:0, lifeScrollMax:0, lifePanelRect:null, lifePanelFocused:false, lifePanelKey:'',
+  infoScroll:0, infoScrollMax:0, infoPanelRect:null, infoPanelFocused:false, infoPanelKey:'',
   info:null, infoTitle:null, toastText:'', toastUntil:0,
   lastTime:performance.now(), twinkle:0, cameraFlash:0,
   captureMode:null, cameraHold:null
@@ -1606,6 +1648,7 @@ function visit(name, addHistory=true){
   state.name=name; state.input=''; state.enteringName=false; state.intro=false; state.phase=0; state.simDays=0;
   state.rocket=null; state.probe=null; state.spaceLaunchSerial=0; state.pinnedBody=null; state.hoverBody=null; state.moonHoverGrace=null; state.moonHoverUntil=0; state.moonInspect=null; state.libraryOpen=false;
   state.lifeScroll=0; state.lifeScrollMax=0; state.lifePanelRect=null; state.lifePanelFocused=false; state.lifePanelKey='';
+  state.infoScroll=0; state.infoScrollMax=0; state.infoPanelRect=null; state.infoPanelFocused=false; state.infoPanelKey='';
   planet=generatePlanet(state.name);
   normalizeViewModeForPlanet();
   document.title=`${planet.name} - Planetarium`;
@@ -3713,12 +3756,11 @@ function drawHaloLoreFact(x,y,maxPx=124,maxBottom=232){
   return true;
 }
 function drawPlanetHover(cx,cy){
-  const body={type:'planet'}, scanned=isScanned(body), innerW=132, summaryW=154;
+  const body={type:'planet'},scanned=isScanned(body),innerW=146,summaryW=168;
   const halo=isHaloRingWorld();
   const artificialOrbitals=planet.moonData?.some(m=>!!m.kind);
   const bodyCountLabel=artificialOrbitals?'OBJECTS':(planet.solar&&['JUPITER','SATURN','URANUS','NEPTUNE'].includes(planet.name)?'SHOWN MOONS':'MOONS');
   const bodyCount=artificialOrbitals?(planet.moonData?.length||0):planet.moons;
-  const ringOffset=planet.ring?9:0;
   const baseRows=halo?[
     ['TEMP',`${tempC()} C`,C.white],['DIAMETER',`${(planet.radiusKm*2).toLocaleString('en-US')} KM`,C.blue],['WIDTH',`${planet.haloSurfaceWidthKm||318} KM`,C.blue],['GRAVITY',`${planet.gravity.toFixed(3)} G`,C.white],
     ['ATMOS',atmosphereLabel(),C.yellow],['BIOSPHERE',lifeLabel(),isAlive()?C.green:C.brown],['STATUS',planet.haloStatus||'UNKNOWN',C.red],['MONITOR',planet.haloMonitor||'UNKNOWN',C.cyan],['ROTATION','ARTIFICIAL',C.white]
@@ -3727,63 +3769,60 @@ function drawPlanetHover(cx,cy){
     ['WEATHER',compactWeatherLabel(),atmosphereAccentColor()],['BIOSPHERE',lifeLabel(),isAlive()?C.green:C.brown],['POPULATION',populationLabel(),isAlive()?C.green:C.brown],['DAY',`${planet.dayHours.toFixed(1)} H`,C.white],['YEAR',`${planet.yearDays} D`,C.white],
     [bodyCountLabel,String(bodyCount),C.purple],...(planet.ring?[['RING',ringStyleLabel(),planet.ringColor||C.purple]]:[])
   ];
-  const nameLines=wrapText(planet.name,innerW,1).slice(0,2);
-  const classLines=wrapText(halo?'FORERUNNER HALO':worldClass(),innerW,1).slice(0,2);
-  const headingH=Math.max(1,nameLines.length)*9+Math.max(1,classLines.length)*9+4;
-  let summaryContentH=headingH;
-  for(const [label,value] of baseRows) summaryContentH+=infoFieldHeight(label,value,innerW);
-  if(scanned) summaryContentH+=halo?92:96; else summaryContentH+=13;
-  const summaryH=Math.min(232,summaryContentH+16);
-  const summary=choosePlanetHoverPanelRect(cx,cy,summaryW,summaryH);
-  drawInfoBackdrop(summary.x,summary.y,summary.w,summary.h);
-  const sx=summary.x+8, sy=summary.y+8;
-  ctx.save();ctx.beginPath();ctx.rect(summary.x+5,summary.y+5,summary.w-10,summary.h-10);ctx.clip();
-  nameLines.forEach((line,i)=>drawText(line,sx,sy+i*9,C.white,1));
-  let yy=sy+Math.max(1,nameLines.length)*9;
-  classLines.forEach((line,i)=>drawText(line,sx,yy+i*9,C.green,1));
+  const nameLines=wrapText(planet.name,innerW,1);
+  const classLines=wrapText(halo?'FORERUNNER HALO':worldClass(),innerW,1);
+  let contentH=Math.max(1,nameLines.length)*9+Math.max(1,classLines.length)*9+4;
+  for(const [label,value] of baseRows)contentH+=infoFieldHeight(label,value,innerW);
+  let narrative='';
+  if(scanned){
+    narrative=halo?(planet.loreReport||planet.lifeText||''):lifeProbeObservation();
+    if(narrative)contentH+=4+measureNarrative(narrative,innerW);
+    contentH+=8+measureDeepScanModel(deepScanModelForPlanet(),innerW);
+  }else contentH+=13;
+  const panelH=Math.min(232,contentH+16);
+  const rect=choosePlanetHoverPanelRect(cx,cy,summaryW,panelH);
+  const pos=beginScrollableInfoPanel(`${planet.seed}:planet:${scanned?'scan':'locked'}`,rect,contentH,8);
+  const x=pos.x,y=pos.y;
+  nameLines.forEach((line,i)=>drawText(line,x,y+i*9,C.white,1));
+  let yy=y+Math.max(1,nameLines.length)*9;
+  classLines.forEach((line,i)=>drawText(line,x,yy+i*9,C.green,1));
   yy+=Math.max(1,classLines.length)*9+4;
-  for(const [label,value,color] of baseRows) yy=drawInfoField(label,value,sx,yy,innerW,color);
+  for(const [label,value,color] of baseRows)yy=drawInfoField(label,value,x,yy,innerW,color);
   if(scanned){
-    const maxBottom=summary.y+summary.h-8;
-    if(halo) drawHaloLoreFact(sx,yy+2,innerW,maxBottom);
-    else drawLifeProbeFact(sx,yy+2,innerW,maxBottom);
-  }else drawText('PROBE DATA LOCKED',sx,Math.min(summary.y+summary.h-14,yy+3),C.purple,1);
-  ctx.restore();
-
-  if(scanned){
-    const deepW=176, deepInner=deepW-16, model=deepScanModelForPlanet();
-    const deepH=Math.min(232,measureDeepScanModel(model,deepInner)+16);
-    const deep=chooseInfoPanelRect(body,cx,cy,deepW,deepH,[summary]);
-    drawInfoBackdrop(deep.x,deep.y,deep.w,deep.h);
-    ctx.save();
-    ctx.beginPath();ctx.rect(deep.x+5,deep.y+5,deep.w-10,deep.h-10);ctx.clip();
-    drawPlanetDeepScan(deep.x+8,deep.y+8,deepInner);
-    ctx.restore();
-  }
+    if(narrative){
+      yy+=4;
+      yy=drawNarrative(halo?'INSTALLATION DATA':'LIFE OBSERVED',narrative,x,yy,innerW,C.green,halo?C.white:C.green);
+    }
+    yy+=8;
+    drawPlanetDeepScan(x,yy,innerW);
+  }else drawText('PROBE DATA LOCKED',x,yy+3,C.purple,1);
+  endScrollableInfoPanel(rect,contentH,8);
 }
 function drawMoonDeepScan(m,x,y,maxPx=132){
   return drawDeepScanModel(deepScanModelForMoon(m),x,y,maxPx);
 }
 function formatPeriodDays(days){ return days<10?days.toFixed(3):days<100?days.toFixed(2):days.toFixed(1); }
-function drawMoonHover(body,cx,cy,extraObstacles=[]){
-  const m=planet.moonData[body.index]; if(!m) return [];
-  const scanned=isScanned(body),pinned=sameBody(state.pinnedBody,body),vessel=m.kind==='human_ship',hasClass=!!m.loreWorldClass;
-  const panelW=vessel?170:(m.kind==='heighliner'?166:150),innerW=panelW-16;
-  const nameLines=wrapText(m.hoverLabel||m.name,innerW,1).slice(0,2),classLines=hasClass?wrapText(m.loreWorldClass,innerW,1).slice(0,2):[];
-  let summaryH=Math.max(1,nameLines.length)*9+classLines.length*9+3;
+function drawMoonHover(body,cx,cy){
+  const m=planet.moonData[body.index];if(!m)return [];
+  const scanned=isScanned(body),vessel=m.kind==='human_ship',hasClass=!!m.loreWorldClass;
+  const panelW=vessel?180:(m.kind==='heighliner'?176:164),innerW=panelW-16;
+  const nameLines=wrapText(m.hoverLabel||m.name,innerW,1);
+  const classLines=hasClass?wrapText(m.loreWorldClass,innerW,1):[];
+  let contentH=Math.max(1,nameLines.length)*9+classLines.length*9+3;
   if(m.kind==='heighliner'){
-    summaryH+=infoFieldHeight('POSITION','FIXED GUILD HOLD',innerW);
-    summaryH+=infoFieldHeight('SIZE',`${m.displayLengthKm||20} KM VESSEL`,innerW);
+    contentH+=infoFieldHeight('POSITION','FIXED GUILD HOLD',innerW);
+    contentH+=infoFieldHeight('SIZE',`${m.displayLengthKm||20} KM VESSEL`,innerW);
   }else{
-    summaryH+=infoFieldHeight('ORBIT',`${m.orbitKm.toLocaleString('en-US')} KM`,innerW);
-    summaryH+=infoFieldHeight('PERIOD',`${formatPeriodDays(m.periodDays)} DAYS`,innerW);
-    summaryH+=infoFieldHeight(vessel?'SIZE':'RADIUS',vessel?`${(m.displayLengthKm||1.6).toFixed(1)} KM VESSEL`:`${m.radiusKm.toLocaleString('en-US')} KM MOON`,innerW);
+    contentH+=infoFieldHeight('ORBIT',`${m.orbitKm.toLocaleString('en-US')} KM`,innerW);
+    contentH+=infoFieldHeight('PERIOD',`${formatPeriodDays(m.periodDays)} DAYS`,innerW);
+    contentH+=infoFieldHeight(vessel?'SIZE':'RADIUS',vessel?`${(m.displayLengthKm||1.6).toFixed(1)} KM VESSEL`:`${m.radiusKm.toLocaleString('en-US')} KM MOON`,innerW);
   }
-  summaryH+=11;
-  const rect=chooseMoonHoverPanelRect(body,panelW,summaryH+16);
-  drawInfoBackdrop(rect.x,rect.y,rect.w,rect.h);
-  const x=rect.x+8,y=rect.y+8;
-  ctx.save();ctx.beginPath();ctx.rect(rect.x+5,rect.y+5,rect.w-10,rect.h-10);ctx.clip();
+  if(scanned)contentH+=8+measureDeepScanModel(deepScanModelForMoon(m),innerW);
+  else contentH+=13;
+  const panelH=Math.min(224,contentH+16);
+  const rect=chooseMoonHoverPanelRect(body,panelW,panelH);
+  const pos=beginScrollableInfoPanel(`${planet.seed}:moon-${body.index}:${scanned?'scan':'locked'}`,rect,contentH,8);
+  const x=pos.x,y=pos.y;
   nameLines.forEach((line,i)=>drawText(line,x,y+i*9,C.white,1));
   let yy=y+Math.max(1,nameLines.length)*9+2;
   if(hasClass){classLines.forEach((line,i)=>drawText(line,x,yy+i*9,C.green,1));yy+=classLines.length*9;}
@@ -3795,26 +3834,13 @@ function drawMoonHover(body,cx,cy,extraObstacles=[]){
     yy=drawInfoField('PERIOD',`${formatPeriodDays(m.periodDays)} DAYS`,x,yy,innerW,C.green);
     yy=drawInfoField(vessel?'SIZE':'RADIUS',vessel?`${(m.displayLengthKm||1.6).toFixed(1)} KM VESSEL`:`${m.radiusKm.toLocaleString('en-US')} KM MOON`,x,yy,innerW,C.brown);
   }
-  drawText(scanned?(pinned?'DEEP SCAN OPEN':'SCAN READY - CLICK'):'PROBE DATA LOCKED',x,yy+3,scanned?C.purple:C.brown,1);
-  ctx.restore();
-
-  const panels=[rect];
-  // Hover stays compact and attached to the actual moon/object. Clicking still
-  // provides the full probe record, but the expanded data gets its own panel so
-  // it cannot balloon the local tooltip into a screen-covering box.
-  if(scanned&&pinned){
-    const deepW=170,deepInner=deepW-16,model=deepScanModelForMoon(m);
-    const deepH=Math.min(224,measureDeepScanModel(model,deepInner)+16);
-    const deep=chooseInfoPanelRect(body,cx,cy,deepW,deepH,[...extraObstacles,rect]);
-    drawInfoBackdrop(deep.x,deep.y,deep.w,deep.h);
-    ctx.save();ctx.beginPath();ctx.rect(deep.x+5,deep.y+5,deep.w-10,deep.h-10);ctx.clip();
-    drawMoonDeepScan(m,deep.x+8,deep.y+8,deepInner);
-    ctx.restore();panels.push(deep);
-  }
-  return panels;
+  if(scanned){yy+=8;drawMoonDeepScan(m,x,yy,innerW);}
+  else drawText('PROBE DATA LOCKED',x,yy+4,C.purple,1);
+  endScrollableInfoPanel(rect,contentH,8);
+  return [rect];
 }
 function drawContextInfo(body,cx,cy){
-  if(!body) return;
+  if(!body){state.infoPanelRect=null;state.infoScrollMax=0;state.infoPanelFocused=false;return;}
   drawObjectMarker(body,cx,cy);
   if(body.type==='moon') drawMoonHover(body,cx,cy); else drawPlanetHover(cx,cy);
 }
@@ -4137,6 +4163,7 @@ function render(t){
   drawRocket(t);
   if(!intro){
     let hovered=!state.libraryOpen&&state.mouse.inside?bodyAtPoint(state.mouse,cx,cy):null;
+    if(!hovered && !state.libraryOpen && infoPanelHovered() && state.hoverBody) hovered=bodyRef(state.hoverBody);
     if(hovered?.type==='moon'){
       state.moonHoverGrace=bodyRef(hovered);
       state.moonHoverUntil=t+MOON_HOVER_GRACE_MS;
@@ -4249,6 +4276,12 @@ canvas.addEventListener('pointerleave',()=>{state.mouse.inside=false;state.dragg
 canvas.addEventListener('pointerdown',ev=>{
   startAudio();canvas.focus();const p=getPoint(ev);state.mouse={...state.mouse,...p,down:true,inside:true,pointerType:ev.pointerType||'mouse'};
   if(state.intro){ ev.preventDefault(); return; }
+  if(state.infoPanelRect && pointInRect(p,state.infoPanelRect.x,state.infoPanelRect.y,state.infoPanelRect.w,state.infoPanelRect.h)){
+    state.infoPanelFocused=true;
+    ev.preventDefault();
+    return;
+  }
+  state.infoPanelFocused=false;
   if(state.lifePanelRect && pointInRect(p,state.lifePanelRect.x,state.lifePanelRect.y,state.lifePanelRect.w,state.lifePanelRect.h)){
     state.lifePanelFocused=true;
     ev.preventDefault();
@@ -4293,9 +4326,10 @@ canvas.addEventListener('pointerup',()=>{
   state.cameraHold=null;
 });
 canvas.addEventListener('wheel',ev=>{
-  if(state.intro || !lifePanelHovered()) return;
-  const step=ev.deltaY===0?0:(ev.deltaY>0?1:-1);
-  if(step && scrollLifePanel(step)) ev.preventDefault();
+  if(state.intro) return;
+  const dir=ev.deltaY===0?0:(ev.deltaY>0?1:-1);
+  if(dir && infoPanelHovered() && scrollInfoPanel(dir*18)){ev.preventDefault();return;}
+  if(dir && lifePanelHovered() && scrollLifePanel(dir)){ev.preventDefault();}
 },{passive:false});
 canvas.addEventListener('dblclick',()=>toggleFullscreen());
 
@@ -4355,6 +4389,14 @@ window.addEventListener('keydown',ev=>{
     state.infoTitle=null;
     state.lifePanelFocused=false;
     return;
+  }
+  if(!state.enteringName && state.infoPanelFocused && state.infoPanelRect){
+    if(ev.key==='ArrowUp'){ev.preventDefault();scrollInfoPanel(-9);return;}
+    if(ev.key==='ArrowDown'){ev.preventDefault();scrollInfoPanel(9);return;}
+    if(ev.key==='PageUp'){ev.preventDefault();scrollInfoPanel(-72);return;}
+    if(ev.key==='PageDown'){ev.preventDefault();scrollInfoPanel(72);return;}
+    if(ev.key==='Home'){ev.preventDefault();state.infoScroll=0;return;}
+    if(ev.key==='End'){ev.preventDefault();state.infoScroll=state.infoScrollMax;return;}
   }
   if(!state.enteringName && state.lifePanelFocused && state.lifePanelRect){
     if(ev.key==='ArrowUp'){ev.preventDefault();scrollLifePanel(-1);return;}
