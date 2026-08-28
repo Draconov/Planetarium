@@ -822,7 +822,8 @@ function generatePlanet(name){
     return p;
   }
 
-  p.worldType=SPECIAL_WORLD_TYPES[name]||chooseWorldProfile(r);
+  const minecraft=name==='MINECRAFT';
+  p.worldType=minecraft?'VERDANT':(SPECIAL_WORLD_TYPES[name]||chooseWorldProfile(r));
   const profile=WORLD_PROFILES[p.worldType]||WORLD_PROFILES.TERRESTRIAL;
   p.radius = p.worldType==='DWARF' ? 22+Math.floor(r()*11) : (special && name==='VERY PLANET' ? 54 : 43+Math.floor(r()*18));
   p.rx = p.radius*(.88+r()*.22); p.ry=p.radius*(.91+r()*.18);
@@ -851,6 +852,20 @@ function generatePlanet(name){
   if(p.atmosDensity==='NONE') p.atmosChemistry='NONE';
   if(p.worldType==='BARREN' && p.atmosDensity!=='NONE' && r()<.50) p.atmosDensity='TRACE';
   if(p.worldType==='TOXIC' && p.atmosDensity==='DENSE' && r()<.34) p.atmosDensity='SUPERDENSE';
+  if(minecraft){
+    // The only deliberately non-spherical world in Planetarium.
+    p.shape='cube'; p.worldType='VERDANT';
+    p.radius=42; p.rx=42; p.ry=42;
+    p.water=.38; p.mount=.72; p.beach=.025;
+    p.cloudCover=.36; p.cloudSpeed=.22;
+    p.target=.56; p.variance=.30;
+    p.moons=1; p.ring=false;
+    p.radiusKm=6371; p.radiusEarth=1;
+    p.density=1; p.gravity=1; p.massEarth=1;
+    p.dayHours=20; p.yearDays=360;
+    p.rotationDirection=1; p.rotation=.24;
+    p.atmosDensity='NORMAL'; p.atmosChemistry='N2 / O2'; p.weatherPreset='BLOCK CLOUDS';
+  }else p.shape='sphere';
   p.terrainSeed=(seed^0x9e3779b9)>>>0;
   p.stars=[]; const sr=mulberry32(seed^0x62a9d9ed);
   for(let i=0;i<78;i++) p.stars.push({x:Math.floor(sr()*W),y:Math.floor(sr()*238),b:sr(),tw:sr()*6.28});
@@ -873,6 +888,21 @@ function generatePlanet(name){
   p.lifeText=`THE ${pick(r,locationParts[loc])} ARE HOME TO ${pick(r,quant)} ${pick(r,looks)} ${pick(r,build)} ${pick(r,creatures)}. SOME OF THEM APPEAR TO BE ${pick(r,behaviours)}.`;
   p.noLifeText = r()<.5 ? 'PRESENTLY, NO LIFE REMAINS.' : 'NO SIGNS OF LIFE ARE VISIBLE AT THIS TEMPERATURE.';
   makePlanetScan(p);
+  if(minecraft){
+    p.populationBase=7;
+    p.scan.lifeTypePotential='INTELLIGENT';
+    p.scan.techPotential='PRE-INDUSTRIAL';
+    p.scan.tectonics='BLOCKY';
+    p.scan.volcanism='LAVA POCKETS';
+    p.scan.anomaly='IMPOSSIBLE CUBIC PLANETARY GEOMETRY';
+    p.lifeText='VOXEL FORESTS, VILLAGES AND CAVE SYSTEMS COVER THE CUBIC SURFACE. HOSTILE CREATURES BECOME ACTIVE AFTER LOCAL SUNSET.';
+    if(p.moonData[0]){
+      p.moonData[0].name='BLOCK MOON';
+      p.moonData[0].radiusKm=820;
+      p.moonData[0].orbitKm=240000;
+      p.moonData[0].periodDays=18;
+    }
+  }
   p.moonData.forEach((m,i)=>{m.scan=makeMoonScan(p,m,i);});
   configureCivilization(p);
   const saved=parseFloat(storageGet(tempStorageKey(p),''));
@@ -999,6 +1029,7 @@ function worldClass(){
     }
     return planet.solar.worldClass;
   }
+  if(planet.name==='MINECRAFT') return 'CUBIC VOXEL WORLD';
   if(planet.special?.dark) return 'DARK WORLD';
   if(state.temp<.12) return 'ICE WORLD';
   if(state.temp>.93) return 'LAVA WORLD';
@@ -1101,9 +1132,12 @@ function atmosphereViewColor(lon,lat,nx,z){
   const strength=atmosphereStrength(planet), base=atmosphereBaseColor(), accent=atmosphereAccentColor();
   if(strength<=.02) return surfaceShade(C.black,nx,z);
   const c=(planet.atmosChemistry||'').toUpperCase(), drift=state.simDays*(.0025+strength*.0035);
-  const coarse=valueNoise(lon*9+drift,lat*7,planet.terrainSeed^0x6d2b79f5,64);
-  const fine=valueNoise(lon*34-drift*1.7,lat*25,planet.terrainSeed^0x419b2d31,64);
-  const curl=valueNoise(lon*17+lat*2.4+drift,lat*14,planet.terrainSeed^0x1ca7b58d,64);
+  // Every longitude sample below is explicitly periodic. The old version mixed
+  // arbitrary noise periods (9/34/17) with a 64-cell sampler, leaving a visible
+  // 0°/360° seam when the atmosphere rotated across the front of the planet.
+  const coarse=periodicNoise01(mod(lon+drift,1),lat,12,7,planet.terrainSeed^0x6d2b79f5);
+  const fine=periodicNoise01(mod(lon-drift*1.7,1),lat,36,25,planet.terrainSeed^0x419b2d31);
+  const curl=periodicNoise01(mod(lon+drift*.72,1),lat+(coarse-.5)*.08,20,14,planet.terrainSeed^0x1ca7b58d);
   let col=base;
   if(c.includes('H2')||c.includes('HE')||c.includes('AMMONIA')){
     const band=Math.sin((lat*(18+strength*12)+(coarse-.5)*1.4)*Math.PI)*.5+.5;
@@ -1113,7 +1147,8 @@ function atmosphereViewColor(lon,lat,nx,z){
     col=mixHex(base,accent,haze);
     if(fine>.72) col=mixHex(col,C.white,.18);
   }else if(c.includes('SULF')||c.includes('SO2')||c.includes('CHLORINE')||c.includes('H2S')){
-    const swirl=Math.sin((lon*11+lat*7+(coarse-.5)*2+drift*4)*Math.PI)*.5+.5;
+    // 12 instead of 11 keeps the sinusoid identical at lon=0 and lon=1.
+    const swirl=Math.sin((lon*12+lat*7+(coarse-.5)*2+drift*4)*Math.PI)*.5+.5;
     col=mixHex(base,accent,clamp(.10+swirl*.46+(fine-.5)*.18,0,.72));
     if(curl>.72) col=mixHex(col,C.black,.12);
   }else if(c.includes('WATER')||c.includes('N2')||c.includes('O2')||c.includes('NITROGEN')){
@@ -1121,7 +1156,7 @@ function atmosphereViewColor(lon,lat,nx,z){
     col=mixHex(base,accent,.12+cells*.34);
     if(fine>.78) col=mixHex(col,C.white,.28);
   }else if(c.includes('METALLIC')||c.includes('EXOTIC')){
-    const arcs=Math.abs(Math.sin((lon*21+lat*15+drift*8+fine)*Math.PI));
+    const arcs=Math.abs(Math.sin((lon*20+lat*15+drift*8+fine)*Math.PI));
     col=mixHex(base,accent,.12+coarse*.28);
     if(arcs>.90) col=mixHex(col,C.white,.45);
     else if(curl<.25) col=mixHex(col,C.black,.18);
@@ -1214,6 +1249,9 @@ function lifeProbeObservation(){
       'COMPLEX FOOD WEBS COVER LAND AND SEA. HUMANS ARE THE DOMINANT TECHNOLOGICAL SPECIES, BUT MICROBIAL LIFE STILL MAKES UP MUCH OF THE BIOSPHERE.',
       'OCEANS ARE RICH IN PLANKTON, REEFS AND LARGE ANIMALS; LAND SUPPORTS FORESTS, FUNGI, INSECTS, BIRDS, MAMMALS AND HUMAN CIVILIZATION.'
     ]);
+  }
+  if(planet.name==='MINECRAFT'){
+    return 'VOXELATED VILLAGERS BUILD BLOCK SETTLEMENTS ACROSS THE CUBIC SURFACE. CREEPERS, SKELETONS, SPIDERS AND ZOMBIES BECOME ACTIVE AFTER LOCAL SUNSET, WHILE DEEP CAVE SYSTEMS CONTAIN UNUSUAL MINERAL DEPOSITS.';
   }
   if(planet.name==='MARS'){
     const stage=marsTerraformStage();
@@ -1490,7 +1528,7 @@ function earthLandValue(lon,lat,q){
   let v=-1.1;
   for(const b of add) v=Math.max(v,continentBlob(lon,lat,...b));
   for(const b of cut) v-=Math.max(0,continentBlob(lon,lat,...b))*0.72;
-  const coastline=valueNoise(lon*96,lat*44,planet.terrainSeed^0x45ef,96)-.5;
+  const coastline=periodicNoise01(lon,lat,96,44,planet.terrainSeed^0x45ef)-.5;
   return v+(q.n-.5)*.20+(q.ridge-.5)*.05+coastline*.10;
 }
 function plutoTextureColor(lon,lat){
@@ -1632,11 +1670,11 @@ function surfaceColor(lon,lat,normY,nx,z){
     else if(q.n<.42) col=mixHex(C.yellow,C.brown,.18);
     else col=q.n>.62?mixHex(C.red,C.yellow,.30):C.yellow;
   }else if(type==='ICE'){
-    const cracks=q.ridge>.82||valueNoise(lon*37,lat*29,planet.terrainSeed^0x33a7,64)>.79;
+    const cracks=q.ridge>.82||periodicNoise01(lon,lat,40,29,planet.terrainSeed^0x33a7)>.79;
     if(q.n<.46 && tempLocal>.12) col=cracks?C.blue:C.cyan;
     else col=cracks?mixHex(C.blue,C.white,.42):C.white;
   }else if(type==='VOLCANIC'){
-    const lava=q.ridge>.76||q.n<.27||valueNoise(lon*28,lat*21,planet.terrainSeed^0xc115,64)>.82;
+    const lava=q.ridge>.76||q.n<.27||periodicNoise01(lon,lat,28,21,planet.terrainSeed^0xc115)>.82;
     if(tempLocal<.15&&polar) col=C.white;
     else if(lava) col=q.ridge>.88?C.yellow:C.red;
     else col=q.n>.62?mixHex(C.brown,C.black,.30):mixHex(C.brown,C.red,.18);
@@ -1801,8 +1839,7 @@ function pointNearMoonOrbit(p,m,cx,cy){
   const ox=cx+Math.cos(ang)*rx, oy=cy+Math.sin(ang)*ry;
   const dist=Math.hypot(p.x-ox,p.y-oy);
   const tolerance=clamp(Math.round(rx*.045),3,7);
-  const nx=(p.x-cx)/Math.max(1,planet.rx), ny=(p.y-cy)/Math.max(1,planet.ry);
-  if(nx*nx+ny*ny<.92) return false;
+  if(planetContainsPoint(p.x,p.y,cx,cy,-2)) return false;
   return dist<=tolerance;
 }
 const MOON_SPRITE_VISIBLE_DIAMETERS=[22,18,16,14,12,10,8,8,6,6,6,4,4,4,2,2,2,24,26,28,30,32,34,36,40];
@@ -2181,7 +2218,104 @@ function drawNormalAtmosphereHaze(cx,cy){
   }
   ctx.globalAlpha=1;
 }
+function isCubePlanet(p=planet){ return p?.shape==='cube'; }
+function planetContainsPoint(px,py,cx,cy,padding=0){
+  if(isCubePlanet()) return Math.abs(px-cx)<=planet.rx+padding && Math.abs(py-cy)<=planet.ry+padding;
+  const nx=(px-cx)/Math.max(1,planet.rx+padding), ny=(py-cy)/Math.max(1,planet.ry+padding);
+  return nx*nx+ny*ny<=1;
+}
+function minecraftBlockColor(u,v,shade=0){
+  const tempLocal=clamp(state.temp-Math.abs(v-.5)*.28,0,1);
+  if(state.viewMode===3){
+    const c=tempLocal<.2?C.blue:tempLocal<.4?C.cyan:tempLocal<.6?C.green:tempLocal<.8?C.yellow:C.red;
+    return shade?mixHex(c,C.black,shade):c;
+  }
+  if(state.viewMode===2){
+    const n=periodicNoise01(u,v,20,12,planet.terrainSeed^0x4d43);
+    let c=mixHex(C.blue,C.cyan,.36+n*.26);
+    if(n>.72) c=mixHex(c,C.white,.28);
+    return shade?mixHex(c,C.black,shade):c;
+  }
+  const n=periodicNoise01(u,v,18,12,planet.terrainSeed^0x4d43);
+  const d=periodicNoise01(u,v,42,30,planet.terrainSeed^0xb10c);
+  const polar=Math.abs(v-.5)>.43;
+  let c;
+  if(polar && state.temp<.62) c=C.white;
+  else if(n<.34) c=n<.23?C.blue:C.cyan;
+  else if(n>.76) c=d>.52?C.brown:mixHex(C.brown,C.white,.16);
+  else if(state.temp>.83) c=C.yellow;
+  else if(state.temp<.20) c=C.white;
+  else c=d>.78?mixHex(C.green,C.brown,.24):C.green;
+  return shade?mixHex(c,C.black,shade):c;
+}
+function drawMinecraftClouds(cx,cy,diagnostic=false){
+  if(state.viewMode!==0&&state.viewMode!==2) return;
+  const r=planet.radius, left=Math.round(cx-r), top=Math.round(cy-r), size=r*2;
+  const drift=state.simDays*.0065;
+  const threshold=diagnostic?.56:.68;
+  for(let y=0;y<size;y+=2){
+    const v=(y+.5)/size;
+    for(let x=0;x<size;x+=2){
+      const u=mod((x+.5)/size+drift,1);
+      const a=periodicNoise01(u,v,14,8,planet.terrainSeed^0xc10d);
+      const b=periodicNoise01(u,v,36,22,planet.terrainSeed^0xc10e);
+      const cloud=a*.68+b*.32;
+      if(cloud<threshold) continue;
+      if(!diagnostic){
+        ctx.fillStyle=C.black;ctx.globalAlpha=.13;ctx.fillRect(left+x+1,top+y+1,2,2);
+      }
+      ctx.fillStyle=diagnostic?C.cyan:C.white;
+      ctx.globalAlpha=diagnostic?.82:.72;
+      ctx.fillRect(left+x,top+y,2,2);
+    }
+  }
+  ctx.globalAlpha=1;
+}
+function drawMinecraftCube(cx,cy,t){
+  const normalView=state.viewMode===0, atmosphereView=state.viewMode===2, showEnvironment=normalView||atmosphereView;
+  if(normalView) drawCivilizationOrbitObjects(cx,cy,false);
+  drawMoons(cx,cy,t,false);
+  const r=planet.radius, left=Math.round(cx-r), top=Math.round(cy-r), size=r*2;
+  if(showEnvironment){
+    ctx.fillStyle=atmosphereView?atmosphereAccentColor():mixHex(atmosphereBaseColor(),C.black,.30);
+    ctx.globalAlpha=atmosphereView?.70:.24;
+    ctx.fillRect(left-2,top-2,size+4,1);ctx.fillRect(left-2,top+size+1,size+4,1);
+    ctx.fillRect(left-2,top-1,1,size+2);ctx.fillRect(left+size+1,top-1,1,size+2);
+    ctx.globalAlpha=1;
+  }
+  ctx.fillStyle=mixHex(C.black,C.white,.08);ctx.fillRect(left-1,top-1,size+2,size+2);
+  const block=2,rot=state.phase;
+  for(let y=0;y<size;y+=block){
+    const v=(y+.5)/size;
+    for(let x=0;x<size;x+=block){
+      const u=mod((x+.5)/size+rot,1);
+      let shade=0;
+      if(x>size-10) shade=.25;
+      else if(y<8) shade=-.08;
+      let col=minecraftBlockColor(u,v,Math.max(0,shade));
+      if(shade<0) col=mixHex(col,C.white,-shade);
+      ctx.fillStyle=col;ctx.fillRect(left+x,top+y,block,block);
+      const detail=h2(x,y,planet.terrainSeed);
+      if(state.viewMode<=1 && detail>.965 && col===C.green){
+        ctx.fillStyle=mixHex(C.green,C.black,.35);ctx.fillRect(left+x,top+y,1,1);
+      }
+    }
+  }
+  // Strong square silhouette and slight face shading make it read as a planet-sized cube.
+  ctx.fillStyle=mixHex(C.black,C.white,.10);
+  ctx.fillRect(left,top,2,size);ctx.fillRect(left,top,size,2);
+  ctx.fillStyle=mixHex(C.black,C.white,.22);
+  ctx.fillRect(left+size-3,top,3,size);ctx.fillRect(left,top+size-3,size,3);
+  drawMinecraftClouds(cx,cy,atmosphereView);
+  if(showEnvironment){
+    drawWeatherSystems(cx,cy);
+    drawAuroras(cx,cy);
+  }
+  drawMoons(cx,cy,t,true);
+  if(normalView){drawCivilizationOrbitObjects(cx,cy,true);drawCivilizationMoonMission(cx,cy);}
+}
 function drawPlanet(cx,cy,t){
+  if(isCubePlanet()) { drawMinecraftCube(cx,cy,t); return; }
   const normalView=state.viewMode===0, atmosphereView=state.viewMode===2, showEnvironment=normalView||atmosphereView;
   if(normalView) drawCivilizationOrbitObjects(cx,cy,false);
   drawMoons(cx,cy,t,false); ringPoints(cx,cy,false); if(showEnvironment) drawAtmosphereLimb(cx,cy);
@@ -2224,16 +2358,14 @@ function bodyAtPoint(p,cx,cy){
   if(!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return null;
   for(let i=planet.moonData.length-1;i>=0;i--){
     const m=planet.moonData[i], dx=p.x-m.screenX, dy=p.y-m.screenY, hr=m.hitRadius||7;
-    const mx=(m.screenX-cx)/Math.max(1,planet.rx), my=(m.screenY-cy)/Math.max(1,planet.ry);
-    const hiddenBehindPlanet=m.depth<0 && mx*mx+my*my<1;
+    const hiddenBehindPlanet=m.depth<0 && planetContainsPoint(m.screenX,m.screenY,cx,cy,0);
     if(!hiddenBehindPlanet && dx*dx+dy*dy<=hr*hr) return {type:'moon',index:i};
   }
   for(let i=planet.moonData.length-1;i>=0;i--){
     const m=planet.moonData[i];
     if(pointNearMoonOrbit(p,m,cx,cy)) return {type:'moon',index:i};
   }
-  const nx=(p.x-cx)/Math.max(1,planet.rx+3), ny=(p.y-cy)/Math.max(1,planet.ry+3);
-  if(nx*nx+ny*ny<=1) return {type:'planet'};
+  if(planetContainsPoint(p.x,p.y,cx,cy,3)) return {type:'planet'};
   return null;
 }
 function sameBody(a,b){ return !!a&&!!b&&a.type===b.type&&(a.type!=='moon'||a.index===b.index); }
