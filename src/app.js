@@ -187,20 +187,74 @@ function texturedMoonSprite(frame,color,m,diameter){
   const r=mulberry32(hashString(key)), palette=moonTextureColors(m,color), detailCount=diameter>=30?28:diameter>=20?20:diameter>=12?12:6;
   const point=()=>solid[Math.floor(r()*solid.length)];
   if(planet?.name==='EARTH' && m?.name==='MOON'){
+    // Earth's Moon must stay neutral lunar grey. The UI's C.white is a warm
+    // cream, so using the normal moon tint path makes Luna look yellow/beige.
+    // Repaint the whole visible disc with an independent grayscale lunar
+    // palette, then layer recognizable near-side maria and crater relief over it.
+    const lunar={
+      high:'#B9BAB4', highLight:'#D3D4CE', mid:'#9A9B96',
+      mare:'#686A69', mareDark:'#56595A', crater:'#7D7F7C', rim:'#DADBD4', limb:'#777A78'
+    };
+    g.fillStyle=lunar.high;
+    g.fillRect(0,0,c.width,c.height);
+
+    // Approximate near-side maria: Oceanus Procellarum / Imbrium on the left,
+    // Serenitatis + Tranquillitatis to the upper-right, Nubium/Humorum below,
+    // and Fecunditatis toward the lower-right. Slight overlap makes the tiny
+    // pixel sprite read much more like the real Moon than random dark blobs.
     const maria=[
-      [.30,.38,.16,.12],[.43,.30,.12,.10],[.56,.35,.14,.10],[.62,.48,.18,.12],[.42,.56,.18,.12],[.30,.62,.12,.10]
+      [.285,.47,.155,.245,lunar.mareDark], // Oceanus Procellarum
+      [.405,.325,.155,.125,lunar.mare],    // Mare Imbrium
+      [.585,.335,.105,.095,lunar.mare],    // Mare Serenitatis
+      [.635,.445,.125,.105,lunar.mareDark],// Mare Tranquillitatis
+      [.585,.565,.105,.090,lunar.mare],    // Mare Fecunditatis
+      [.425,.585,.135,.095,lunar.mare],    // Mare Nubium
+      [.300,.615,.090,.075,lunar.mareDark] // Mare Humorum
     ];
-    g.fillStyle=mixHex(C.white,C.black,.36);
-    for(const [cx,cy,rx,ry] of maria){
+    for(const [mx,my,rx,ry,col] of maria){
+      g.fillStyle=col;
       for(let y=0;y<c.height;y++) for(let x=0;x<c.width;x++){
-        const dx=(x/c.width-cx)/rx, dy=(y/c.height-cy)/ry;
+        const dx=(x/c.width-mx)/rx, dy=(y/c.height-my)/ry;
         if(dx*dx+dy*dy<1 && alpha[(y*c.width+x)*4+3]>24) g.fillRect(x,y,1,1);
       }
     }
-    g.fillStyle=mixHex(C.white,C.black,.18);
-    for(let i=0;i<detailCount+8;i++){ const [x,y]=point(); g.fillRect(x,y,1,1); }
-    g.fillStyle=C.white;
-    for(let i=0;i<8;i++){ const [x,y]=point(); if(r()>.5) g.fillRect(x,y,1,1); }
+
+    // Highlands are mottled rather than flat. Keep the noise sparse and fully
+    // deterministic so Luna is recognizable and stable every visit.
+    for(let i=0;i<detailCount+18;i++){
+      const [x,y]=point();
+      g.fillStyle=r()>.48?lunar.highLight:lunar.mid;
+      g.fillRect(x,y,1,1);
+    }
+
+    // Craters: dark floor + bright sunward rim. Larger sprites get a few 2 px
+    // basins while small sprites retain crisp one-pixel impact marks.
+    const craterCount=diameter>=30?13:diameter>=20?9:6;
+    for(let i=0;i<craterCount;i++){
+      const [x,y]=point(), big=diameter>=24 && r()>.66;
+      g.fillStyle=lunar.crater;
+      g.fillRect(x,y,big?2:1,big?2:1);
+      if(big){
+        g.fillStyle=lunar.mareDark; g.fillRect(x+1,y+1,1,1);
+        g.fillStyle=lunar.rim; g.fillRect(x,y-1,1,1); g.fillRect(x-1,y,1,1);
+      }else if(r()>.42){
+        g.fillStyle=lunar.rim; g.fillRect(x-1,y,1,1);
+      }
+    }
+
+    // Very subtle limb darkening gives the disc spherical volume while staying
+    // within the native pixel-art language and preserving the sprite silhouette.
+    for(let y=0;y<c.height;y++) for(let x=0;x<c.width;x++){
+      if(alpha[(y*c.width+x)*4+3]<=24) continue;
+      const nx=(x+.5)/c.width*2-1, ny=(y+.5)/c.height*2-1;
+      const rr=nx*nx+ny*ny;
+      if(rr>.72 && h2(x,y,hashString(key)^0x4c554e41)>.30){
+        g.fillStyle=rr>.90?lunar.limb:lunar.mid;
+        g.globalAlpha=rr>.90?.34:.16;
+        g.fillRect(x,y,1,1);
+        g.globalAlpha=1;
+      }
+    }
   } else if(surface.includes('ICE')){
     g.fillStyle=palette[1];
     for(let i=0;i<Math.max(4,Math.floor(detailCount*.55));i++){
