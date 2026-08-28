@@ -52,9 +52,9 @@ The interface intentionally stays compact. Most information appears only when yo
 - Terrestrial, ocean, desert, ice, volcanic, toxic, barren, verdant and dwarf worlds
 - Very rare damaged or partially destroyed procedural planets
 - Physically scaled moons with textured native pixel sprites
-- Dotted moon orbits with hover, click-to-pin and slow inspection behavior
+- Dotted moon orbits with animated direction markers on hover, click-to-pin and slow inspection behavior
 - Deterministic orbital distances and periods
-- Multiple ring types, widths, materials and densities
+- Multiple ring types, widths, materials and densities with differential particle rotation
 - Dynamic temperature simulation that can radically transform a world
 - Two moving procedural cloud layers with shadows and climate-dependent coverage
 - Hurricanes, storms, dust, snow, atmospheric haze, lightning, auroras and volcanic plumes
@@ -99,9 +99,9 @@ The same destination always resolves to the same generated world.
 
 Interactive objects use the same pixel focus-frame language as the original interface.
 
-Hovering the planet reveals information such as world class, temperature, radius, gravity, water, atmosphere, life, day length and year length. Moons expose their physical size, orbital distance and period. Hovering a dotted orbit keeps the associated moon information accessible without forcing you to chase a fast-moving object with the mouse.
+Hovering the planet reveals information such as world class, temperature, radius, gravity, water, atmosphere, life, day length and year length. Moons and special orbital objects show a compact card beside the object itself, while the planet’s normal label remains visible. Hovering a dotted orbit keeps the associated object information accessible without forcing you to chase a fast-moving target, and animated guide particles make the orbit direction readable.
 
-Clicking a moon or its orbit pins it for inspection and slows that moon substantially until you click away.
+Clicking a moon or its orbit pins it for inspection and slows that moon substantially until you click away. If that object has already been probed, pinning it also opens the full deep-scan panel without expanding the local hover card over the world.
 
 ### Launch Probe
 

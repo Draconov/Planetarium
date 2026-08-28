@@ -119,8 +119,14 @@ const RING_COLORS=[C.purple,C.blue,C.brown,C.yellow,C.cyan,mixHex(C.white,C.blue
 function configureProceduralRing(p,r){
   if(!p.ring) return;
   p.ringStyle=pick(r,PROCEDURAL_RING_STYLES);
-  p.ringScale=1.43+r()*.42;
-  p.ringFlatness=.15+r()*.18;
+  // Ring systems should feel meaningfully different from world to world, not
+  // like the same ellipse with a palette swap. Size controls the overall
+  // reach, while band spread changes how tightly the individual bands cluster.
+  p.ringScale=1.36+r()*.59;
+  p.ringFlatness=.13+r()*.21;
+  p.ringBandSpread=.72+r()*.72;
+  p.ringSpinRate=.022+r()*.035;
+  p.ringParticleScale=.72+r()*.88;
   p.ringAlpha=.45+r()*.48;
   p.ringColor=pick(r,RING_COLORS);
   p.ringMaterial=p.ringStyle==='ICY'?'ICE':p.ringStyle==='DARK'?'ROCK':p.ringStyle==='DUST'?'DUST':p.ringStyle==='DEBRIS'?'ROCK / ICE':pick(r,['ICE / ROCK','ROCK','DUST / ICE']);
@@ -377,6 +383,42 @@ function chooseInfoPanelRect(body,cx,cy,w,h,extraObstacles=[]){
   }
   return best||{x:margin,y:margin,w,h};
 }
+function chooseNearBodyPanelRect(body,cx,cy,w,h,extraObstacles=[]){
+  const margin=5,bottomLimit=246,target=bodyScreenRect(body,cx,cy,3);
+  w=Math.min(Math.round(w),W-margin*2);h=Math.min(Math.round(h),bottomLimit-margin*2);
+  const tcx=target.x+target.w/2,tcy=target.y+target.h/2;
+  let ux=tcx-cx,uy=tcy-cy,ul=Math.hypot(ux,uy);
+  if(ul<1){ux=1;uy=0;ul=1;} ux/=ul;uy/=ul;
+  const tx=-uy,ty=ux,gap=7;
+  const radialAnchor={x:tcx+ux*(target.w*.5+gap),y:tcy+uy*(target.h*.5+gap)};
+  const placeFromVector=(vx,vy,anchor=radialAnchor)=>({
+    x:anchor.x+(vx<-.15?-w:vx>.15?0:-w/2),
+    y:anchor.y+(vy<-.15?-h:vy>.15?0:-h/2)
+  });
+  const candidates=[
+    placeFromVector(ux,uy),
+    placeFromVector(tx,ty,{x:tcx+tx*(target.w*.5+gap),y:tcy+ty*(target.h*.5+gap)}),
+    placeFromVector(-tx,-ty,{x:tcx-tx*(target.w*.5+gap),y:tcy-ty*(target.h*.5+gap)}),
+    {x:target.x+target.w+gap,y:tcy-h/2},
+    {x:target.x-w-gap,y:tcy-h/2},
+    {x:tcx-w/2,y:target.y-h-gap},
+    {x:tcx-w/2,y:target.y+target.h+gap}
+  ];
+  const obstacles=visibleBodyRects(cx,cy,body);
+  let best=null,bestScore=Infinity;
+  for(const c of candidates){
+    const rx=clamp(Math.round(c.x),margin,W-w-margin),ry=clamp(Math.round(c.y),margin,bottomLimit-h-margin);
+    const r={x:rx,y:ry,w,h};
+    const clampPenalty=Math.abs(rx-c.x)+Math.abs(ry-c.y);
+    let score=rectOverlapArea(r,target)*1800+clampPenalty*2.5;
+    for(const o of obstacles) score+=rectOverlapArea(r,o)*16;
+    for(const o of (extraObstacles||[])) if(o) score+=rectOverlapArea(r,o)*85;
+    score+=Math.hypot((r.x+r.w/2)-tcx,(r.y+r.h/2)-tcy)*.18;
+    if(score<bestScore){bestScore=score;best=r;}
+  }
+  return best||{x:margin,y:margin,w,h};
+}
+
 function infoFieldLines(value,label,maxPx){
   const prefix=(String(label||'').toUpperCase()+'        ').slice(0,9),prefixW=textWidth(prefix,1);
   const valueLines=wrapText(String(value??''),Math.max(28,maxPx-prefixW),1);
@@ -1012,6 +1054,8 @@ function clearPlanetariumStorage(){
   }catch{}
 }
 
+const MOON_HOVER_GRACE_MS=700;
+
 const state = {
   name: urlPlanet || storageGet('planetarium:lastName','PLANET'),
   input: '', enteringName:false, temp: .50, viewMode:0, tempView:false, reverse:false, paused:false, speedIndex:1, muted:false,
@@ -1266,6 +1310,9 @@ function applyLorePreset(p,preset,r){
   p.ringAlpha=preset.ringAlpha;
   p.ringStyle=preset.ringStyle||'THIN';
   p.ringMaterial=preset.ringMaterial||'ROCK / ICE';
+  p.ringBandSpread=preset.ringBandSpread;
+  p.ringSpinRate=preset.ringSpinRate;
+  p.ringParticleScale=preset.ringParticleScale;
   p.haloBandWidth=preset.haloBandWidth||null;
   p.haloFlatten=preset.haloFlatten||null;
   p.haloScreenAngle=preset.haloScreenAngle||0;
@@ -1377,6 +1424,9 @@ function generatePlanet(name){
     p.ringAlpha=solar.ringAlpha;
     p.ringStyle=solar.ringStyle||'THIN';
     p.ringMaterial=solar.ringMaterial||'ROCK / ICE';
+    p.ringBandSpread=solar.ringBandSpread;
+    p.ringSpinRate=solar.ringSpinRate;
+    p.ringParticleScale=solar.ringParticleScale;
     p.radiusKm=solar.radiusKm;
     p.radiusEarth=p.radiusKm/6371;
     p.gravity=solar.gravity;
@@ -2686,16 +2736,32 @@ function drawWeatherSystems(cx,cy){
     for(let k=0;k<8;k++){const a=w.phase+k*.91,rr=(k%4)*size*.32;ctx.fillRect(Math.round(pos.x+Math.cos(a)*rr),Math.round(pos.y+Math.sin(a)*rr*.45),1+(k%5===0?1:0),1);}ctx.globalAlpha=1;
   }
 }
+function ringBandMotion(p,radialScale){
+  const seedRate=.026+h2((p.seed||0)&255,71,(p.seed^0x72696e67)>>>0)*.026;
+  const baseRate=p.ringSpinRate??seedRate;
+  const reference=Math.max(.8,p.ringScale||1.52);
+  // Keplerian-ish differential rotation: material closer to the planet moves
+  // faster than material farther out. It is deliberately softened so the
+  // low-resolution particle pattern reads as slow motion rather than flicker.
+  const kepler=Math.pow(reference/Math.max(.72,radialScale),1.5);
+  const direction=p.ringDirection??p.rotationDirection??1;
+  return state.simDays*baseRate*kepler*direction;
+}
 function ringPoints(cx,cy,front){
   if(!planet.ring) return;
   const style=RING_STYLE_PROFILES[planet.ringStyle]||RING_STYLE_PROFILES.THIN;
   const baseA=planet.rx*(planet.ringScale||1.52), baseB=Math.max(5,planet.ry*(planet.ringFlatness||.27)), rot=planet.ringTilt||0;
+  const spread=planet.ringBandSpread??(.86+h2((planet.seed||0)&255,29,(planet.seed^0x73707264)>>>0)*.42);
+  const particleScale=planet.ringParticleScale??(.82+h2((planet.seed||0)&255,47,(planet.seed^0x70617274)>>>0)*.56);
   const baseColor=planet.ringColor || (planet.special?.dark?C.red:C.purple);
   for(let bi=0;bi<style.bands.length;bi++){
-    const offset=style.bands[bi];
+    const offset=style.bands[bi]*spread;
+    const radialScale=(planet.ringScale||1.52)*(1+offset);
     const a=baseA*(1+offset), b=baseB*(1+offset*.72);
     const circumference=Math.PI*(3*(a+b)-Math.sqrt(Math.max(1,(3*a+b)*(a+3*b))));
     const steps=Math.max(90,Math.round(circumference*1.42));
+    const turns=ringBandMotion(planet,radialScale);
+    const spinOffset=Math.floor(mod(turns,1)*steps);
     const bandColor=planet.ringStyle==='MIXED'
       ? [baseColor,C.yellow,C.blue,C.brown][bi%4]
       : (planet.ringStyle==='ICY' ? mixHex(baseColor,C.white,bi%2?.18:.05) : mixHex(baseColor,C.black,bi%2?.10:0));
@@ -2705,17 +2771,22 @@ function ringPoints(cx,cy,front){
       const th=i/steps*Math.PI*2;
       const ysign=Math.sin(th);
       if((front && ysign<0)||(!front && ysign>=0)) continue;
-      const noise=h2(i+bi*997,bi+17,(planet.seed^0x51ed270b)>>>0);
+      // We keep the geometry fixed and move the particle pattern through it.
+      // A perfectly uniform ellipse looks static when rotated; shifting the
+      // non-uniform particles makes the orbital motion visible.
+      const sourceI=mod(i-spinOffset,steps);
+      const noise=h2(sourceI+bi*997,bi+17,(planet.seed^0x51ed270b)>>>0);
       if(noise>style.density) continue;
-      if(planet.ringStyle==='SPARSE' && ((i+bi*11)%13)<6) continue;
-      if(planet.name==='NEPTUNE' && ((Math.floor(th*10)+bi*3)%7)<3) continue;
-      const jitter=(h2(i,bi,(planet.seed^0xa5315a9d)>>>0)-.5)*(planet.ringStyle==='DEBRIS'?3.1:planet.ringStyle==='DUST'?1.8:.75);
+      if(planet.ringStyle==='SPARSE' && ((sourceI+bi*11)%13)<6) continue;
+      if(planet.name==='NEPTUNE' && ((Math.floor(sourceI/steps*Math.PI*20)+bi*3)%7)<3) continue;
+      const jitter=(h2(sourceI,bi,(planet.seed^0xa5315a9d)>>>0)-.5)*(planet.ringStyle==='DEBRIS'?3.1:planet.ringStyle==='DUST'?1.8:.75)*particleScale;
       const aa=a+jitter, bb=b+jitter*.36;
       const ex=Math.cos(th)*aa, ey=Math.sin(th)*bb;
       const x=cx+ex*Math.cos(rot)-ey*Math.sin(rot), y=cy+ex*Math.sin(rot)+ey*Math.cos(rot);
-      const chunk=style.size>1 && h2(i,bi,(planet.seed^0x8da6b343)>>>0)>.70;
+      const chunkChance=clamp(.80-(particleScale-1)*.10, .62, .86);
+      const chunk=(style.size>1||particleScale>1.18) && h2(sourceI+31,bi,(planet.seed^0x8da6b343)>>>0)>chunkChance;
       ctx.fillRect(Math.round(x),Math.round(y),chunk?2:1,1);
-      if(chunk && h2(i+9,bi,(planet.seed^0x1b873593)>>>0)>.58) ctx.fillRect(Math.round(x),Math.round(y)+1,1,1);
+      if(chunk && h2(sourceI+9,bi,(planet.seed^0x1b873593)>>>0)>.58) ctx.fillRect(Math.round(x),Math.round(y)+1,1,1);
     }
   }
   ctx.globalAlpha=1;
@@ -2803,14 +2874,30 @@ function drawMoonOrbit(m,cx,cy,emphasis=false){
   const spacing=clamp(Math.round(rx*.16),6,12);
   const dots=Math.max(18,Math.round(circumference/spacing));
   ctx.fillStyle=emphasis?C.purple:C.blue;
-  ctx.globalAlpha=emphasis?.95:.62;
+  ctx.globalAlpha=emphasis?.82:.62;
   for(let i=0;i<dots;i++){
     const th=i/dots*Math.PI*2;
     const x=cx+Math.cos(th)*rx, y=cy+Math.sin(th)*ry;
     ctx.fillRect(Math.round(x),Math.round(y),1,1);
   }
+  if(emphasis){
+    // The dotted ellipse itself is geometrically symmetric, so rotating it
+    // would otherwise look completely static. Moving guide particles along the
+    // path gives the user a readable sense of orbital direction and motion.
+    const inspectSlow=state.moonInspect && planet.moonData[state.moonInspect.index]===m ? .28 : 1;
+    const periodBias=clamp(1/Math.sqrt(Math.max(.25,m.periodDays||1)),.18,1.65);
+    const flowTurns=state.simDays*(.030+.014*periodBias)*(m.direction||1)*inspectSlow;
+    for(let k=0;k<4;k++){
+      const th=mod(flowTurns+k*.247,1)*Math.PI*2;
+      const x=cx+Math.cos(th)*rx, y=cy+Math.sin(th)*ry;
+      ctx.globalAlpha=k===0?1:.78;
+      ctx.fillStyle=k===0?C.white:C.cyan;
+      ctx.fillRect(Math.round(x),Math.round(y),k===0?2:1,1);
+    }
+  }
   ctx.globalAlpha=1;
 }
+
 function drawBlockMoon(pos,m,diameter){
   // Minecraft's single moon follows the same deliberately impossible voxel
   // geometry as the planet instead of using a round moon sprite.
@@ -3222,8 +3309,10 @@ function haloRingMetric(px,py,cx,cy,p=planet,padding=0){
   const xr=dx*ca+dy*sa, yr=-dx*sa+dy*ca;
   const rr=Math.sqrt((xr/outer)**2+(yr/(outer*flat))**2);
   const band=Math.max(4,(p.haloBandWidth||13)+padding*1.2),inner=Math.max(.08,(outer-band)/outer);
-  const theta=mod(Math.atan2(yr/(flat||.001),xr)/(Math.PI*2)+.5+(state.phase||0),1);
-  return {rr,inner,outer,flat,xr,yr,theta,cross:(rr-inner)/Math.max(.001,1-inner)};
+  const arc=Math.atan2(yr/(flat||.001),xr);
+  const rawTheta=mod(arc/(Math.PI*2)+.5,1);
+  const theta=mod(rawTheta+(state.phase||0),1);
+  return {rr,inner,outer,flat,xr,yr,theta,rawTheta,arc,depth:Math.sin(arc),cross:(rr-inner)/Math.max(.001,1-inner)};
 }
 function haloGapAt(theta,p=planet){
   const gaps=p?.haloGaps||[];
@@ -3235,16 +3324,37 @@ function haloGapEdgeAt(theta,p=planet){
   const e=.0065;
   return haloGapAt(mod(theta+e,1),p)||haloGapAt(mod(theta-e,1),p);
 }
+function haloMetalColor(theta,cross,p=planet,bright=false){
+  const panel=periodicNoise01(theta,cross,94,16,p.terrainSeed^0x4d455441);
+  const base=mixHex(C.white,C.black,bright ? .38 : .62+panel*.12);
+  return panel>.78?mixHex(base,C.blue,.08):base;
+}
 function haloSurfaceColor(theta,cross,metric,p=planet){
   if(state.viewMode===3){
     const heat=clamp(state.temp+(periodicNoise01(theta,cross,26,8,p.terrainSeed^0x4807)-.5)*.08,0,1);
     return heat<.2?C.blue:heat<.4?C.cyan:heat<.6?C.green:heat<.8?C.yellow:C.red;
   }
-  const edge=cross<.13||cross>.87;
+  const breakEdge=haloGapEdgeAt(theta,p);
+  const edge=cross<.18||cross>.82;
   const panel=periodicNoise01(theta,cross,72,10,p.terrainSeed^0x48414c4f);
+  const sector=mod(theta*64,1), lane=mod(cross*11,1);
+  const sectorSeam=sector<.030||sector>.970;
+  const laneSeam=lane<.055||lane>.955;
+
+  // Broken Halos reveal the engineered cross-section instead of ending in a
+  // flat terrain-colored cut. Alternating dark braces, pale foundation metal
+  // and cyan conduits echo the exposed Forerunner lattice seen on damaged
+  // installations while remaining fully procedural/copyright-safe.
+  if(breakEdge){
+    const brace=Math.floor(cross*15)%5;
+    if(brace===0||brace===3) return mixHex(C.white,C.black,.45);
+    if(brace===1 && mod(theta*173,1)<.36) return C.cyan;
+    return mixHex(C.brown,C.black,.42);
+  }
   if(edge){
-    let metal=mixHex(C.white,C.black,.48+panel*.16);
-    if(haloGapEdgeAt(theta,p)) metal=mixHex(C.yellow,C.brown,.38);
+    let metal=haloMetalColor(theta,cross,p,sectorSeam);
+    if(sectorSeam) metal=mixHex(metal,C.white,.17);
+    if(laneSeam && panel>.46) metal=mixHex(metal,C.cyan,.14);
     return metal;
   }
   if(state.viewMode===2){
@@ -3254,33 +3364,103 @@ function haloSurfaceColor(theta,cross,metric,p=planet){
     if(panel<.18)c=mixHex(c,C.black,.14);
     return c;
   }
+
   const style=p.haloStyle||'temperate';
-  const terrain=periodicNoise01(theta,cross,34,11,p.terrainSeed^0x53555246);
-  const detail=periodicNoise01(theta,cross,86,23,p.terrainSeed^0x46494e45);
+  const terrain=periodicNoise01(theta,cross,30,10,p.terrainSeed^0x53555246);
+  const detail=periodicNoise01(theta,cross,91,25,p.terrainSeed^0x46494e45);
+  const macro=periodicNoise01(theta,cross,13,5,p.terrainSeed^0x4d414352);
+  const ridge=periodicNoise01(theta,cross,57,12,p.terrainSeed^0x52494447);
   let col=C.green;
-  if(style==='desert') col=terrain<.23?mixHex(C.blue,C.cyan,.24):terrain>.78?C.brown:C.yellow;
-  else if(style==='oceanice') col=terrain<.68?(terrain<.40?C.blue:C.cyan):(detail>.48?C.white:mixHex(C.brown,C.white,.34));
-  else if(style==='mixed') col=terrain<.24?C.blue:terrain<.48?C.green:terrain<.72?C.yellow:mixHex(C.red,C.brown,.30);
-  else if(style==='jungle') col=terrain<.31?C.blue:(detail>.72?mixHex(C.green,C.black,.18):C.green);
-  else if(style==='tundra') col=terrain<.24?C.cyan:terrain>.69?C.white:mixHex(C.green,C.white,.24);
-  else if(style==='zeta') col=terrain<.30?C.blue:terrain>.78?mixHex(C.brown,C.white,.18):(detail>.66?mixHex(C.green,C.yellow,.12):C.green);
-  else col=terrain<.32?C.blue:terrain>.78?C.brown:C.green;
+  if(style==='desert'){
+    col=terrain<.18?mixHex(C.blue,C.cyan,.24):terrain>.82?mixHex(C.brown,C.white,.08):(macro>.68?mixHex(C.yellow,C.white,.10):C.yellow);
+    if(ridge>.84) col=mixHex(C.brown,C.white,.16);
+  }else if(style==='oceanice'){
+    col=terrain<.64?(terrain<.34?C.blue:C.cyan):(detail>.50?C.white:mixHex(C.brown,C.white,.36));
+    if(terrain>.62&&ridge>.80) col=C.white;
+  }else if(style==='mixed'){
+    col=terrain<.22?C.blue:terrain<.47?C.green:terrain<.70?C.yellow:mixHex(C.red,C.brown,.30);
+    if(ridge>.87) col=mixHex(C.brown,C.white,.14);
+  }else if(style==='jungle'){
+    col=terrain<.27?C.blue:(detail>.76?mixHex(C.green,C.black,.20):C.green);
+    if(ridge>.86) col=mixHex(C.brown,C.green,.20);
+  }else if(style==='tundra'){
+    col=terrain<.22?C.cyan:terrain>.67?C.white:mixHex(C.green,C.white,.26);
+    if(ridge>.78) col=mixHex(C.white,C.blue,.08);
+  }else if(style==='zeta'){
+    col=terrain<.27?C.blue:terrain>.80?mixHex(C.brown,C.white,.20):(detail>.67?mixHex(C.green,C.yellow,.12):C.green);
+    if(ridge>.82) col=detail>.55?C.white:mixHex(C.brown,C.white,.26);
+  }else{
+    col=terrain<.29?C.blue:terrain>.80?C.brown:C.green;
+    if(ridge>.86) col=mixHex(C.brown,C.white,.20);
+  }
+
   if(p.haloGlassed){
     const glass=periodicNoise01(theta,cross,19,6,p.terrainSeed^0x474c4153);
     if(glass>.72) col=mixHex(C.black,C.red,.20);
     else if(glass>.63) col=mixHex(col,C.brown,.50);
   }
-  if(panel<.045||Math.abs(mod(theta*42,1)-.5)>.486) col=mixHex(col,C.white,.16);
+
+  // Sector seams and service lanes break up the landscape with unmistakably
+  // artificial Forerunner geometry. Keep them sparse so the biosphere still
+  // reads first at this tiny pixel-art scale.
+  if(sectorSeam && panel>.30) col=mixHex(col,C.black,.23);
+  if(laneSeam && detail>.55) col=mixHex(col,C.white,.12);
+  if((sector<.012||sector>.988) && lane>.35&&lane<.65 && Math.floor(theta*64)%5===0) col=mixHex(C.cyan,C.white,.18);
+
   if(state.viewMode===0 && cross>.18&&cross<.82){
     const cloud=periodicNoise01(mod(theta+state.simDays*.0018,1),cross,46,8,p.terrainSeed^0x434c4f55);
     if(cloud>clamp(.91-(p.cloudCover||.2)*.35,.68,.93)) col=mixHex(col,C.white,.56);
   }
-  const yShade=clamp(.84-(metric.yr/(metric.outer*metric.flat))*-.11,.70,1.02);
-  return yShade<1?mixHex(col,C.black,1-yShade):mixHex(col,C.white,yShade-1);
+
+  // The back half of the ring is slightly darker, which helps the band read as
+  // one huge curved structure rather than a flat decorative ellipse.
+  const depthLight=.90+(metric.depth*.5+.5)*.10;
+  const rimLight=clamp(.97-Math.abs(cross-.5)*.10,.90,1);
+  const shade=depthLight*rimLight;
+  return shade<1?mixHex(col,C.black,1-shade):mixHex(col,C.white,shade-1);
+}
+function drawPixelLine(x0,y0,x1,y1,color,alpha=1){
+  x0=Math.round(x0);y0=Math.round(y0);x1=Math.round(x1);y1=Math.round(y1);
+  const dx=Math.abs(x1-x0),sx=x0<x1?1:-1,dy=-Math.abs(y1-y0),sy=y0<y1?1:-1;
+  let err=dx+dy;
+  ctx.fillStyle=color;ctx.globalAlpha=alpha;
+  for(;;){ctx.fillRect(x0,y0,1,1);if(x0===x1&&y0===y1)break;const e2=2*err;if(e2>=dy){err+=dy;x0+=sx;}if(e2<=dx){err+=dx;y0+=sy;}}
+  ctx.globalAlpha=1;
+}
+function haloPointOnRing(rawTheta,radius,cx,cy,outer,flat,angle){
+  const a=(rawTheta-.5)*Math.PI*2,ca=Math.cos(angle),sa=Math.sin(angle);
+  const xr=Math.cos(a)*radius,yr=Math.sin(a)*radius*flat;
+  return {x:cx+xr*ca-yr*sa,y:cy+xr*sa+yr*ca};
+}
+function drawHaloDamageDebris(cx,cy,outer,flat,angle,inner){
+  const gaps=planet.haloGaps||[]; if(!gaps.length) return;
+  for(let gi=0;gi<gaps.length;gi++){
+    const g=gaps[gi],size=g.size||.04;
+    for(const side of [-1,1]){
+      const worldTheta=mod(g.at+side*size,1),rawTheta=mod(worldTheta-(state.phase||0),1);
+      const base=haloPointOnRing(rawTheta,(outer+inner)*.5,cx,cy,outer,flat,angle);
+      const a=(rawTheta-.5)*Math.PI*2;
+      const ca=Math.cos(angle),sa=Math.sin(angle);
+      const tx=-Math.sin(a)*ca-Math.cos(a)*flat*sa,ty=-Math.sin(a)*sa+Math.cos(a)*flat*ca;
+      const tl=Math.max(.001,Math.hypot(tx,ty)),tux=tx/tl,tuy=ty/tl;
+      const rxv=Math.cos(a)*ca-Math.sin(a)*flat*sa,ryv=Math.cos(a)*sa+Math.sin(a)*flat*ca;
+      const rl=Math.max(.001,Math.hypot(rxv,ryv)),rux=rxv/rl,ruy=ryv/rl;
+      const count=planet.haloStatus==='DESTROYED'?7:5;
+      for(let k=0;k<count;k++){
+        const n=h2(gi*31+k,side<0?7:13,(planet.seed^0x44454252)>>>0);
+        const along=side*(2+k*1.45+n*2.6),out=(h2(k,gi,(planet.seed^0x4252454b)>>>0)-.5)*9;
+        const x=base.x+tux*along+rux*out,y=base.y+tuy*along+ruy*out;
+        ctx.globalAlpha=.42+n*.48;
+        ctx.fillStyle=k%4===0?C.cyan:(k%3===0?mixHex(C.yellow,C.brown,.42):mixHex(C.white,C.black,.48));
+        ctx.fillRect(Math.round(x),Math.round(y),n>.78?2:1,1);
+      }
+    }
+  }
+  ctx.globalAlpha=1;
 }
 function drawHaloRingWorld(cx,cy,t){
   const outer=planet.radius||65,flat=clamp(planet.haloFlatten||.30,.12,.72),angle=planet.haloScreenAngle||0;
-  const ext=Math.ceil(outer+3),ca=Math.cos(angle),sa=Math.sin(angle);
+  const band=planet.haloBandWidth||13,inner=outer-band,ext=Math.ceil(outer+3);
   for(let y=Math.floor(cy-ext);y<=Math.ceil(cy+ext);y++){
     for(let x=Math.floor(cx-ext);x<=Math.ceil(cx+ext);x++){
       const m=haloRingMetric(x,y,cx,cy,planet,0);
@@ -3288,17 +3468,38 @@ function drawHaloRingWorld(cx,cy,t){
       ctx.fillStyle=haloSurfaceColor(m.theta,m.cross,m,planet);ctx.fillRect(x,y,1,1);
     }
   }
+
+  // Add structural ribs, retaining walls and cold-blue service lights on top of
+  // the terrain pass. These details are derived from the reference language of
+  // Halo's exposed superstructure rather than copied from any source image.
+  if(state.viewMode===0||state.viewMode===1){
+    const sectors=52;
+    for(let i=0;i<sectors;i++){
+      const raw=i/sectors,theta=mod(raw+(state.phase||0),1); if(haloGapAt(theta,planet)) continue;
+      if((i+(planet.seed&7))%3!==0) continue;
+      const a=haloPointOnRing(raw,inner+1.0,cx,cy,outer,flat,angle);
+      const b=haloPointOnRing(raw,outer-1.0,cx,cy,outer,flat,angle);
+      drawPixelLine(a.x,a.y,b.x,b.y,mixHex(C.white,C.black,.67),.30);
+      if((i+(planet.seed&3))%11===0){
+        const lamp=haloPointOnRing(raw,inner+2.2,cx,cy,outer,flat,angle);
+        ctx.globalAlpha=.88;ctx.fillStyle=C.cyan;ctx.fillRect(Math.round(lamp.x),Math.round(lamp.y),1,1);ctx.globalAlpha=1;
+      }
+    }
+  }
+
   if(state.viewMode===0||state.viewMode===2){
-    ctx.globalAlpha=state.viewMode===2?.46:.18;ctx.fillStyle=state.viewMode===2?C.cyan:C.blue;
-    const steps=190,inner=(outer-(planet.haloBandWidth||13))+.5;
+    ctx.globalAlpha=state.viewMode===2?.46:.20;ctx.fillStyle=state.viewMode===2?C.cyan:C.blue;
+    const steps=220;
     for(let i=0;i<steps;i++){
-      const raw=i/steps,theta=mod(raw+state.phase,1);if(haloGapAt(theta,planet))continue;
-      const a=(raw-.5)*Math.PI*2,xr=Math.cos(a)*inner,yr=Math.sin(a)*inner*flat;
-      const x=cx+xr*ca-yr*sa,y=cy+xr*sa+yr*ca;ctx.fillRect(Math.round(x),Math.round(y),1,1);
+      const raw=i/steps,theta=mod(raw+(state.phase||0),1);if(haloGapAt(theta,planet))continue;
+      const q=haloPointOnRing(raw,inner+.5,cx,cy,outer,flat,angle);
+      ctx.fillRect(Math.round(q.x),Math.round(q.y),1,1);
     }
     ctx.globalAlpha=1;
   }
+  drawHaloDamageDebris(cx,cy,outer,flat,angle,inner);
 }
+
 function isCubePlanet(p=planet){ return p?.shape==='cube'; }
 function planetContainsPoint(px,py,cx,cy,padding=0){
   if(isCubePlanet()) return Math.abs(px-cx)<=planet.rx+padding && Math.abs(py-cy)<=planet.ry+padding;
@@ -3537,26 +3738,22 @@ function drawMoonDeepScan(m,x,y,maxPx=132){
   return drawDeepScanModel(deepScanModelForMoon(m),x,y,maxPx);
 }
 function formatPeriodDays(days){ return days<10?days.toFixed(3):days<100?days.toFixed(2):days.toFixed(1); }
-function drawMoonHover(body,cx,cy){
-  const m=planet.moonData[body.index]; if(!m) return;
-  const scanned=isScanned(body),vessel=m.kind==='human_ship',hasClass=!!m.loreWorldClass;
-  const panelW=vessel?180:(m.kind==='heighliner'?176:158),innerW=panelW-16;
-  const nameLines=wrapText(m.name,innerW,1).slice(0,2),classLines=hasClass?wrapText(m.loreWorldClass,innerW,1).slice(0,2):[];
-  const classH=classLines.length*9;
-  let summaryH=Math.max(1,nameLines.length)*9+classH+2;
+function drawMoonHover(body,cx,cy,extraObstacles=[]){
+  const m=planet.moonData[body.index]; if(!m) return [];
+  const scanned=isScanned(body),pinned=sameBody(state.pinnedBody,body),vessel=m.kind==='human_ship',hasClass=!!m.loreWorldClass;
+  const panelW=vessel?170:(m.kind==='heighliner'?166:150),innerW=panelW-16;
+  const nameLines=wrapText(m.hoverLabel||m.name,innerW,1).slice(0,2),classLines=hasClass?wrapText(m.loreWorldClass,innerW,1).slice(0,2):[];
+  let summaryH=Math.max(1,nameLines.length)*9+classLines.length*9+3;
   if(m.kind==='heighliner'){
     summaryH+=infoFieldHeight('POSITION','FIXED GUILD HOLD',innerW);
-    summaryH+=infoFieldHeight('ORBIT','NONE / STANDOFF',innerW);
     summaryH+=infoFieldHeight('SIZE',`${m.displayLengthKm||20} KM VESSEL`,innerW);
   }else{
     summaryH+=infoFieldHeight('ORBIT',`${m.orbitKm.toLocaleString('en-US')} KM`,innerW);
     summaryH+=infoFieldHeight('PERIOD',`${formatPeriodDays(m.periodDays)} DAYS`,innerW);
     summaryH+=infoFieldHeight(vessel?'SIZE':'RADIUS',vessel?`${(m.displayLengthKm||1.6).toFixed(1)} KM VESSEL`:`${m.radiusKm.toLocaleString('en-US')} KM MOON`,innerW);
   }
-  const deepModel=scanned?deepScanModelForMoon(m):null;
-  const deepH=scanned?measureDeepScanModel(deepModel,innerW):9;
-  const panelH=Math.min(232,summaryH+deepH+21);
-  const rect=chooseInfoPanelRect(body,cx,cy,panelW,panelH);
+  summaryH+=11;
+  const rect=chooseNearBodyPanelRect(body,cx,cy,panelW,summaryH+16,extraObstacles);
   drawInfoBackdrop(rect.x,rect.y,rect.w,rect.h);
   const x=rect.x+8,y=rect.y+8;
   ctx.save();ctx.beginPath();ctx.rect(rect.x+5,rect.y+5,rect.w-10,rect.h-10);ctx.clip();
@@ -3565,22 +3762,36 @@ function drawMoonHover(body,cx,cy){
   if(hasClass){classLines.forEach((line,i)=>drawText(line,x,yy+i*9,C.green,1));yy+=classLines.length*9;}
   if(m.kind==='heighliner'){
     yy=drawInfoField('POSITION','FIXED GUILD HOLD',x,yy,innerW,C.blue);
-    yy=drawInfoField('ORBIT','NONE / STANDOFF',x,yy,innerW,C.green);
     yy=drawInfoField('SIZE',`${m.displayLengthKm||20} KM VESSEL`,x,yy,innerW,C.brown);
   }else{
     yy=drawInfoField('ORBIT',`${m.orbitKm.toLocaleString('en-US')} KM`,x,yy,innerW,C.blue);
     yy=drawInfoField('PERIOD',`${formatPeriodDays(m.periodDays)} DAYS`,x,yy,innerW,C.green);
     yy=drawInfoField(vessel?'SIZE':'RADIUS',vessel?`${(m.displayLengthKm||1.6).toFixed(1)} KM VESSEL`:`${m.radiusKm.toLocaleString('en-US')} KM MOON`,x,yy,innerW,C.brown);
   }
-  if(scanned) drawMoonDeepScan(m,x,yy+4,innerW);
-  else drawText('PROBE DATA LOCKED',x,yy+4,C.purple,1);
+  drawText(scanned?(pinned?'DEEP SCAN OPEN':'SCAN READY - CLICK'):'PROBE DATA LOCKED',x,yy+3,scanned?C.purple:C.brown,1);
   ctx.restore();
+
+  const panels=[rect];
+  // Hover stays compact and attached to the actual moon/object. Clicking still
+  // provides the full probe record, but the expanded data gets its own panel so
+  // it cannot balloon the local tooltip into a screen-covering box.
+  if(scanned&&pinned){
+    const deepW=170,deepInner=deepW-16,model=deepScanModelForMoon(m);
+    const deepH=Math.min(224,measureDeepScanModel(model,deepInner)+16);
+    const deep=chooseInfoPanelRect(body,cx,cy,deepW,deepH,[...extraObstacles,rect]);
+    drawInfoBackdrop(deep.x,deep.y,deep.w,deep.h);
+    ctx.save();ctx.beginPath();ctx.rect(deep.x+5,deep.y+5,deep.w-10,deep.h-10);ctx.clip();
+    drawMoonDeepScan(m,deep.x+8,deep.y+8,deepInner);
+    ctx.restore();panels.push(deep);
+  }
+  return panels;
 }
 function drawContextInfo(body,cx,cy){
   if(!body) return;
   drawObjectMarker(body,cx,cy);
   if(body.type==='moon') drawMoonHover(body,cx,cy); else drawPlanetHover(cx,cy);
 }
+
 function drawHelpCard(){
   if(!state.info) return;
   drawText(state.infoTitle || planet.name,248,78,C.white,1);
@@ -3901,7 +4112,7 @@ function render(t){
     let hovered=!state.libraryOpen&&state.mouse.inside?bodyAtPoint(state.mouse,cx,cy):null;
     if(hovered?.type==='moon'){
       state.moonHoverGrace=bodyRef(hovered);
-      state.moonHoverUntil=t+3000;
+      state.moonHoverUntil=t+MOON_HOVER_GRACE_MS;
     }else if(hovered?.type==='planet'){
       state.moonHoverGrace=null;
       state.moonHoverUntil=0;
@@ -4039,7 +4250,7 @@ canvas.addEventListener('pointerdown',ev=>{
       if(body.type==='moon') beginMoonInspection(body.index);
     }
     state.moonHoverGrace=body.type==='moon'?bodyRef(body):null;
-    state.moonHoverUntil=body.type==='moon'?performance.now()+3000:0;
+    state.moonHoverUntil=body.type==='moon'?performance.now()+MOON_HOVER_GRACE_MS:0;
     ev.preventDefault(); return;
   }
   releaseMoonInspection();
