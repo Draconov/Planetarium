@@ -374,7 +374,8 @@ const FICTIONAL_ALIASES={
   'DEATH STAR 2':'DEATH STAR II','DEATH STAR TWO':'DEATH STAR II',
   'DEATH STAR 3':'DEATH STAR III','DEATH STAR THREE':'DEATH STAR III',
   'DS-1':'DEATH STAR','DS-2':'DEATH STAR II','DS-3':'DEATH STAR III',
-  'WIKI':'WIKIPEDIA','WIKIPEDIA.ORG':'WIKIPEDIA','WIKIMEDIA':'WIKIPEDIA'
+  'WIKI':'WIKIPEDIA','WIKIPEDIA.ORG':'WIKIPEDIA','WIKIMEDIA':'WIKIPEDIA',
+  'LAND OF OOO':'OOO','WORLD OF OOO':'OOO','ADVENTURE TIME':'OOO','ADVENTURE TIME WORLD':'OOO'
 };
 function canonicalPlanetName(name){
   const upper=(name||'').trim().toUpperCase().slice(0,60) || 'PLANET';
@@ -513,6 +514,15 @@ const LORE_PRESETS={
     scan:{ageBy:.25,pressureAtm:.72,pressureText:'0.72 ATM',magField:'MODERATE',oxygen:20,nitrogen:78,co2:.04,tectonics:'CONTINUOUS EDITS',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'INTELLIGENT',techPotential:'INTERSTELLAR',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'MISSING PUZZLE SEGMENT / GLOBAL EDIT HISTORY',lossRisk:false},
     loreReport:'THE SURFACE IS DIVIDED INTO BILLIONS OF INTERLOCKING KNOWLEDGE DISTRICTS MAINTAINED BY VAST NUMBERS OF EDITORS. SEVEN SMALL SISTER-PROJECT MOONS ORBIT THE GLOBE, EACH SPECIALIZED IN WORDS, BOOKS, QUOTATIONS, SOURCE TEXTS, SPECIES, TRAVEL OR STRUCTURED DATA.',
     lifeLabel:'ABUNDANT',populationLabel:'MASSIVE',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'INTERSTELLAR'
+  },
+  OOO:{
+    worldType:'VERDANT',worldClass:'POST-CATACLYSM WORLD',renderer:'ooo',visualRadius:43,radiusKm:5920,gravity:.94,massEarth:.88,density:1.01,
+    water:.57,cloudCover:.66,cloudSpeed:.14,defaultTempC:17,tempRange:[-18,36],life:true,populationBase:6,
+    dayHours:24.8,yearDays:394,distanceAU:1.08,axialTiltDeg:19,rotationDirection:1,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'PATCHY STORMS / SWEET BREEZES',ring:false,
+    observation:'A STRANGE BLUE-GREEN WORLD OF CARTOONISH SEAS, KINGDOMS, RUINS AND A GREAT BITE-SHAPED SCAR REMOVED FROM ONE SIDE OF THE GLOBE.',
+    scan:{ageBy:1.1,pressureAtm:1.02,pressureText:'1.02 ATM',magField:'MODERATE',oxygen:20.4,nitrogen:78.2,co2:.06,tectonics:'PATCHY',volcanism:'LOW',oceanDepthKm:2.8,lifeTypePotential:'INTELLIGENT',techPotential:'PATCHWORK / LOST HIGH TECH',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'MUTAGENIC RUINS / MAGIC SIGNATURES',lossRisk:false},
+    loreReport:'KINGDOMS OF CANDY, ICE, FIRE AND MANY OTHER PEOPLES COVER THE SURFACE. RUINS OF OLDER HUMAN CIVILIZATION, UNUSUAL MAGIC SIGNATURES AND A HUGE MISSING CHUNK OF THE WORLD ARE ALL CLEARLY VISIBLE.'
   },
   PANDORA:{
     worldType:'VERDANT',worldClass:'LIFE-BEARING MOON',visualRadius:42,radiusKm:2890,gravity:.80,massEarth:.16,density:1.78,
@@ -1940,10 +1950,11 @@ function deathStarSurfaceColor(lon,lat,nx,z,variant=1){
   const trench=Math.abs(lat-.52);
   if(trench<.013) col=mixHex(C.black,C.white,.09);
   else if(trench<.023) col=mixHex(C.black,C.white,.23);
-  const dish=((lonDistance(lon,.67)/.13)**2)+(((lat-.36)/.16)**2);
+  const dishDx=lonDistance(lon,.675), dishDy=(lat-.365);
+  const dish=((dishDx/.095)**2)+((dishDy/.125)**2);
   if(dish<1){
-    const radial=Math.abs(Math.sin(Math.atan2(lat-.36,lonDistance(lon,.67))*8));
-    col=dish<.09?C.black:dish<.82?mixHex(C.white,C.black,.42-radial*.08):mixHex(C.white,C.black,.26);
+    const radial=Math.abs(Math.sin(Math.atan2(dishDy,dishDx||.0001)*9));
+    col=dish<.055?C.black:dish<.78?mixHex(C.white,C.black,.44-radial*.07):mixHex(C.white,C.black,.28);
   }
   const cap=((lonDistance(lon,.50)/.11)**2)+(((lat-.06)/.09)**2);
   if(cap<1) col=cap<.25?mixHex(C.black,C.white,.28):mixHex(C.white,C.black,.30);
@@ -1981,39 +1992,113 @@ function coruscantSurfaceColor(lon,lat,nx,z){
   return surfaceShade(col,nx,z);
 }
 function wikipediaSurfaceColor(lon,lat,nx,z){
-  const gx=lon*8, gy=lat*5;
+  const gx=lon*11.5, gy=lat*6.6;
   const cellX=Math.floor(gx), cellY=Math.floor(gy), u=gx-cellX, v=gy-cellY;
-  const wobbleX=Math.sin((lat*11+cellX*.73)*Math.PI)*.045;
-  const wobbleY=Math.sin((lon*13+cellY*.61)*Math.PI)*.040;
+  const wobbleX=Math.sin((lat*13+cellX*.73)*Math.PI)*.038;
+  const wobbleY=Math.sin((lon*15+cellY*.61)*Math.PI)*.034;
   let col=mixHex(C.white,C.black,.08);
   const seamX=Math.min(Math.abs(u+wobbleX),Math.abs(1-u-wobbleX));
   const seamY=Math.min(Math.abs(v+wobbleY),Math.abs(1-v-wobbleY));
-  if(seamX<.035||seamY<.040) col=mixHex(C.white,C.black,.30);
+  if(seamX<.032||seamY<.037) col=mixHex(C.white,C.black,.30);
   else{
-    const shade=periodicNoise01(lon,lat,48,28,planet.terrainSeed^0x7711)-.5;
-    col=mixHex(col,shade>0?C.white:C.black,Math.abs(shade)*.16);
+    const shade=periodicNoise01(lon,lat,54,32,planet.terrainSeed^0x7711)-.5;
+    col=mixHex(col,shade>0?C.white:C.black,Math.abs(shade)*.18);
   }
-  // Pseudo-glyphs: deterministic dark strokes scattered across puzzle panels.
-  const h=hashString(`${cellX}:${cellY}:${planet.seed}`);
-  const mark=(h%100)<62;
-  if(mark){
-    const style=h%5;
-    let ink=false;
-    if(style===0) ink=(Math.abs(u-.50)<.055&&v>.24&&v<.78)||(Math.abs(v-.34)<.045&&u>.25&&u<.72)||(Math.abs(v-.68)<.045&&u>.25&&u<.72);
-    else if(style===1) ink=(Math.abs(u-.32)<.05&&v>.25&&v<.75)||(Math.abs(u-.68)<.05&&v>.25&&v<.75)||(Math.abs(v-.52)<.05&&u>.32&&u<.68);
-    else if(style===2) ink=(Math.abs(v-.30)<.05&&u>.28&&u<.72)||(Math.abs(v-.70)<.05&&u>.28&&u<.72)||(Math.abs(u-.50)<.05&&v>.30&&v<.70);
-    else if(style===3) ink=((u-.50)*(u-.50)+(v-.50)*(v-.50)<.055)&&((u-.50)*(u-.50)+(v-.50)*(v-.50)>.022);
-    else ink=(Math.abs((u-.24)-(v-.25)*.65)<.05&&v>.24&&v<.76)||(Math.abs((u-.76)+(v-.25)*.65)<.05&&v>.24&&v<.76);
-    if(ink) col=mixHex(C.black,C.white,.05);
+  const crownGap=lat<.18 && lon>.38 && lon<.63;
+  if(!crownGap){
+    const h=hashString(`${cellX}:${cellY}:${planet.seed}`);
+    const passes=[h,(h>>>3)^0x45a1,(h>>>5)^0x1327];
+    for(let i=0;i<passes.length;i++){
+      const q=passes[i];
+      if((q%100)>(i===0?16:i===1?44:72)) continue;
+      const du=u-(((q>>7)&15)/15-.5)*.22, dv=v-(((q>>11)&15)/15-.5)*.22;
+      const style=q%8;
+      let ink=false;
+      if(style===0) ink=(Math.abs(du-.50)<.050&&dv>.18&&dv<.82)||(Math.abs(dv-.31)<.040&&du>.22&&du<.74)||(Math.abs(dv-.70)<.040&&du>.22&&du<.74);
+      else if(style===1) ink=(Math.abs(du-.32)<.045&&dv>.20&&dv<.78)||(Math.abs(du-.68)<.045&&dv>.20&&dv<.78)||(Math.abs(dv-.52)<.045&&du>.30&&du<.70);
+      else if(style===2) ink=(Math.abs(dv-.28)<.042&&du>.24&&du<.76)||(Math.abs(dv-.72)<.042&&du>.24&&du<.76)||(Math.abs(du-.50)<.046&&dv>.28&&dv<.72);
+      else if(style===3) ink=((du-.50)*(du-.50)+(dv-.50)*(dv-.50)<.050)&&((du-.50)*(du-.50)+(dv-.50)*(dv-.50)>.020);
+      else if(style===4) ink=(Math.abs((du-.22)-(dv-.24)*.72)<.045&&dv>.22&&dv<.80)||(Math.abs((du-.78)+(dv-.24)*.72)<.045&&dv>.22&&dv<.80);
+      else if(style===5) ink=(Math.abs(du-.50)<.040&&dv>.18&&dv<.82)||(Math.abs(du-.34)<.040&&dv>.36&&dv<.78)||(Math.abs(du-.66)<.040&&dv>.36&&dv<.78);
+      else if(style===6) ink=(Math.abs(dv-.50)<.040&&du>.18&&du<.82)||(Math.abs(du-.28)<.040&&dv>.20&&dv<.50)||(Math.abs(du-.72)<.040&&dv>.50&&dv<.80);
+      else ink=(Math.abs(du-.30)<.038&&dv>.20&&dv<.78)||(Math.abs(dv-.26)<.038&&du>.30&&du<.72)||(Math.abs(du-.72)<.038&&dv>.26&&dv<.78)||(Math.abs(dv-.78)<.038&&du>.30&&du<.72);
+      if(ink) col=mixHex(C.black,C.white,.05);
+    }
   }
   return surfaceShade(col,nx,z);
 }
 function wikipediaMissingPiece(nx,ny){
   if(planet?.renderer!=='wikipedia') return false;
-  const core=nx>-0.34&&nx<-0.05&&ny<-.69&&ny>-.91;
-  const tab=((nx+.195)/.075)**2+((ny+.67)/.075)**2<1;
-  const side=((nx+.04)/.065)**2+((ny+.80)/.065)**2<1;
-  return core||tab||side;
+  const crown=((nx+.04)/.18)**2+((ny+.90)/.11)**2<1;
+  const bowl=((nx+.01)/.14)**2+((ny+.82)/.14)**2<1;
+  const leftTab=((nx+.18)/.055)**2+((ny+.86)/.055)**2<1;
+  const rightTab=((nx-.12)/.055)**2+((ny+.83)/.055)**2<1;
+  return crown||bowl||leftTab||rightTab;
+}
+function oooSurfaceColor(lon,lat,nx,z){
+  const ocean=mixHex(C.blue,C.cyan,.24);
+  const deepOcean=mixHex(C.blue,C.black,.10);
+  const grass=C.green;
+  const darkGrass=mixHex(C.green,C.black,.14);
+  const beach=mixHex(C.yellow,C.green,.34);
+  const n=periodicNoise01(lon,lat,28,18,planet.terrainSeed^0x0aa0)-.5;
+  const detail=periodicNoise01(lon,lat,66,40,planet.terrainSeed^0x0aa1)-.5;
+  const north=((lonDistance(lon,.24)/.26)**2)+(((lat-.24)/.18)**2);
+  const south=((lonDistance(lon,.29)/.20)**2)+(((lat-.66)/.30)**2);
+  const island=((lonDistance(lon,.49)/.11)**2)+(((lat-.63)/.10)**2);
+  const cut=((lonDistance(lon,.97)/.16)**2)+(((lat-.49)/.37)**2);
+  let col=deepOcean;
+  let land=(north<1||south<1||island<1);
+  if(!land && n>.14 && Math.abs(lat-.5)<.40) land=true;
+  if(land){
+    col=detail>.10?grass:darkGrass;
+    if(north>.86||south>.86||island>.86||Math.abs(n-.14)<.04) col=beach;
+  }
+  if(cut<1.08){
+    const layer=Math.floor((lat*22)+(periodicNoise01(lon,lat,20,12,planet.terrainSeed^0x0aa2)-.5)*2);
+    const palette=[C.black,mixHex(C.brown,C.black,.36),mixHex(C.brown,C.black,.16),mixHex(C.brown,C.red,.10)];
+    col=palette[mod(layer,palette.length)];
+    if(cut>.92) col=mixHex(col,C.black,.22);
+    if(detail>.22) col=mixHex(col,C.black,.10);
+  }
+  if(Math.abs(lat-.50)>.44 && cut>1.02) col=mixHex(col,C.white,.18);
+  return surfaceShade(col,nx,z);
+}
+function drawOOOCloudSwirls(cx,cy){
+  const r=planet.radius, left=Math.round(cx-r), top=Math.round(cy-r), size=r*2;
+  const drift=state.simDays*.0038;
+  const ribbons=[
+    {y:-.34, amp:.07, freq:5.2, width:.060, xmin:-.78, xmax:.16},
+    {y:-.06, amp:.06, freq:5.8, width:.058, xmin:-.62, xmax:.42},
+    {y:.26, amp:.05, freq:6.1, width:.052, xmin:-.20, xmax:.58}
+  ];
+  for(let y=0;y<size;y+=2){
+    const ny=((y+.5)/size)*2-1;
+    for(let x=0;x<size;x+=2){
+      const nx=((x+.5)/size)*2-1;
+      if(nx*nx+ny*ny>1) continue;
+      let on=false;
+      for(const band of ribbons){
+        if(nx<band.xmin||nx>band.xmax) continue;
+        const wave=band.y+Math.sin((nx+drift)*band.freq)*band.amp;
+        if(Math.abs(ny-wave)<band.width){ on=true; break; }
+      }
+      if(!on){
+        const puffs=[[-.38,-.56,.09],[.66,-.05,.08],[.77,.46,.06]];
+        for(const puff of puffs){
+          const dx=nx-puff[0], dy=ny-puff[1];
+          if(dx*dx+dy*dy<puff[2]*puff[2]){ on=true; break; }
+        }
+      }
+      if(!on) continue;
+      ctx.fillStyle=C.black; ctx.globalAlpha=.14; ctx.fillRect(left+x+1,top+y+1,2,2);
+      ctx.fillStyle=mixHex(C.white,C.cyan,.16); ctx.globalAlpha=.78; ctx.fillRect(left+x,top+y,2,2);
+    }
+  }
+  ctx.globalAlpha=1;
+}
+function specialSurfaceMask(nx,ny){
+  return wikipediaMissingPiece(nx,ny);
 }
 function loreSurfaceColor(lon,lat,normY,nx,z){
   if(state.viewMode===2 && hasAtmosphereView()) return atmosphereViewColor(lon,lat,nx,z);
@@ -2028,6 +2113,7 @@ function loreSurfaceColor(lon,lat,normY,nx,z){
   if(planet.renderer==='deathstar3') return deathStarSurfaceColor(lon,lat,nx,z,3);
   if(planet.renderer==='coruscant') return coruscantSurfaceColor(lon,lat,nx,z);
   if(planet.renderer==='wikipedia') return wikipediaSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='ooo') return oooSurfaceColor(lon,lat,nx,z);
   return null;
 }
 function surfaceColor(lon,lat,normY,nx,z){
@@ -2365,6 +2451,44 @@ function drawCivilizationMoonMission(cx,cy){
   const u=q<.5?smooth(q*2):smooth((1-q)*2);
   const x=lerp(cx,m.screenX,u), y=lerp(cy,m.screenY,u)-Math.sin(u*Math.PI)*10;
   drawCivilizationCraft(x,y,'traffic',C.green);
+}
+function specialSetpiecePosition(cx,cy,orbit,flatten,periodDays,phase=.0){
+  const ang=phase+state.simDays/Math.max(1,periodDays)*Math.PI*2;
+  return {x:cx+Math.cos(ang)*orbit,y:cy+Math.sin(ang)*orbit*flatten,depth:Math.sin(ang)};
+}
+function drawPandoraOrbiter(x,y){
+  x=Math.round(x); y=Math.round(y);
+  ctx.fillStyle=mixHex(C.white,C.blue,.18); ctx.fillRect(x-7,y-1,14,2);
+  ctx.fillStyle=C.white; ctx.fillRect(x-1,y-3,2,6); ctx.fillRect(x-9,y,2,1); ctx.fillRect(x+8,y,2,1);
+  ctx.fillStyle=C.cyan; ctx.fillRect(x-5,y-2,2,1); ctx.fillRect(x+3,y-2,2,1);
+  ctx.fillStyle=C.black; ctx.fillRect(x+7,y-1,2,2);
+}
+function drawHeighliner(x,y){
+  x=Math.round(x); y=Math.round(y);
+  ctx.fillStyle=mixHex(C.white,C.black,.76);
+  for(let i=-16;i<=16;i++){
+    const span=Math.round(3*(1-Math.abs(i)/16))+1;
+    ctx.fillRect(x+i,y-span,1,span*2+1);
+  }
+  ctx.fillStyle=mixHex(C.white,C.black,.22);
+  for(let i=-15;i<=15;i++){
+    const span=Math.round(2*(1-Math.abs(i)/15))+1;
+    ctx.fillRect(x+i,y-span,1,span*2+1);
+  }
+  ctx.fillStyle=C.black; ctx.fillRect(x+11,y-4,3,8);
+  ctx.fillStyle=C.white; ctx.fillRect(x+12,y-3,1,6);
+}
+function drawLoreSetpieces(cx,cy,front){
+  if(state.viewMode>1) return;
+  if(planet.name==='PANDORA'){
+    const pos=specialSetpiecePosition(cx,cy,planet.radius+17,.38,52,1.2);
+    if((front&&pos.depth<0)||(!front&&pos.depth>=0)) return;
+    drawPandoraOrbiter(pos.x,pos.y);
+  }else if(planet.name==='ARRAKIS'){
+    const pos=specialSetpiecePosition(cx,cy,planet.radius+26,.20,88,-.75);
+    if((front&&pos.depth<0)||(!front&&pos.depth>=0)) return;
+    drawHeighliner(pos.x,pos.y);
+  }
 }
 const cloudTintCache=new Map();
 function cloudTintColor(){
@@ -2734,6 +2858,7 @@ function drawPlanet(cx,cy,t){
   if(isCubePlanet()) { drawMinecraftCube(cx,cy,t); return; }
   const normalView=state.viewMode===0, atmosphereView=state.viewMode===2, showEnvironment=normalView||atmosphereView;
   if(normalView) drawCivilizationOrbitObjects(cx,cy,false);
+  drawLoreSetpieces(cx,cy,false);
   drawMoons(cx,cy,t,false); ringPoints(cx,cy,false); if(showEnvironment) drawAtmosphereLimb(cx,cy);
   const minX=Math.floor(cx-planet.rx-1), maxX=Math.ceil(cx+planet.rx+1), minY=Math.floor(cy-planet.ry-1), maxY=Math.ceil(cy+planet.ry+1);
   const rot = state.phase;
@@ -2743,7 +2868,7 @@ function drawPlanet(cx,cy,t){
     for(let x=minX;x<=maxX;x++){
       const nx=(x-cx)/planet.rx;
       const rr=nx*nx+ny*ny; if(rr>1) continue;
-      if(wikipediaMissingPiece(nx,ny)) continue;
+      if(specialSurfaceMask(nx,ny)) continue;
       const z=Math.sqrt(Math.max(0,1-rr));
       const lon=mod(.5+Math.atan2(nx,z)/(Math.PI*2)+rot,1);
       const lat=clamp(.5+Math.asin(ny)/Math.PI,0,1);
@@ -2754,12 +2879,14 @@ function drawPlanet(cx,cy,t){
   // NORMAL shows the full atmosphere. CLEAN and TEMPERATURE intentionally strip it away.
   if(showEnvironment){
     drawProceduralCloudLayers(cx,cy);
+    if(planet.renderer==='ooo') drawOOOCloudSwirls(cx,cy);
     drawWeatherSystems(cx,cy);
     drawVolcanicPlumes(cx,cy);
     drawPolarVortices(cx,cy);
     drawAuroras(cx,cy);
   }
   ringPoints(cx,cy,true); drawMoons(cx,cy,t,true);
+  drawLoreSetpieces(cx,cy,true);
   if(normalView){drawCivilizationOrbitObjects(cx,cy,true);drawCivilizationMoonMission(cx,cy);}
 }
 
