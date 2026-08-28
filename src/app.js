@@ -398,7 +398,14 @@ const FICTIONAL_ALIASES={
   'POLYPHEMUS MOON 10':'POLYPHEMUS X','POLYPHEMUS MOON X':'POLYPHEMUS X',
   'POLYPHEMUS MOON 11':'POLYPHEMUS XI','POLYPHEMUS MOON XI':'POLYPHEMUS XI',
   'POLYPHEMUS MOON 13':'POLYPHEMUS XIII','POLYPHEMUS MOON XIII':'POLYPHEMUS XIII',
-  'POLYPHEMUS MOON 14':'POLYPHEMUS XIV','POLYPHEMUS MOON XIV':'POLYPHEMUS XIV'
+  'POLYPHEMUS MOON 14':'POLYPHEMUS XIV','POLYPHEMUS MOON XIV':'POLYPHEMUS XIV',
+  'HALO':'ALPHA HALO','HALO CE':'ALPHA HALO','INSTALLATION 04':'ALPHA HALO','INSTALLATION 4':'ALPHA HALO','I04':'ALPHA HALO',
+  'INSTALLATION 01':'BETA HALO','INSTALLATION 1':'BETA HALO','I01':'BETA HALO',
+  'INSTALLATION 02':'EPSILON HALO','INSTALLATION 2':'EPSILON HALO','I02':'EPSILON HALO',
+  'INSTALLATION 03':'GAMMA HALO','INSTALLATION 3':'GAMMA HALO','I03':'GAMMA HALO',
+  'INSTALLATION 05':'DELTA HALO','INSTALLATION 5':'DELTA HALO','I05':'DELTA HALO','HALO 2':'DELTA HALO',
+  'INSTALLATION 06':'KAPPA HALO','INSTALLATION 6':'KAPPA HALO','I06':'KAPPA HALO',
+  'INSTALLATION 07':'ZETA HALO','INSTALLATION 7':'ZETA HALO','I07':'ZETA HALO','HALO INFINITE':'ZETA HALO'
 };
 function canonicalPlanetName(name){
   const upper=(name||'').trim().toUpperCase().slice(0,60) || 'PLANET';
@@ -569,7 +576,50 @@ const AVATAR_SISTER_PRESETS={
   'POLYPHEMUS XIII':avatarSisterPreset({worldType:'DWARF',worldClass:'RETROGRADE OUTER MOON',radiusKm:690,gravity:.07,water:.18,cloudCover:0,temp:-143,atmos:'NONE',chem:'NONE',weather:'NO WEATHER',surface:'ICE / ROCK',observation:'ONE OF POLYPHEMUS\' DISTANT UNNAMED OUTER MOONS, MOVING IN A RETROGRADE ORBIT.',anomaly:'RETROGRADE ORBIT',retrograde:true}),
   'POLYPHEMUS XIV':avatarSisterPreset({worldType:'DWARF',worldClass:'RETROGRADE OUTER MOON',radiusKm:510,gravity:.04,water:.12,cloudCover:0,temp:-151,atmos:'NONE',chem:'NONE',weather:'NO WEATHER',surface:'DARK ROCK / ICE',observation:'THE OUTERMOST DESIGNATED LUNAR SISTER IN THIS CHART, A SMALL DARK BODY ON A RETROGRADE ORBIT.',anomaly:'DISTANT RETROGRADE ORBIT',retrograde:true})
 };
+function haloInstallationPreset({
+  worldClass='FORERUNNER HALO',style='temperate',temp=14,water=.42,cloud=.28,life=true,
+  monitor='UNKNOWN',status='INTACT',biome='CURATED TERRAIN',anomaly='FORERUNNER SUPERWEAPON SIGNATURE',
+  gaps=[],glassed=false,population='SPARSE',lifeType='CURATED',observation='',loreReport=''
+}={}){
+  return {
+    shape:'haloRing',worldType:style==='desert'?'DESERT':style==='ice'?'ICE':'VERDANT',worldClass,renderer:'halo',
+    visualRadius:65,radiusKm:5000,gravity:.99,massEarth:.02,density:.01,
+    water,cloudCover:cloud,cloudSpeed:.12,defaultTempC:temp,tempRange:[-23,40],life,populationBase:life?4:0,
+    dayHours:19.2,yearDays:365,distanceAU:0,axialTiltDeg:0,rotationDirection:1,
+    atmosDensity:life?'NORMAL':'TRACE',atmosChemistry:'N2 / O2',weather:cloud>.4?'CONTROLLED STORMS':'CONTROLLED WEATHER',ring:false,disableAutoCivilization:true,
+    haloBandWidth:13,haloFlatten:.30,haloScreenAngle:-.18,haloSurfaceWidthKm:318,haloStyle:style,haloMonitor:monitor,haloStatus:status,haloBiome:biome,
+    haloGaps:gaps.map(g=>({...g})),haloGlassed:!!glassed,
+    observation,
+    scan:{ageBy:.097,pressureAtm:life?1:.02,pressureText:life?'1.0 ATM':'TRACE',magField:'ARTIFICIAL',oxygen:life?20.9:0,nitrogen:life?78.1:0,co2:life?.04:0,tectonics:'ARTIFICIAL',volcanism:'CONTROLLED',oceanDepthKm:water>0?1.8:0,lifeTypePotential:lifeType,techPotential:'FORERUNNER',iron:'ABUNDANT',carbon:'COMMON',uranium:'TRACE',anomaly,lossRisk:false},
+    loreReport,lifeLabel:life?'CURATED':'NONE',populationLabel:life?population:'NONE',lifeTypeLabel:life?lifeType:'NONE',techLevelLabel:'FORERUNNER'
+  };
+}
+const HALO_INSTALLATIONS={
+  'BETA HALO':haloInstallationPreset({style:'desert',temp:26,water:.06,cloud:.10,monitor:'001 SHAMED INSTRUMENT',status:'INTACT / DEACTIVATED',biome:'DESERT / FORERUNNER FACILITIES',population:'SPARSE',
+    anomaly:'HALO ARRAY WEAPON GRID / FLOOD CONTAINMENT',observation:'INSTALLATION 01 — BETA HALO. A 10,000 KM FORERUNNER RINGWORLD WITH A BROAD DESERT-LIKE INTERIOR AND LIMITED WEATHER.',
+    loreReport:'BETA HALO IS AN INTACT MEMBER OF THE SEVEN-RING HALO ARRAY. ITS INTERIOR IS DOMINATED BY DESERT TERRAIN, FORERUNNER STRUCTURES AND CONTAINMENT FACILITIES UNDER THE CARE OF 001 SHAMED INSTRUMENT.'}),
+  'EPSILON HALO':haloInstallationPreset({style:'oceanice',temp:-4,water:.72,cloud:.46,monitor:'007 CONTRITE WITNESS',status:'INTACT / DEACTIVATED',biome:'OCEANS / ROCK / ICE FLOES',population:'SPARSE',
+    anomaly:'HALO ARRAY WEAPON GRID / OCEANIC BIOSPHERE',observation:'INSTALLATION 02 — EPSILON HALO. AN INTACT FORERUNNER RINGWORLD OF OCEANS, ROCKY OUTCROPS AND LARGE ICE FLOES.',
+    loreReport:'EPSILON HALO PRESERVES A COLD OCEANIC ENVIRONMENT ACROSS ITS INNER SURFACE. ROCKY ISLANDS AND ICE FLOES INTERRUPT THE WATER WHILE FORERUNNER INFRASTRUCTURE RUNS BENEATH THE ARTIFICIAL LANDSCAPE.'}),
+  'GAMMA HALO':haloInstallationPreset({style:'mixed',temp:18,water:.31,cloud:.31,monitor:'049 ABJECT TESTAMENT',status:'MAJOR SURFACE DAMAGE',biome:'DESERT / JUNGLE / VOLCANIC',population:'TRACE',gaps:[{at:.71,size:.025}],
+    anomaly:'DAMAGED CONTROL COMPLEX / FORERUNNER WEAPON GRID',observation:'INSTALLATION 03 — GAMMA HALO. DESERTS, JUNGLES AND VOLCANIC REGIONS SHARE A RING THAT HAS SUFFERED MAJOR SURFACE DAMAGE.',
+    loreReport:'GAMMA HALO REMAINS STRUCTURALLY RECOGNIZABLE BUT ITS SURFACE HAS BEEN BADLY DAMAGED. FORERUNNER FACILITIES, MIXED BIOMES AND THE SCARS AROUND ITS FORMER CONTROL COMPLEX REMAIN DETECTABLE.'}),
+  'ALPHA HALO':haloInstallationPreset({style:'temperate',temp:15,water:.46,cloud:.34,life:false,monitor:'343 GUILTY SPARK',status:'DESTROYED',biome:'FORMER TEMPERATE BIOSPHERE',population:'NONE',lifeType:'NONE',
+    gaps:[{at:.06,size:.13},{at:.31,size:.055},{at:.58,size:.095},{at:.82,size:.07}],anomaly:'CATASTROPHIC REACTOR DETONATION / HALO DEBRIS',
+    observation:'INSTALLATION 04 — ALPHA HALO. THE FIRST HALO ENCOUNTERED BY HUMANITY IS NOW A BROKEN ARC OF FORERUNNER SUPERSTRUCTURE AND DEAD LANDSCAPE.',
+    loreReport:'ALPHA HALO WAS DESTROYED IN 2552. ONLY BROKEN RING SEGMENTS, EXPOSED SUPERSTRUCTURE AND QUARANTINED WRECKAGE REMAIN OF THE ONCE-TEMPERATE INSTALLATION.'}),
+  'DELTA HALO':haloInstallationPreset({style:'jungle',temp:22,water:.38,cloud:.52,monitor:'2401 PENITENT TANGENT',status:'PARTIALLY GLASSED / DEACTIVATED',biome:'JUNGLE / DESERT / GLASSED ZONES',population:'TRACE',glassed:true,
+    anomaly:'FLOOD CONTAINMENT / GLASSED SURFACE SECTORS',observation:'INSTALLATION 05 — DELTA HALO. DENSE JUNGLES AND FORERUNNER COMPLEXES ARE INTERRUPTED BY LARGE GLASSED REGIONS LEFT BY BATTLE.',
+    loreReport:'DELTA HALO STILL CARRIES JUNGLE, DESERT AND FORERUNNER FACILITY ZONES, BUT PARTS OF ITS SURFACE WERE GLASSED DURING THE BATTLE TO CONTAIN THE FLOOD OUTBREAK.'}),
+  'KAPPA HALO':haloInstallationPreset({style:'tundra',temp:-8,water:.36,cloud:.36,monitor:'16807 ABASHED EULOGY',status:'INTACT / DEACTIVATED',biome:'TUNDRA / FOREST',population:'SPARSE',
+    anomaly:'HALO ARRAY WEAPON GRID / PRESERVED ECOLOGY',observation:'INSTALLATION 06 — KAPPA HALO. AN INTACT FORERUNNER RINGWORLD COVERED IN TUNDRA, FORESTS AND COLD CURATED WILDERNESS.',
+    loreReport:'KAPPA HALO IS ONE OF THE ARRAY’S INTACT RINGS. COLD TUNDRA AND FOREST BIOMES SPREAD ACROSS ITS INNER SURFACE ABOVE DEEP FORERUNNER MACHINE LAYERS.'}),
+  'ZETA HALO':haloInstallationPreset({style:'zeta',temp:12,water:.44,cloud:.38,monitor:'ADJUTANT RESOLUTION',status:'DAMAGED / BANISHED OCCUPATION',biome:'FOREST / MOUNTAIN / FORERUNNER RUINS',population:'MANY',lifeType:'MIXED',gaps:[{at:.12,size:.095},{at:.49,size:.045},{at:.76,size:.025}],
+    anomaly:'SUNDERED RING / BANISHED CONTROL / ANCIENT FORERUNNER SECRETS',observation:'INSTALLATION 07 — ZETA HALO. A DAMAGED, PARTLY SUNDERED RINGWORLD OF MOUNTAINS, FORESTS, FORERUNNER RUINS AND ACTIVE CONFLICT.',
+    loreReport:'ZETA HALO IS DAMAGED AND PARTLY SUNDERED, WITH SURVIVING LANDSCAPE FRAGMENTS SEPARATED BY BROKEN SECTIONS OF RING. BANISHED OCCUPATION, UNSC ACTIVITY AND ANCIENT FORERUNNER STRUCTURES ARE ALL DETECTABLE ACROSS THE INSTALLATION.'})
+};
 const LORE_PRESETS={
+  ...HALO_INSTALLATIONS,
   ...AVATAR_SISTER_PRESETS,
   WIKIPEDIA:{
     worldType:'BARREN',worldClass:'ENCYCLOPEDIC WORLD',renderer:'wikipedia',visualRadius:39,radiusKm:4600,gravity:.58,massEarth:.31,density:.80,
@@ -956,7 +1006,7 @@ function makePlanetScan(p){
 }
 const PROCEDURAL_DAMAGE_TYPES=['SHATTERED_EDGE','MISSING_HEMISPHERE','EXPLOSION_DAMAGE','BITE','CRATER'];
 function configureRarePlanetDamage(p,r){
-  if(!p || p.solar || p.special || p.lorePreset || p.shape==='cube') return;
+  if(!p || p.solar || p.special || p.lorePreset || p.shape==='cube' || p.shape==='haloRing') return;
   // Roughly one named procedural world in four hundred is born catastrophically damaged.
   if(r()>=.0025) return;
   const type=pick(r,PROCEDURAL_DAMAGE_TYPES);
@@ -1072,6 +1122,7 @@ function applyLorePreset(p,preset,r){
   if(!preset) return;
   p.lorePreset=preset;
   p.renderer=preset.renderer||p.renderer||null;
+  p.shape=preset.shape||p.shape||'sphere';
   p.worldType=preset.worldType||p.worldType;
   p.worldClassOverride=preset.worldClass||null;
   p.radius=preset.visualRadius||p.radius;
@@ -1095,6 +1146,16 @@ function applyLorePreset(p,preset,r){
   p.ringAlpha=preset.ringAlpha;
   p.ringStyle=preset.ringStyle||'THIN';
   p.ringMaterial=preset.ringMaterial||'ROCK / ICE';
+  p.haloBandWidth=preset.haloBandWidth||null;
+  p.haloFlatten=preset.haloFlatten||null;
+  p.haloScreenAngle=preset.haloScreenAngle||0;
+  p.haloSurfaceWidthKm=preset.haloSurfaceWidthKm||null;
+  p.haloStyle=preset.haloStyle||null;
+  p.haloMonitor=preset.haloMonitor||null;
+  p.haloStatus=preset.haloStatus||null;
+  p.haloBiome=preset.haloBiome||null;
+  p.haloGaps=Array.isArray(preset.haloGaps)?preset.haloGaps.map(g=>({...g})):[];
+  p.haloGlassed=!!preset.haloGlassed;
   p.radiusKm=preset.radiusKm||p.radiusKm;
   p.radiusEarth=p.radiusKm/6371;
   p.gravity=preset.gravity ?? p.gravity;
@@ -3034,9 +3095,97 @@ function drawNormalAtmosphereHaze(cx,cy){
   }
   ctx.globalAlpha=1;
 }
+function isHaloRingWorld(p=planet){ return p?.shape==='haloRing'; }
+function haloRingMetric(px,py,cx,cy,p=planet,padding=0){
+  const outer=Math.max(8,(p.radius||65)+padding), flat=clamp(p.haloFlatten||.30,.12,.72), angle=p.haloScreenAngle||0;
+  const dx=px-cx,dy=py-cy,ca=Math.cos(angle),sa=Math.sin(angle);
+  const xr=dx*ca+dy*sa, yr=-dx*sa+dy*ca;
+  const rr=Math.sqrt((xr/outer)**2+(yr/(outer*flat))**2);
+  const band=Math.max(4,(p.haloBandWidth||13)+padding*1.2),inner=Math.max(.08,(outer-band)/outer);
+  const theta=mod(Math.atan2(yr/(flat||.001),xr)/(Math.PI*2)+.5+(state.phase||0),1);
+  return {rr,inner,outer,flat,xr,yr,theta,cross:(rr-inner)/Math.max(.001,1-inner)};
+}
+function haloGapAt(theta,p=planet){
+  const gaps=p?.haloGaps||[];
+  for(const g of gaps){ if(lonDistance(theta,mod(g.at,1))<(g.size||.04)) return true; }
+  return false;
+}
+function haloGapEdgeAt(theta,p=planet){
+  if(haloGapAt(theta,p)) return false;
+  const e=.0065;
+  return haloGapAt(mod(theta+e,1),p)||haloGapAt(mod(theta-e,1),p);
+}
+function haloSurfaceColor(theta,cross,metric,p=planet){
+  if(state.viewMode===3){
+    const heat=clamp(state.temp+(periodicNoise01(theta,cross,26,8,p.terrainSeed^0x4807)-.5)*.08,0,1);
+    return heat<.2?C.blue:heat<.4?C.cyan:heat<.6?C.green:heat<.8?C.yellow:C.red;
+  }
+  const edge=cross<.13||cross>.87;
+  const panel=periodicNoise01(theta,cross,72,10,p.terrainSeed^0x48414c4f);
+  if(edge){
+    let metal=mixHex(C.white,C.black,.48+panel*.16);
+    if(haloGapEdgeAt(theta,p)) metal=mixHex(C.yellow,C.brown,.38);
+    return metal;
+  }
+  if(state.viewMode===2){
+    const cloud=periodicNoise01(mod(theta+state.simDays*.002,1),cross,38,7,p.terrainSeed^0x41544d4f);
+    let c=mixHex(C.blue,C.cyan,.45);
+    if(cloud>.58)c=mixHex(c,C.white,.48);
+    if(panel<.18)c=mixHex(c,C.black,.14);
+    return c;
+  }
+  const style=p.haloStyle||'temperate';
+  const terrain=periodicNoise01(theta,cross,34,11,p.terrainSeed^0x53555246);
+  const detail=periodicNoise01(theta,cross,86,23,p.terrainSeed^0x46494e45);
+  let col=C.green;
+  if(style==='desert') col=terrain<.23?mixHex(C.blue,C.cyan,.24):terrain>.78?C.brown:C.yellow;
+  else if(style==='oceanice') col=terrain<.68?(terrain<.40?C.blue:C.cyan):(detail>.48?C.white:mixHex(C.brown,C.white,.34));
+  else if(style==='mixed') col=terrain<.24?C.blue:terrain<.48?C.green:terrain<.72?C.yellow:mixHex(C.red,C.brown,.30);
+  else if(style==='jungle') col=terrain<.31?C.blue:(detail>.72?mixHex(C.green,C.black,.18):C.green);
+  else if(style==='tundra') col=terrain<.24?C.cyan:terrain>.69?C.white:mixHex(C.green,C.white,.24);
+  else if(style==='zeta') col=terrain<.30?C.blue:terrain>.78?mixHex(C.brown,C.white,.18):(detail>.66?mixHex(C.green,C.yellow,.12):C.green);
+  else col=terrain<.32?C.blue:terrain>.78?C.brown:C.green;
+  if(p.haloGlassed){
+    const glass=periodicNoise01(theta,cross,19,6,p.terrainSeed^0x474c4153);
+    if(glass>.72) col=mixHex(C.black,C.red,.20);
+    else if(glass>.63) col=mixHex(col,C.brown,.50);
+  }
+  if(panel<.045||Math.abs(mod(theta*42,1)-.5)>.486) col=mixHex(col,C.white,.16);
+  if(state.viewMode===0 && cross>.18&&cross<.82){
+    const cloud=periodicNoise01(mod(theta+state.simDays*.0018,1),cross,46,8,p.terrainSeed^0x434c4f55);
+    if(cloud>clamp(.91-(p.cloudCover||.2)*.35,.68,.93)) col=mixHex(col,C.white,.56);
+  }
+  const yShade=clamp(.84-(metric.yr/(metric.outer*metric.flat))*-.11,.70,1.02);
+  return yShade<1?mixHex(col,C.black,1-yShade):mixHex(col,C.white,yShade-1);
+}
+function drawHaloRingWorld(cx,cy,t){
+  const outer=planet.radius||65,flat=clamp(planet.haloFlatten||.30,.12,.72),angle=planet.haloScreenAngle||0;
+  const ext=Math.ceil(outer+3),ca=Math.cos(angle),sa=Math.sin(angle);
+  for(let y=Math.floor(cy-ext);y<=Math.ceil(cy+ext);y++){
+    for(let x=Math.floor(cx-ext);x<=Math.ceil(cx+ext);x++){
+      const m=haloRingMetric(x,y,cx,cy,planet,0);
+      if(m.rr>1||m.rr<m.inner||haloGapAt(m.theta,planet)) continue;
+      ctx.fillStyle=haloSurfaceColor(m.theta,m.cross,m,planet);ctx.fillRect(x,y,1,1);
+    }
+  }
+  if(state.viewMode===0||state.viewMode===2){
+    ctx.globalAlpha=state.viewMode===2?.46:.18;ctx.fillStyle=state.viewMode===2?C.cyan:C.blue;
+    const steps=190,inner=(outer-(planet.haloBandWidth||13))+.5;
+    for(let i=0;i<steps;i++){
+      const raw=i/steps,theta=mod(raw+state.phase,1);if(haloGapAt(theta,planet))continue;
+      const a=(raw-.5)*Math.PI*2,xr=Math.cos(a)*inner,yr=Math.sin(a)*inner*flat;
+      const x=cx+xr*ca-yr*sa,y=cy+xr*sa+yr*ca;ctx.fillRect(Math.round(x),Math.round(y),1,1);
+    }
+    ctx.globalAlpha=1;
+  }
+}
 function isCubePlanet(p=planet){ return p?.shape==='cube'; }
 function planetContainsPoint(px,py,cx,cy,padding=0){
   if(isCubePlanet()) return Math.abs(px-cx)<=planet.rx+padding && Math.abs(py-cy)<=planet.ry+padding;
+  if(isHaloRingWorld()){
+    const m=haloRingMetric(px,py,cx,cy,planet,padding);
+    return m.rr<=1 && m.rr>=m.inner && !haloGapAt(m.theta,planet);
+  }
   const nx=(px-cx)/Math.max(1,planet.rx+padding), ny=(py-cy)/Math.max(1,planet.ry+padding);
   if(nx*nx+ny*ny>1) return false;
   const baseNx=(px-cx)/Math.max(1,planet.rx),baseNy=(py-cy)/Math.max(1,planet.ry);
@@ -3135,6 +3284,7 @@ function drawMinecraftCube(cx,cy,t){
 }
 function drawPlanet(cx,cy,t){
   if(isCubePlanet()) { drawMinecraftCube(cx,cy,t); return; }
+  if(isHaloRingWorld()) { drawHaloRingWorld(cx,cy,t); return; }
   const normalView=state.viewMode===0, atmosphereView=state.viewMode===2, showEnvironment=normalView||atmosphereView;
   if(normalView) drawCivilizationOrbitObjects(cx,cy,false);
   drawLoreSetpieces(cx,cy,false);
@@ -3175,7 +3325,7 @@ function drawBaseLabel(cx,cy){
   const x=right<366?right:Math.max(8,cx-planet.rx-13-textWidth(planet.name));
   const y=Math.round(cy-12);
   drawText(planet.name,x,y,C.white,1);
-  drawText(`${planet.radiusKm.toLocaleString('en-US')} KM`,x,y+10,C.blue,1);
+  drawText(isHaloRingWorld()?`${(planet.radiusKm*2).toLocaleString('en-US')} KM DIA`:`${planet.radiusKm.toLocaleString('en-US')} KM`,x,y+10,C.blue,1);
   if(isFavorite()) drawText('FAV',x,y+20,C.purple,1);
 }
 function bodyAtPoint(p,cx,cy){
@@ -3205,6 +3355,27 @@ function drawObjectMarker(body,cx,cy){
 }
 function drawPlanetDeepScan(x,y){
   const d=planet.scan; drawText('DEEP SCAN',x,y,C.purple,1);
+  if(isHaloRingWorld()){
+    drawText('TYPE     FORERUNNER HALO',x,y+12,C.white,1);
+    drawText(`DIAMETER ${(planet.radiusKm*2).toLocaleString('en-US')} KM`,x,y+21,C.blue,1);
+    drawText(`WIDTH    ${planet.haloSurfaceWidthKm||318} KM`,x,y+30,C.blue,1);
+    drawText(`GRAVITY  ${planet.gravity.toFixed(3)} G`,x,y+39,C.white,1);
+    const status=(planet.haloStatus||'UNKNOWN').replace('PARTIALLY ','').replace(' / DEACTIVATED',' / OFFLINE').replace(' / BANISHED OCCUPATION',' / BANISHED');
+    drawText(`STATUS   ${status}`,x,y+48,C.red,1);
+    const mon=(planet.haloMonitor||'UNKNOWN').split(' ').slice(0,2).join(' ');
+    const biome=(planet.haloBiome||'CURATED').split(' / ')[0];
+    drawText(`MONITOR  ${mon}`,x,y+57,C.cyan,1);
+    drawText(`BIOME    ${biome}`,x,y+66,C.green,1);
+    drawText('FUNCTION HALO ARRAY WEAPON',x,y+75,C.purple,1);
+    drawText(`LIFE     ${lifeTypeLabel()}`,x,y+84,isAlive()?C.green:C.brown,1);
+    drawText('TECH     FORERUNNER',x,y+93,C.purple,1);
+    if(hasAnomaly(d)){
+      drawText('ANOMALY',x,y+105,C.purple,1);
+      const lines=wrapText(d.anomaly,Math.max(72,W-x-6),1).slice(0,6);
+      lines.forEach((line,i)=>drawText(line,x,y+115+i*8,C.yellow,1));
+    }
+    return;
+  }
   if(planet.solar){
     const pressure=d.pressureText||`${d.pressureAtm.toFixed(2)} ATM`;
     drawText(`AGE      ${d.ageBy.toFixed(1)} BY`,x,y+12,C.white,1); drawText(`PRESS    ${pressure}`,x,y+21,C.white,1); drawText(`MAG      ${d.magField}`,x,y+30,C.cyan,1);
@@ -3236,8 +3407,27 @@ function drawPlanetDeepScan(x,y){
     lines.forEach((line,i)=>drawText(line,x,y+178+i*8,C.yellow,1));
   }
 }
+function drawHaloLoreFact(x,y,maxPx=124,maxBottom=232){
+  const fact=planet.loreReport||planet.lifeText||'';
+  if(!fact) return false;
+  drawText('INSTALLATION DATA',x,y,C.green,1);
+  const lines=wrapText(fact,maxPx,1).slice(0,Math.max(1,Math.floor((maxBottom-(y+10))/8)+1));
+  lines.forEach((line,i)=>drawText(line,x,y+10+i*8,C.white,1));
+  return true;
+}
 function drawPlanetHover(cx,cy){
   const x=clamp(Math.round(cx+planet.rx+18),202,220),y=38;
+  if(isHaloRingWorld()){
+    const scanned=isScanned({type:'planet'});drawInfoBackdrop(x-8,y-8,W-x-4,scanned?206:126);
+    drawText(planet.name,x,y,C.white,1);drawText('FORERUNNER HALO',x,y+9,C.green,1);
+    drawText(`TEMP       ${tempC()} C`,x,y+22,C.white,1);drawText(`DIAMETER   ${(planet.radiusKm*2).toLocaleString('en-US')} KM`,x,y+31,C.blue,1);
+    drawText(`WIDTH      ${planet.haloSurfaceWidthKm||318} KM`,x,y+40,C.blue,1);drawText(`GRAVITY    ${planet.gravity.toFixed(3)} G`,x,y+49,C.white,1);
+    drawText(`ATMOS      ${atmosphereLabel()}`,x,y+58,C.yellow,1);drawText(`BIOSPHERE  ${lifeLabel()}`,x,y+67,isAlive()?C.green:C.brown,1);
+    drawText(`STATUS     ${planet.haloStatus||'UNKNOWN'}`,x,y+76,C.red,1);drawText(`MONITOR    ${planet.haloMonitor||'UNKNOWN'}`,x,y+85,C.cyan,1);
+    drawText('ROTATION   ARTIFICIAL',x,y+94,C.white,1);
+    if(scanned){drawPlanetDeepScan(x+130,y);drawHaloLoreFact(x,y+108,124,232);}else drawText('PROBE DATA LOCKED',x,y+108,C.purple,1);
+    return;
+  }
   const artificialOrbitals=planet.moonData?.some(m=>!!m.kind);
   const bodyCountLabel=artificialOrbitals?'OBJECTS    ':(planet.solar&&['JUPITER','SATURN','URANUS','NEPTUNE'].includes(planet.name)?'SHOWN MOONS':'MOONS      ');
   const bodyCount=artificialOrbitals?(planet.moonData?.length||0):planet.moons;

@@ -85,6 +85,32 @@ GIEDI PRIME
 SALUSA SECUNDUS
 
 ----------------------------------------------------------------
+HALO ARRAY / FORERUNNER CLUSTER
+----------------------------------------------------------------
+
+BETA HALO
+  aliases: INSTALLATION 01, INSTALLATION 1, I01
+
+EPSILON HALO
+  aliases: INSTALLATION 02, INSTALLATION 2, I02
+
+GAMMA HALO
+  aliases: INSTALLATION 03, INSTALLATION 3, I03
+
+ALPHA HALO
+  aliases: HALO, HALO CE, INSTALLATION 04, INSTALLATION 4, I04
+  note: current chart shows the destroyed Installation 04 wreckage
+
+DELTA HALO
+  aliases: INSTALLATION 05, INSTALLATION 5, I05, HALO 2
+
+KAPPA HALO
+  aliases: INSTALLATION 06, INSTALLATION 6, I06
+
+ZETA HALO
+  aliases: INSTALLATION 07, INSTALLATION 7, I07, HALO INFINITE
+
+----------------------------------------------------------------
 OLDER NAVIGATION ANOMALIES
 ----------------------------------------------------------------
 
