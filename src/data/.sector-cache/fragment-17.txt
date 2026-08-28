@@ -1,0 +1,100 @@
+PLANETARIUM // SECTOR CACHE FRAGMENT 17
+STATUS: UNINDEXED
+
+THIS FILE DOES NOT EXIST.
+IF YOU FOUND IT, YOU ARE PROBABLY LOST.
+
+DO NOT CONTINUE UNLESS YOU WANT THE DESTINATION KEYS SPOILED.
+The ship accepts the names below exactly as destinations. Some signals also have aliases.
+
+----------------------------------------------------------------
+RECENTLY DECODED SIGNALS
+----------------------------------------------------------------
+
+WIKIPEDIA
+  aliases: WIKI, WIKIPEDIA.ORG, WIKIMEDIA
+
+PANDORA
+  aliases: AVATAR, PANDORA (AVATAR), MOON OF PANDORA, EYWA
+
+POLYPHEMUS
+
+ERID
+  aliases: ROCKY, ROCKY PLANET, PROJECT HAIL MARY
+
+TATOOINE
+
+HOTH
+
+ENDOR
+  alias: FOREST MOON OF ENDOR
+
+NABOO
+
+CORUSCANT
+
+MUSTAFAR
+
+KAMINO
+
+ALDERAAN
+
+DEATH STAR
+  aliases: DEATHSTAR, DEATH STAR 1, DEATH STAR I, DS-1
+
+DEATH STAR II
+  aliases: DEATH STAR 2, DEATH STAR TWO, DS-2
+
+DEATH STAR III
+  aliases: DEATH STAR 3, DEATH STAR THREE, DS-3
+
+ARRAKIS
+  aliases: DUNE, RAKIS, SAND BLAST
+
+CALADAN
+
+GIEDI PRIME
+  alias: GEIDI PRIME
+
+SALUSA SECUNDUS
+
+----------------------------------------------------------------
+OLDER NAVIGATION ANOMALIES
+----------------------------------------------------------------
+
+CAT PLANET
+EVERYBODY CAT PLANET
+ARDA
+SHIRE
+KERBIN
+MINECRAFT
+TRANTOR
+VULCAN
+MAGRATHEA
+EUROPA
+MOBIUS
+HYRULE
+SUPER MARIO WORLD
+SOURCE CODE
+BLOOD
+LANTERN
+KNIFE
+SPEAR
+SINGULARITY
+VERY PLANET
+WHATEVER WHO CARES
+POOPIA
+'STRAYA
+USA!
+APPLE PIE RECIPE
+DARK WORLD
+ASPHYXIA
+HAMMOCK
+EXILE
+NEW EDEN
+
+----------------------------------------------------------------
+END OF FRAGMENT
+----------------------------------------------------------------
+
+If this list ever stops working, the universe has changed again.
