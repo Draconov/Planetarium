@@ -3116,33 +3116,42 @@ function drawMoonOrbit(m,cx,cy,emphasis=false){
   if(!m||m.fixedPosition) return;
   const rx=m.orbit, ry=m.orbit*.34;
   const circumference=Math.PI*(3*(rx+ry)-Math.sqrt((3*rx+ry)*(rx+3*ry)));
-  const spacing=clamp(Math.round(rx*.16),6,12);
-  const dots=Math.max(22,Math.round(circumference/spacing));
+  // A little denser than the idle orbit so the moving guide reads as one
+  // continuous path instead of a handful of dots hopping between pixels.
+  const spacing=emphasis?clamp(Math.round(rx*.105),4,8):clamp(Math.round(rx*.16),6,12);
+  const dots=Math.max(emphasis?32:22,Math.round(circumference/spacing));
   const direction=m.direction||1;
   const periodBias=clamp(1/Math.sqrt(Math.max(.25,m.periodDays||1)),.18,1.65);
-  // Orbit guides are UI feedback, so use real elapsed time instead of simDays:
-  // they keep visibly drifting even while simulation time is paused.  A few
-  // deterministic gaps/bright dots break the ellipse symmetry, making the
-  // rotation readable instead of looking like a static dotted ring.
-  const orbitTurns=emphasis ? (performance.now()/1000)*(.018+.010*periodBias)*direction : 0;
-  ctx.fillStyle=emphasis?C.purple:C.blue;
+  // Hover orbit motion is UI animation, independent of simulation speed. Keep
+  // the angular phase fully continuous and draw at sub-pixel coordinates so
+  // the guide glides instead of snapping one whole canvas pixel at a time.
+  const orbitTurns=emphasis ? (performance.now()*0.001)*(.011+.006*periodBias)*direction : 0;
+  const orbitGreen=mixHex(C.green,C.white,.18);
+  const orbitGreenBright=mixHex(C.green,C.white,.48);
+  ctx.fillStyle=emphasis?orbitGreen:C.blue;
   for(let i=0;i<dots;i++){
-    const pattern=mod(i,13);
-    if(emphasis && (pattern===5 || pattern===6 || mod(i,19)===11)) continue;
+    const pattern=mod(i,17);
+    if(emphasis && (pattern===7 || pattern===8 || mod(i,29)===15)) continue;
     const th=mod(i/dots+orbitTurns,1)*Math.PI*2;
     const x=cx+Math.cos(th)*rx, y=cy+Math.sin(th)*ry;
-    ctx.globalAlpha=emphasis?(pattern===0?.96:.76):.62;
-    ctx.fillRect(Math.round(x),Math.round(y),pattern===0&&emphasis?2:1,1);
+    ctx.globalAlpha=emphasis?(pattern===0?.98:.84):.62;
+    if(emphasis){
+      const size=pattern===0?1.55:1.15;
+      ctx.fillRect(x-size*.5,y-size*.5,size,size);
+    }else{
+      ctx.fillRect(Math.round(x),Math.round(y),1,1);
+    }
   }
   if(emphasis){
-    // A softly brighter leader rides with the moving dot pattern and makes the
-    // direction obvious without turning the orbit into a flashy animation.
+    // Bright green leaders make direction obvious while staying in the app's
+    // existing palette rather than introducing a new highlight color.
     for(let k=0;k<3;k++){
       const th=mod(orbitTurns+k*.287,1)*Math.PI*2;
       const x=cx+Math.cos(th)*rx, y=cy+Math.sin(th)*ry;
-      ctx.globalAlpha=k===0?1:.72;
-      ctx.fillStyle=k===0?C.white:C.cyan;
-      ctx.fillRect(Math.round(x),Math.round(y),k===0?2:1,1);
+      ctx.globalAlpha=k===0?1:.78;
+      ctx.fillStyle=k===0?orbitGreenBright:orbitGreen;
+      const size=k===0?1.8:1.25;
+      ctx.fillRect(x-size*.5,y-size*.5,size,size);
     }
   }
   ctx.globalAlpha=1;
@@ -4109,8 +4118,8 @@ function drawPlanetHover(cx,cy){
 
   endScrollableInfoPanel(rect,contentH,pad);
 }
-function drawMoonDeepScan(m,x,y,maxPx=132){
-  return drawDeepScanModel(deepScanModelForMoon(m),x,y,maxPx);
+function drawMoonDeepScan(m,x,y,maxPx=132,labelW=null){
+  return drawDeepScanModel(deepScanModelForMoon(m),x,y,maxPx,labelW);
 }
 function formatPeriodDays(days){ return days<10?days.toFixed(3):days<100?days.toFixed(2):days.toFixed(1); }
 function drawMoonHover(body,cx,cy){
@@ -4119,16 +4128,20 @@ function drawMoonHover(body,cx,cy){
   const panelW=vessel?180:(m.kind==='heighliner'?176:164),innerW=panelW-16;
   const nameLines=wrapText(m.hoverLabel||m.name,innerW,1);
   const classLines=hasClass?wrapText(m.loreWorldClass,innerW,1):[];
+  const summaryRows=m.kind==='heighliner'?[ 
+    ['POSITION','FIXED GUILD HOLD',C.blue],
+    ['SIZE',`${m.displayLengthKm||20} KM VESSEL`,C.brown]
+  ]:[
+    ['ORBIT',`${m.orbitKm.toLocaleString('en-US')} KM`,C.blue],
+    ['PERIOD',`${formatPeriodDays(m.periodDays)} DAYS`,C.green],
+    [vessel?'SIZE':'RADIUS',vessel?`${(m.displayLengthKm||1.6).toFixed(1)} KM VESSEL`:`${m.radiusKm.toLocaleString('en-US')} KM MOON`,C.brown]
+  ];
+  const summaryLabelW=measureInfoLabelWidth(summaryRows,innerW);
+  const scanModel=scanned?deepScanModelForMoon(m):null;
+  const scanLabelW=scanned?measureInfoLabelWidth(scanModel.rows,innerW):null;
   let contentH=Math.max(1,nameLines.length)*9+classLines.length*9+3;
-  if(m.kind==='heighliner'){
-    contentH+=infoFieldHeight('POSITION','FIXED GUILD HOLD',innerW);
-    contentH+=infoFieldHeight('SIZE',`${m.displayLengthKm||20} KM VESSEL`,innerW);
-  }else{
-    contentH+=infoFieldHeight('ORBIT',`${m.orbitKm.toLocaleString('en-US')} KM`,innerW);
-    contentH+=infoFieldHeight('PERIOD',`${formatPeriodDays(m.periodDays)} DAYS`,innerW);
-    contentH+=infoFieldHeight(vessel?'SIZE':'RADIUS',vessel?`${(m.displayLengthKm||1.6).toFixed(1)} KM VESSEL`:`${m.radiusKm.toLocaleString('en-US')} KM MOON`,innerW);
-  }
-  if(scanned)contentH+=8+measureDeepScanModel(deepScanModelForMoon(m),innerW);
+  for(const [label,value] of summaryRows) contentH+=infoFieldHeight(label,value,innerW,summaryLabelW);
+  if(scanned)contentH+=8+measureDeepScanModel(scanModel,innerW,scanLabelW);
   else contentH+=13;
   const panelH=Math.min(224,contentH+16);
   const rect=chooseMoonHoverPanelRect(body,panelW,panelH);
@@ -4137,15 +4150,8 @@ function drawMoonHover(body,cx,cy){
   nameLines.forEach((line,i)=>drawText(line,x,y+i*9,C.white,1));
   let yy=y+Math.max(1,nameLines.length)*9+2;
   if(hasClass){classLines.forEach((line,i)=>drawText(line,x,yy+i*9,C.green,1));yy+=classLines.length*9;}
-  if(m.kind==='heighliner'){
-    yy=drawInfoField('POSITION','FIXED GUILD HOLD',x,yy,innerW,C.blue);
-    yy=drawInfoField('SIZE',`${m.displayLengthKm||20} KM VESSEL`,x,yy,innerW,C.brown);
-  }else{
-    yy=drawInfoField('ORBIT',`${m.orbitKm.toLocaleString('en-US')} KM`,x,yy,innerW,C.blue);
-    yy=drawInfoField('PERIOD',`${formatPeriodDays(m.periodDays)} DAYS`,x,yy,innerW,C.green);
-    yy=drawInfoField(vessel?'SIZE':'RADIUS',vessel?`${(m.displayLengthKm||1.6).toFixed(1)} KM VESSEL`:`${m.radiusKm.toLocaleString('en-US')} KM MOON`,x,yy,innerW,C.brown);
-  }
-  if(scanned){yy+=8;drawMoonDeepScan(m,x,yy,innerW);}
+  for(const [label,value,color] of summaryRows) yy=drawInfoField(label,value,x,yy,innerW,color,summaryLabelW);
+  if(scanned){yy+=8;drawMoonDeepScan(m,x,yy,innerW,scanLabelW);}
   else drawText('PROBE DATA LOCKED',x,yy+4,C.purple,1);
   endScrollableInfoPanel(rect,contentH,8);
   return [rect];
