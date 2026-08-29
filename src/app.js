@@ -4538,31 +4538,100 @@ function drawAttlerockOutposts(cx,cy){
 }
 function drawInterloperTail(cx,cy){
   if(planet?.renderer!=='interloper') return;
-  const axis=-.12+Math.sin(state.simDays*.03)*.06, ux=Math.cos(axis), uy=Math.sin(axis);
-  const baseX=cx-ux*planet.rx*.10, baseY=cy-uy*planet.ry*.02;
+  // Keep the tail visually readable in pixel art: a narrow bright jet near the
+  // body that quickly opens into a long icy fan trailing to the right.
+  const baseX=cx+planet.rx*.86, baseY=cy-planet.ry*.03;
   const layers=[
-    {len:planet.rx*2.9, spread:planet.ry*.88, col:mixHex(C.white,C.cyan,.18), alpha:.16, skip:0},
-    {len:planet.rx*2.3, spread:planet.ry*.58, col:mixHex(C.cyan,C.blue,.22), alpha:.22, skip:1},
-    {len:planet.rx*1.7, spread:planet.ry*.32, col:mixHex(C.white,C.blue,.10), alpha:.28, skip:2}
+    {len:planet.rx*3.5, spread:planet.ry*.26, lift:-planet.ry*.01, col:mixHex(C.white,C.cyan,.14), alpha:.32, skip:0},
+    {len:planet.rx*4.2, spread:planet.ry*.52, lift:-planet.ry*.04, col:mixHex(C.white,C.blue,.10), alpha:.22, skip:1},
+    {len:planet.rx*4.8, spread:planet.ry*.82, lift:-planet.ry*.07, col:mixHex(C.cyan,C.blue,.20), alpha:.14, skip:2}
   ];
-  for(const layer of layers){
+  for(let li=layers.length-1;li>=0;li--){
+    const layer=layers[li];
     ctx.fillStyle=layer.col; ctx.globalAlpha=layer.alpha;
-    const count=Math.max(80,Math.round(layer.len*10));
+    const count=Math.max(110,Math.round(layer.len*9));
     for(let i=0;i<count;i++){
       if(layer.skip && i%3===layer.skip) continue;
-      const q=i/Math.max(1,count-1), fall=1-q, wobble=(h2(i,17,planet.seed^0x1ce)-.5)*layer.spread*fall;
-      const tailX=baseX+ux*(planet.rx*.34+q*layer.len)-uy*wobble;
-      const tailY=baseY+uy*(planet.ry*.18+q*layer.len*.14)+ux*wobble*.26;
-      const size=q<.24?2:1;
-      ctx.fillRect(Math.round(tailX),Math.round(tailY),size,1);
+      const q=i/Math.max(1,count-1);
+      const centerY=baseY+layer.lift*q-Math.sin(q*Math.PI)*planet.ry*.05;
+      const halfW=layer.spread*(.10+q*.96)*(1-.08*q);
+      const edgeJitter=(h2(i,li+41,planet.seed^0x1ce)-.5)*2.0;
+      const innerJitter=(h2(i,li+79,planet.seed^0x77a)-.5)*halfW*.18;
+      const yMin=Math.floor(centerY-halfW+edgeJitter), yMax=Math.ceil(centerY+halfW+edgeJitter);
+      const x=Math.round(baseX+q*layer.len+Math.sin(q*8+li)*.8);
+      for(let y=yMin;y<=yMax;y++){
+        const dy=Math.abs((y-centerY-innerJitter)/Math.max(1,halfW));
+        if(dy>1) continue;
+        if(dy>.82 && ((x+y+i+li)&1)) continue;
+        if((x+y+i)%7===0 && q>.32) continue;
+        ctx.fillRect(x,y,q<.16?2:1,1);
+      }
     }
   }
-  ctx.globalAlpha=.36; ctx.fillStyle=mixHex(C.white,C.cyan,.16);
-  for(let i=0;i<20;i++){
-    const a=i/20*Math.PI*2, rr=planet.rx*.58*(.65+h2(i,9,planet.seed)*.35);
+  ctx.globalAlpha=.46; ctx.fillStyle=mixHex(C.white,C.cyan,.10);
+  for(let i=0;i<28;i++){
+    const a=i/28*Math.PI*2, rr=planet.rx*.58*(.65+h2(i,9,planet.seed)*.35);
     ctx.fillRect(Math.round(cx+Math.cos(a)*rr*.55),Math.round(cy+Math.sin(a)*rr*.35),1,1);
   }
   ctx.globalAlpha=1;
+}
+function drawEyeUniverseGlyph(cx,cy){
+  if(planet?.renderer!=='eyeuniverse') return;
+  const ex=cx, ey=cy+1;
+  const outline=mixHex(C.brown,C.white,.24), iris=mixHex(C.cyan,C.white,.18), pupil=mixHex(C.black,C.purple,.04), lid=mixHex(C.blue,C.white,.24);
+  const rx=Math.max(8,Math.round(planet.rx*.46)), ry=Math.max(4,Math.round(planet.ry*.18));
+  for(let yy=-ry-1;yy<=ry+1;yy++){
+    const yn=Math.abs(yy)/Math.max(1,ry), lidShape=Math.max(0,1-yn), half=Math.round(rx*(.28+.72*lidShape));
+    for(let xx=-half;xx<=half;xx++){
+      const px=ex+xx, py=ey+yy;
+      if(!planetContainsPoint(px,py,cx,cy,0)) continue;
+      const xn=xx/Math.max(1,half), en=xn*xn+yn*yn;
+      let col=null;
+      if(en>.86 && en<1.18) col=outline;
+      else if(en<=.86){
+        const irisN=(xx*xx)/(Math.max(1,planet.rx*.13)**2)+(yy*yy)/(Math.max(1,planet.ry*.10)**2);
+        const pupilN=(xx*xx)/(Math.max(1,planet.rx*.055)**2)+(yy*yy)/(Math.max(1,planet.ry*.055)**2);
+        if(pupilN<1) col=pupil;
+        else if(irisN<1) col=iris;
+        else col=mixHex(C.white,C.brown,.18);
+      }
+      if(col) ctx.fillStyle=col, ctx.fillRect(Math.round(px),Math.round(py),1,1);
+    }
+  }
+  ctx.fillStyle=lid;
+  for(let i=-rx;i<=rx;i++){
+    const q=Math.abs(i)/Math.max(1,rx);
+    const yOff=Math.round((1-q*q)*planet.ry*.05);
+    const x=ex+i;
+    const top=ey-ry-yOff, bottom=ey+ry+yOff;
+    if(planetContainsPoint(x,top,cx,cy,0)) ctx.fillRect(x,top,1,1);
+    if(planetContainsPoint(x,bottom,cx,cy,0)) ctx.fillRect(x,bottom,1,1);
+  }
+}
+function drawBrittleHollowBlackHole(cx,cy){
+  if(planet?.renderer!=='brittlehollow') return;
+  const bhx=Math.round(cx+planet.rx*.11), bhy=Math.round(cy-planet.ry*.08);
+  const voidR=Math.max(4,Math.round(Math.min(planet.rx,planet.ry)*.10));
+  for(let y=bhy-voidR-3;y<=bhy+voidR+3;y++){
+    for(let x=bhx-voidR-5;x<=bhx+voidR+5;x++){
+      if(!planetContainsPoint(x,y,cx,cy,0)) continue;
+      const dx=(x-bhx)/Math.max(1,voidR), dy=(y-bhy)/Math.max(1,voidR*.92), rr=dx*dx+dy*dy;
+      let col=null;
+      if(rr<1) col=mixHex(C.black,C.purple,.02);
+      else if(rr<1.9) col=mixHex(C.purple,C.blue,.18);
+      if(col){ ctx.fillStyle=col; ctx.fillRect(x,y,1,1); }
+    }
+  }
+  // Pull a darker channel from the visible fracture toward the singularity so
+  // the black hole reads inside the open crack rather than as a detached spot.
+  ctx.fillStyle=mixHex(C.black,C.purple,.06);
+  const segments=Math.max(14,Math.round(planet.ry*.55));
+  for(let i=0;i<segments;i++){
+    const q=i/Math.max(1,segments-1);
+    const x=Math.round(cx-planet.rx*.08+q*planet.rx*.24+Math.sin(q*Math.PI*2.4)*1.5);
+    const y=Math.round(cy-planet.ry*.32+q*planet.ry*.42+Math.sin(q*Math.PI*1.6)*1.0);
+    if(planetContainsPoint(x,y,cx,cy,0)) ctx.fillRect(x,y,2,2);
+  }
 }
 function drawLoreSetpieces(cx,cy,front){
   if(state.viewMode>1) return;
@@ -5284,6 +5353,8 @@ function drawPlanet(cx,cy,t){
   // ships and every other visible motion still update at the 60 FPS render loop.
   renderPlanetSurfaceImage(cx,cy);
   drawDarkBrambleSilhouette(cx,cy);
+  if(planet.renderer==='eyeuniverse') drawEyeUniverseGlyph(cx,cy);
+  if(planet.renderer==='brittlehollow') drawBrittleHollowBlackHole(cx,cy);
   if(normalView) drawNormalAtmosphereHaze(cx,cy);
   // NORMAL shows the full atmosphere. CLEAN and TEMPERATURE intentionally strip it away.
   if(showEnvironment){
