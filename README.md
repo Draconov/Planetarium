@@ -23,7 +23,7 @@ Type a destination. Discover a world. Change its climate, inspect its moons, lau
 
 <img src="preview.png" alt="Planetarium preview" width="820">
 
-`Planetarium 1.1.0`
+`Planetarium 1.2.0`
 
 </div>
 
@@ -232,7 +232,7 @@ Planetarium has two frontends built from the same source:
 The Windows release is intentionally a single executable named:
 
 ```text
-Planetarium-1.1.0.exe
+Planetarium-1.2.0.exe
 ```
 
 No installer is required. Modern Windows 10 and Windows 11 already provide the WebView2 runtime used by the desktop shell.
@@ -242,13 +242,13 @@ No installer is required. Modern Windows 10 and Windows 11 already provide the W
 The application version is stored in `package.json`.
 
 ```json
-"version": "1.1.0"
+"version": "1.2.0"
 ```
 
 The release workflow derives the Git tag directly from that value:
 
 ```text
-1.1.0 -> v1.1.0
+1.2.0 -> v1.2.0
 ```
 
 A successful push to `main` or `master` builds the web and Windows editions. If the version has **not** changed, the existing release under that version tag is refreshed instead of creating another versioned release. Increment `package.json` when you want a new release entry.
@@ -335,7 +335,7 @@ npm run build:win
 Output:
 
 ```text
-release/Planetarium-1.1.0.exe
+release/Planetarium-1.2.0.exe
 ```
 
 Windows shortcut:

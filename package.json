@@ -1,6 +1,6 @@
 {
   "name": "planetarium",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Reconstructed source for the Planetarium procedural planet generator.",
   "private": true,
   "scripts": {
