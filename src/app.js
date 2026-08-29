@@ -1385,7 +1385,7 @@ const state = {
   infoScroll:0, infoScrollMax:0, infoPanelRect:null, infoPanelFocused:false, infoPanelKey:'',
   info:null, infoTitle:null, toastText:'', toastUntil:0,
   lastTime:performance.now(), twinkle:0, cameraFlash:0,
-  captureMode:null, cameraHold:null
+  captureMode:null, cameraHold:null, hideCameraCaptureTip:false
 };
 try { state.history = JSON.parse(storageGet('planetarium:history','[]')) || []; } catch { state.history=[]; }
 try { state.favorites = JSON.parse(storageGet('planetarium:favorites','[]')) || []; } catch { state.favorites=[]; }
@@ -4803,7 +4803,7 @@ function drawButtons(){
     ctx.globalAlpha=1;
     if(hover) drawFocusFrame(b.x-4,UI.buttonY-5,20,20);
   }
-  if(state.hovered){
+  if(state.hovered && !(state.hideCameraCaptureTip && state.hovered.id==='camera')){
     const target=state.hovered.id==='probe'?(state.pinnedBody||state.hoverBody||{type:'planet'}):null;
     let tip=target?`LAUNCH PROBE: ${bodyName(target)}`:state.hovered.tip;
     if(state.hovered.id==='temp') tip=`VIEW ${viewModeName()} -> ${viewModeName(nextViewMode())}`;
@@ -5129,19 +5129,37 @@ function monitorScreenshotData(){
   try{ png=out.toDataURL('image/png'); }catch{}
   return {png,size};
 }
+function captureUiScreenshot(kind){
+  // Camera hold/status copy is useful while choosing a capture tier, but it is
+  // transient interaction feedback and should not be baked into the saved UI.
+  // Hide only that camera tooltip, render a clean UI frame, capture it, then
+  // restore the live overlay immediately afterward. Two rAFs guarantee that
+  // at least one normal render pass has occurred with the tooltip suppressed,
+  // whether capture was requested from pointerup or from the 5-second hold.
+  state.hideCameraCaptureTip=true;
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      let png='',size=null;
+      if(kind==='monitor'){
+        const shot=monitorScreenshotData();
+        png=shot.png; size=shot.size;
+      }else{
+        try{ png=canvas.toDataURL('image/png'); }catch{}
+      }
+      state.hideCameraCaptureTip=false;
+      flash();
+      requestAnimationFrame(()=>downloadScreenshot(png,kind,size));
+    });
+  });
+}
 function takeScreenshot(options={}){
   const monitor=!!options.monitor,full=!!options.full;
   if(monitor){
-    const shot=monitorScreenshotData();
-    flash();
-    requestAnimationFrame(()=>downloadScreenshot(shot.png,'monitor',shot.size));
+    captureUiScreenshot('monitor');
     return;
   }
   if(full){
-    let png='';
-    try{ png=canvas.toDataURL('image/png'); }catch{}
-    flash();
-    requestAnimationFrame(()=>downloadScreenshot(png,'full'));
+    captureUiScreenshot('full');
     return;
   }
   state.captureMode='clean';
