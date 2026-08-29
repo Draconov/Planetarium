@@ -3188,7 +3188,7 @@ function drawMoons(cx,cy,t,front){
     if((front && pos.depth<0)||(!front && pos.depth>=0)) continue;
     if(m.kind==='heighliner'){
       drawHeighliner(pos.x,pos.y,cx,cy);
-      m.visualDiameter=34; m.hitRadius=18; m.renderFrame=-2;
+      m.visualDiameter=28; m.hitRadius=15; m.renderFrame=-2;
       continue;
     }
     if(m.kind==='human_ship'){
@@ -3324,7 +3324,7 @@ function drawHeighliner(x,y,planetCx=x+48,planetCy=y+12){
   const len=Math.hypot(dx,dy)||1;
   const ux=dx/len, uy=dy/len;
   const px=-uy, py=ux;
-  const bodyLen=58;
+  const bodyLen=48;
   const tailX=x-ux*bodyLen*.58, tailY=y-uy*bodyLen*.58;
   const noseX=x+ux*bodyLen*.42, noseY=y+uy*bodyLen*.42;
   const steps=64;
@@ -3336,7 +3336,7 @@ function drawHeighliner(x,y,planetCx=x+48,planetCy=y+12){
     const t=s/steps;
     const cx=tailX+(noseX-tailX)*t;
     const cy=tailY+(noseY-tailY)*t;
-    const radius=4.2+t*4.4+(t>.18&&t<.82&&((s%8)===0)?.45:0);
+    const radius=3.2+t*3.5+(t>.18&&t<.82&&((s%8)===0)?.35:0);
     for(let w=-Math.ceil(radius);w<=Math.ceil(radius);w++){
       const edge=Math.abs(w)/Math.max(1,radius);
       if(edge>1.06) continue;
@@ -3357,14 +3357,14 @@ function drawHeighliner(x,y,planetCx=x+48,planetCy=y+12){
     const t=rib/steps;
     const cx=tailX+(noseX-tailX)*t;
     const cy=tailY+(noseY-tailY)*t;
-    const radius=4.2+t*4.2;
+    const radius=3.2+t*3.3;
     ctx.fillStyle=mixHex(C.white,C.black,.56);
     for(let w=-Math.ceil(radius*.80);w<=Math.ceil(radius*.80);w++){
       const rx=Math.round(cx+px*w), ry=Math.round(cy+py*w);
       ctx.fillRect(rx,ry,1,1);
     }
   }
-  const rimOuter=7.4, rimInner=4.7;
+  const rimOuter=6.0, rimInner=3.9;
   for(let rr=Math.ceil(rimOuter);rr>=1;rr--){
     const col=rr<=rimInner ? C.black : rr>=rimOuter-1 ? mixHex(C.white,C.black,.18) : mixHex(C.white,C.black,.62);
     ctx.fillStyle=col;
@@ -3977,6 +3977,7 @@ function drawPlanet(cx,cy,t){
       const nx=(x-cx)/planet.rx;
       const rr=nx*nx+ny*ny; if(rr>1) continue;
       if(specialSurfaceMask(nx,ny)){
+        if(planet.renderer==='wikipedia') continue;
         ctx.fillStyle=damageInteriorColor(nx,ny,planet); ctx.fillRect(x,y,1,1);
         continue;
       }
