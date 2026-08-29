@@ -1290,6 +1290,12 @@ function tempStateFromC(c,p=planet){ const [lo,hi]=tempRangeFor(p); return clamp
 function tempCFromState(v,p=planet){ const [lo,hi]=tempRangeFor(p); return Math.round(lo+clamp(v,0,1)*(hi-lo)); }
 function tempStorageKey(p=planet){
   if(p?.solar && p.name==='MARS') return 'planetarium:temp:solar:MARS:v2';
+  // Arrakis' range was expanded from [10, 92] C to [-50, 92] C. Temperature
+  // persistence stores the normalized slider position, so reusing the old key
+  // would reinterpret an old 47 C save as roughly 14 C. Version its key once
+  // so existing installs return to the intended 47 C default, while future
+  // Arrakis adjustments still persist normally within the expanded range.
+  if(p?.name==='ARRAKIS') return 'planetarium:temp:lore:ARRAKIS:v2';
   return p?.solar ? `planetarium:temp:solar:${p.name}` : `planetarium:temp:${p?.seed}`;
 }
 
@@ -2688,17 +2694,29 @@ function solarSurfaceColor(lon,lat,normY,nx,z){
     else col=land>.50?C.brown:C.green;
   }else if(kind==='mars'){
     const stage=marsTerraformStage();
-    const marsReach=clamp(.5-clamp(.42+(t+63)/520,.32,.48),.01,.18);
-    const marsCap=polarCapAt(lon,lat,marsReach,{forceBoth:true,seedSalt:0x4d415253});
-    const polar=marsCap.ice;
     const ocean=periodicNoise01(lon,lat,56,33,planet.terrainSeed^0x544f);
-    if(polar && t<10) col=polarIceColor(marsCap);
+    const basalt=periodicNoise01(lon,lat,27,17,planet.terrainSeed^0x4d415253);
+    const dust=periodicNoise01(lon,lat,63,37,planet.terrainSeed^0x44555354);
+    const frost=periodicNoise01(lon,lat,84,49,planet.terrainSeed^0x46524f53);
+    // Mars keeps visible permanent polar caps around its default climate, with
+    // a larger southern cap. As the temperature drops toward the low end, both
+    // caps expand substantially instead of staying tiny until extreme values.
+    const cold=clamp((-t-20)/120,0,1);
+    const northReach=lerp(.048,.145,cold);
+    const southReach=lerp(.082,.195,cold);
+    const northCap=polarCapAt(lon,lat,northReach,{forceBoth:true,seedSalt:0x4d41524e});
+    const southCap=polarCapAt(lon,1-lat,southReach,{forceBoth:true,seedSalt:0x4d415253});
+    const polar=northCap.north||southCap.north;
+    if(polar && t<18) col=polarIceColor(northCap.north?northCap:southCap);
     else if(stage>=2 && ocean<clamp(.18+stage*.06,0,.34)) col=stage>=3?mixHex(C.blue,C.cyan,.18):C.blue;
     else if(stage>=3 && q.n>.44) col=q.ridge>.79?mixHex(C.brown,C.green,.22):C.green;
-    else if(q.ridge>.80) col=mixHex(C.red,C.black,.28);
-    else if(q.n>.62) col=mixHex(C.red,C.brown,.18);
-    else if(q.n<.34) col=mixHex(C.red,C.black,.12);
-    else col=mixHex(C.red,C.yellow,.10);
+    else if(q.ridge>.83) col=mixHex(C.red,C.black,.30);
+    else if(basalt>.76) col=mixHex(C.brown,C.purple,.12);
+    else if(q.n>.66) col=mixHex(C.red,C.brown,.20);
+    else if(q.n<.30 || dust<.16) col=mixHex(C.red,C.black,.14);
+    else col=mixHex(C.red,C.yellow,.13);
+    if(frost>.90 && t<-92) col=mixHex(col,C.white,.12);
+    else if(dust>.82) col=mixHex(col,C.yellow,.12);
   }else if(kind==='mercury'){
     if(q.ridge>.80) col=mixHex(C.brown,C.black,.32);
     else if(q.n>.67) col=mixHex(C.white,C.brown,.45);
