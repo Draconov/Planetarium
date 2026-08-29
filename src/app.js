@@ -271,8 +271,9 @@ function paintSpecialMoonSurface(g,alpha,m,diameter,key){
       if(craterA<1||craterB<1) col=(craterA<.42||craterB<.45)?mixHex(C.black,C.brown,.16):mixHex(C.brown,C.white,.20);
       return surfaceShade(col,nx,z);
     });
-    mark(.60,.43,mixHex(C.white,C.yellow,.18),1); mark(.63,.45,mixHex(C.brown,C.white,.18),1);
-    mark(.38,.55,mixHex(C.white,C.cyan,.10),1); mark(.36,.58,mixHex(C.brown,C.white,.22),1);
+    mark(.60,.43,mixHex(C.white,C.yellow,.18),2); mark(.66,.45,mixHex(C.brown,C.white,.18),1);
+    mark(.38,.55,mixHex(C.white,C.cyan,.10),2); mark(.32,.60,mixHex(C.brown,C.white,.22),2);
+    mark(.48,.31,mixHex(C.white,C.cyan,.12),1); mark(.72,.62,mixHex(C.white,C.yellow,.12),1);
     return true;
   }
   if(name==='ASH TWIN'){
@@ -4517,121 +4518,146 @@ function drawDarkBrambleSilhouette(cx,cy){
 function drawAttlerockOutposts(cx,cy){
   if(planet?.renderer!=='attlerock' || state.viewMode>1) return;
   const sites=[
-    {lon:.58,lat:.44,type:0},{lon:.37,lat:.56,type:1},{lon:.35,lat:.50,type:2}
+    {lon:.58,lat:.44,type:0},{lon:.37,lat:.56,type:1},{lon:.35,lat:.50,type:2},
+    {lon:.68,lat:.61,type:0},{lon:.47,lat:.30,type:1},{lon:.76,lat:.38,type:2},
+    {lon:.24,lat:.43,type:0}
   ];
   for(const s of sites){
-    const p=spherePointFromLonLat(s.lon,s.lat,cx,cy,.985); if(!p||p.depth<.06) continue;
+    const p=spherePointFromLonLat(s.lon,s.lat,cx,cy,.985); if(!p||p.depth<.04) continue;
     const x=Math.round(p.x), y=Math.round(p.y);
     if(s.type===0){
-      ctx.fillStyle=mixHex(C.white,C.yellow,.12);ctx.fillRect(x-1,y-1,3,2);
-      ctx.fillStyle=C.brown;ctx.fillRect(x,y+1,1,1);
-      ctx.fillStyle=C.cyan;ctx.fillRect(x+2,y-2,1,1);
+      ctx.fillStyle=mixHex(C.white,C.yellow,.10);ctx.fillRect(x-2,y-2,5,3);
+      ctx.fillStyle=mixHex(C.brown,C.white,.10);ctx.fillRect(x-1,y+1,3,2);
+      ctx.fillStyle=C.cyan;ctx.fillRect(x+2,y-4,1,2);ctx.fillRect(x+1,y-4,3,1);
     }else if(s.type===1){
-      ctx.fillStyle=mixHex(C.white,C.brown,.18);ctx.fillRect(x-1,y,3,1);ctx.fillRect(x,y-2,1,2);
-      ctx.fillStyle=C.cyan;ctx.fillRect(x,y-3,1,1);
+      ctx.fillStyle=mixHex(C.white,C.brown,.14);ctx.fillRect(x-2,y,5,2);ctx.fillRect(x-1,y-3,3,3);
+      ctx.fillStyle=C.cyan;ctx.fillRect(x,y-5,1,2);ctx.fillRect(x-1,y-5,3,1);
+      ctx.fillStyle=C.brown;ctx.fillRect(x-3,y+1,2,1);ctx.fillRect(x+3,y+1,2,1);
     }else{
-      ctx.fillStyle=mixHex(C.white,C.cyan,.10);ctx.fillRect(x,y-3,1,4);
-      ctx.fillRect(x-2,y-2,5,1);
-      ctx.fillStyle=C.brown;ctx.fillRect(x-1,y+1,3,1);
+      // Signal-locator silhouette: intentionally oversized so it survives the
+      // 480x270 pixel-art presentation.
+      ctx.fillStyle=mixHex(C.white,C.cyan,.08);ctx.fillRect(x-1,y-5,3,7);
+      ctx.fillRect(x-4,y-3,9,2);
+      ctx.fillRect(x-3,y-4,2,1);ctx.fillRect(x+3,y-4,2,1);
+      ctx.fillStyle=mixHex(C.brown,C.white,.16);ctx.fillRect(x-2,y+2,5,2);
+      ctx.fillStyle=C.cyan;ctx.fillRect(x,y-6,1,1);
     }
   }
 }
 function drawInterloperTail(cx,cy){
   if(planet?.renderer!=='interloper') return;
-  // Keep the tail visually readable in pixel art: a narrow bright jet near the
-  // body that quickly opens into a long icy fan trailing to the right.
-  const baseX=cx+planet.rx*.86, baseY=cy-planet.ry*.03;
+  const baseX=cx+planet.rx*.82, baseY=cy-planet.ry*.02;
   const layers=[
-    {len:planet.rx*3.5, spread:planet.ry*.26, lift:-planet.ry*.01, col:mixHex(C.white,C.cyan,.14), alpha:.32, skip:0},
-    {len:planet.rx*4.2, spread:planet.ry*.52, lift:-planet.ry*.04, col:mixHex(C.white,C.blue,.10), alpha:.22, skip:1},
-    {len:planet.rx*4.8, spread:planet.ry*.82, lift:-planet.ry*.07, col:mixHex(C.cyan,C.blue,.20), alpha:.14, skip:2}
+    {len:planet.rx*3.8, spread:planet.ry*.72, col:mixHex(C.white,C.cyan,.12), alpha:.22, seed:17},
+    {len:planet.rx*4.5, spread:planet.ry*.50, col:mixHex(C.cyan,C.blue,.16), alpha:.18, seed:43},
+    {len:planet.rx*5.0, spread:planet.ry*.30, col:mixHex(C.white,C.blue,.08), alpha:.13, seed:71}
   ];
-  for(let li=layers.length-1;li>=0;li--){
+  for(let li=0;li<layers.length;li++){
     const layer=layers[li];
     ctx.fillStyle=layer.col; ctx.globalAlpha=layer.alpha;
-    const count=Math.max(110,Math.round(layer.len*9));
-    for(let i=0;i<count;i++){
-      if(layer.skip && i%3===layer.skip) continue;
-      const q=i/Math.max(1,count-1);
-      const centerY=baseY+layer.lift*q-Math.sin(q*Math.PI)*planet.ry*.05;
-      const halfW=layer.spread*(.10+q*.96)*(1-.08*q);
-      const edgeJitter=(h2(i,li+41,planet.seed^0x1ce)-.5)*2.0;
-      const innerJitter=(h2(i,li+79,planet.seed^0x77a)-.5)*halfW*.18;
-      const yMin=Math.floor(centerY-halfW+edgeJitter), yMax=Math.ceil(centerY+halfW+edgeJitter);
-      const x=Math.round(baseX+q*layer.len+Math.sin(q*8+li)*.8);
-      for(let y=yMin;y<=yMax;y++){
-        const dy=Math.abs((y-centerY-innerJitter)/Math.max(1,halfW));
-        if(dy>1) continue;
-        if(dy>.82 && ((x+y+i+li)&1)) continue;
-        if((x+y+i)%7===0 && q>.32) continue;
-        ctx.fillRect(x,y,q<.16?2:1,1);
+    const columns=Math.max(72,Math.round(layer.len*2.1));
+    for(let i=0;i<columns;i++){
+      const q=i/Math.max(1,columns-1);
+      // Wide, ragged near the comet; steadily narrows into a thin distant tail.
+      const taper=Math.pow(1-q,.76);
+      const halfW=Math.max(.8,layer.spread*(.18+.82*taper));
+      const centerWobble=(h2(i,layer.seed,planet.seed^0x1ce)-.5)*2.6 + Math.sin(q*11+li*1.7)*1.3*taper;
+      const centerY=baseY-centerWobble-Math.sin(q*Math.PI)*planet.ry*.07;
+      const x=Math.round(baseX+q*layer.len + Math.sin(q*17+li)*1.2*taper);
+      const edgeTop=(h2(i,layer.seed+19,planet.seed)-.5)*3.2*taper;
+      const edgeBot=(h2(i,layer.seed+37,planet.seed)-.5)*3.4*taper;
+      const y0=Math.round(centerY-halfW+edgeTop), y1=Math.round(centerY+halfW+edgeBot);
+      for(let y=y0;y<=y1;y++){
+        const rel=Math.abs((y-centerY)/Math.max(1,halfW));
+        if(rel>1) continue;
+        if(rel>.76 && ((x+y+i+li)&1)) continue;
+        if(q>.45 && (x*3+y+i)%9===0) continue;
+        ctx.fillRect(x,y,q<.12?2:1,1);
       }
     }
   }
-  ctx.globalAlpha=.46; ctx.fillStyle=mixHex(C.white,C.cyan,.10);
-  for(let i=0;i<28;i++){
-    const a=i/28*Math.PI*2, rr=planet.rx*.58*(.65+h2(i,9,planet.seed)*.35);
-    ctx.fillRect(Math.round(cx+Math.cos(a)*rr*.55),Math.round(cy+Math.sin(a)*rr*.35),1,1);
+  // A few detached icy wisps break up the silhouette near the body.
+  ctx.fillStyle=mixHex(C.white,C.cyan,.10);ctx.globalAlpha=.30;
+  for(let i=0;i<18;i++){
+    const q=i/17, x=Math.round(baseX+5+q*planet.rx*2.5), y=Math.round(baseY+(h2(i,99,planet.seed)-.5)*planet.ry*(.62*(1-q)));
+    ctx.fillRect(x,y,1+(i%5===0?1:0),1);
+  }
+  ctx.globalAlpha=1;
+}
+function drawEyeUniverseCloud(cx,cy){
+  if(planet?.renderer!=='eyeuniverse' || state.viewMode>1) return;
+  const rx=planet.rx*1.58, ry=planet.ry*.72;
+  const dark=mixHex(C.purple,C.black,.34), mid=mixHex(C.purple,C.blue,.18), glow=mixHex(C.purple,C.white,.12);
+  // Broad almond-shaped quantum cloud behind the body.
+  for(let pass=0;pass<3;pass++){
+    const steps=180, prx=rx+pass*5, pry=ry+pass*3;
+    ctx.globalAlpha=.23-pass*.045;
+    ctx.fillStyle=pass===0?glow:pass===1?mid:dark;
+    for(let i=0;i<steps;i++){
+      if((i+pass)%2 && pass>0) continue;
+      const a=i/steps*Math.PI*2;
+      const pinch=.54+.46*Math.abs(Math.cos(a));
+      const jitter=(h2(i,pass+51,planet.seed)-.5)*(4+pass*2);
+      const x=Math.round(cx+Math.cos(a)*(prx+jitter));
+      const y=Math.round(cy+Math.sin(a)*(pry*pinch+jitter*.18));
+      ctx.fillRect(x,y,pass===0?2:1,1);
+    }
+  }
+  // Uneven tendrils make it cloud-like rather than a clean Saturn ring.
+  ctx.globalAlpha=.24;ctx.fillStyle=mid;
+  for(let arm=0;arm<16;arm++){
+    const side=arm<8?-1:1, k=arm%8;
+    const y0=cy+(k-3.5)*planet.ry*.11;
+    const len=planet.rx*(.58+h2(arm,71,planet.seed)*.62);
+    const x0=cx+side*planet.rx*.88;
+    const pts=12;
+    let px=x0,py=y0;
+    for(let j=1;j<pts;j++){
+      const q=j/(pts-1), x=cx+side*(planet.rx*.88+q*len), y=y0+Math.sin(q*5+k)*planet.ry*.07*(1-q)+(h2(arm*17+j,83,planet.seed)-.5)*2;
+      drawPixelLine(px,py,x,y,arm%3===0?glow:mid,.24*(1-q*.55)); px=x;py=y;
+    }
   }
   ctx.globalAlpha=1;
 }
 function drawEyeUniverseGlyph(cx,cy){
   if(planet?.renderer!=='eyeuniverse') return;
-  const ex=cx, ey=cy+1;
-  const outline=mixHex(C.brown,C.white,.24), iris=mixHex(C.cyan,C.white,.18), pupil=mixHex(C.black,C.purple,.04), lid=mixHex(C.blue,C.white,.24);
-  const rx=Math.max(8,Math.round(planet.rx*.46)), ry=Math.max(4,Math.round(planet.ry*.18));
-  for(let yy=-ry-1;yy<=ry+1;yy++){
-    const yn=Math.abs(yy)/Math.max(1,ry), lidShape=Math.max(0,1-yn), half=Math.round(rx*(.28+.72*lidShape));
-    for(let xx=-half;xx<=half;xx++){
-      const px=ex+xx, py=ey+yy;
-      if(!planetContainsPoint(px,py,cx,cy,0)) continue;
-      const xn=xx/Math.max(1,half), en=xn*xn+yn*yn;
-      let col=null;
-      if(en>.86 && en<1.18) col=outline;
-      else if(en<=.86){
-        const irisN=(xx*xx)/(Math.max(1,planet.rx*.13)**2)+(yy*yy)/(Math.max(1,planet.ry*.10)**2);
-        const pupilN=(xx*xx)/(Math.max(1,planet.rx*.055)**2)+(yy*yy)/(Math.max(1,planet.ry*.055)**2);
-        if(pupilN<1) col=pupil;
-        else if(irisN<1) col=iris;
-        else col=mixHex(C.white,C.brown,.18);
-      }
-      if(col) ctx.fillStyle=col, ctx.fillRect(Math.round(px),Math.round(py),1,1);
-    }
+  // The body itself is the pupil/iris core of the larger purple cloud-eye.
+  const pupilR=Math.max(8,Math.round(Math.min(planet.rx,planet.ry)*.42));
+  for(let y=-pupilR;y<=pupilR;y++) for(let x=-pupilR;x<=pupilR;x++){
+    const rr=(x*x+y*y)/(pupilR*pupilR); if(rr>1) continue;
+    const px=cx+x,py=cy+y;if(!planetContainsPoint(px,py,cx,cy,0))continue;
+    let col=rr<.38?mixHex(C.black,C.purple,.04):rr<.72?mixHex(C.purple,C.black,.28):mixHex(C.blue,C.purple,.22);
+    if(((x*7+y*11+planet.seed)&15)===0) col=mixHex(col,C.cyan,.20);
+    ctx.fillStyle=col;ctx.fillRect(px,py,1,1);
   }
-  ctx.fillStyle=lid;
-  for(let i=-rx;i<=rx;i++){
-    const q=Math.abs(i)/Math.max(1,rx);
-    const yOff=Math.round((1-q*q)*planet.ry*.05);
-    const x=ex+i;
-    const top=ey-ry-yOff, bottom=ey+ry+yOff;
-    if(planetContainsPoint(x,top,cx,cy,0)) ctx.fillRect(x,top,1,1);
-    if(planetContainsPoint(x,bottom,cx,cy,0)) ctx.fillRect(x,bottom,1,1);
-  }
+  ctx.fillStyle=mixHex(C.black,C.purple,.02);
+  ctx.fillRect(cx-2,cy-2,5,5);
+  ctx.fillStyle=mixHex(C.cyan,C.white,.12);ctx.fillRect(cx-1,cy-1,1,1);
 }
 function drawBrittleHollowBlackHole(cx,cy){
-  if(planet?.renderer!=='brittlehollow') return;
-  const bhx=Math.round(cx+planet.rx*.11), bhy=Math.round(cy-planet.ry*.08);
-  const voidR=Math.max(4,Math.round(Math.min(planet.rx,planet.ry)*.10));
-  for(let y=bhy-voidR-3;y<=bhy+voidR+3;y++){
-    for(let x=bhx-voidR-5;x<=bhx+voidR+5;x++){
-      if(!planetContainsPoint(x,y,cx,cy,0)) continue;
-      const dx=(x-bhx)/Math.max(1,voidR), dy=(y-bhy)/Math.max(1,voidR*.92), rr=dx*dx+dy*dy;
-      let col=null;
-      if(rr<1) col=mixHex(C.black,C.purple,.02);
-      else if(rr<1.9) col=mixHex(C.purple,C.blue,.18);
-      if(col){ ctx.fillStyle=col; ctx.fillRect(x,y,1,1); }
-    }
+  if(planet?.renderer!=='brittlehollow' || state.viewMode>1) return;
+  const bhx=Math.round(cx+planet.rx*.02), bhy=Math.round(cy-planet.ry*.03);
+  const r=Math.max(5,Math.round(Math.min(planet.rx,planet.ry)*.115));
+  // Accretion glow first, then the absolute black singularity. This is drawn
+  // over the missing-geometry cavity on purpose, so it remains visible through
+  // the broken shell instead of being rejected by planetContainsPoint().
+  for(let y=-r-5;y<=r+5;y++) for(let x=-r-8;x<=r+8;x++){
+    const ex=x/(r*1.65), ey=y/(r*.62), er=ex*ex+ey*ey;
+    if(er>1.25||er<.48) continue;
+    const col=er<.70?mixHex(C.purple,C.white,.18):er<.96?mixHex(C.purple,C.blue,.12):mixHex(C.blue,C.purple,.24);
+    ctx.fillStyle=col;ctx.globalAlpha=.58-(er-.48)*.22;ctx.fillRect(bhx+x,bhy+y,1,1);
   }
-  // Pull a darker channel from the visible fracture toward the singularity so
-  // the black hole reads inside the open crack rather than as a detached spot.
+  ctx.globalAlpha=1;
+  for(let y=-r;y<=r;y++) for(let x=-r;x<=r;x++){
+    const rr=(x*x+y*y)/(r*r); if(rr>1) continue;
+    ctx.fillStyle=rr>.78?mixHex(C.black,C.purple,.10):C.black;
+    ctx.fillRect(bhx+x,bhy+y,1,1);
+  }
+  ctx.fillStyle=mixHex(C.white,C.purple,.16);ctx.fillRect(bhx-r-1,bhy,2,1);ctx.fillRect(bhx+r,bhy,2,1);
+  // A couple of broken-shell shadows point inward toward the singularity.
   ctx.fillStyle=mixHex(C.black,C.purple,.06);
-  const segments=Math.max(14,Math.round(planet.ry*.55));
-  for(let i=0;i<segments;i++){
-    const q=i/Math.max(1,segments-1);
-    const x=Math.round(cx-planet.rx*.08+q*planet.rx*.24+Math.sin(q*Math.PI*2.4)*1.5);
-    const y=Math.round(cy-planet.ry*.32+q*planet.ry*.42+Math.sin(q*Math.PI*1.6)*1.0);
-    if(planetContainsPoint(x,y,cx,cy,0)) ctx.fillRect(x,y,2,2);
-  }
+  drawPixelLine(cx-planet.rx*.25,cy-planet.ry*.27,bhx-r,bhy-1,mixHex(C.black,C.purple,.06),.78);
+  drawPixelLine(cx+planet.rx*.20,cy+planet.ry*.24,bhx+r,bhy+1,mixHex(C.black,C.purple,.06),.78);
 }
 function drawLoreSetpieces(cx,cy,front){
   if(state.viewMode>1) return;
@@ -5280,8 +5306,13 @@ function drawDysonRingLayer(cx,cy,rx,ry,planeAngle,phase,front,tint,moduleTint,m
     const bright=.16+.22*Math.max(0,depth);
     // Small moving construction gaps make the otherwise continuous ellipse's
     // rotation legible at pixel scale without turning it into a dotted ring.
-    const segment=i%moduleEvery;
-    if(segment===moduleEvery-1 && ((i/moduleEvery)|0)%3===1) continue;
+    const segment=i%moduleEvery, block=((i/moduleEvery)|0);
+    // More missing construction segments make the very slow counter-rotation
+    // easy to read while keeping each band recognizably continuous.
+    const majorGap=(block%3===1 && segment>=moduleEvery-3);
+    const minorGap=(block%5===2 && segment>=2 && segment<=3);
+    const serviceGap=(block%7===4 && segment===Math.floor(moduleEvery*.55));
+    if(majorGap||minorGap||serviceGap) continue;
     ctx.fillStyle=mixHex(tint,C.white,front?bright:.05);
     ctx.fillRect(x,y,front?2:1,1);
     if(segment===0){
@@ -5348,6 +5379,7 @@ function drawPlanet(cx,cy,t){
   const normalView=state.viewMode===0, atmosphereView=state.viewMode===2, showEnvironment=normalView||atmosphereView;
   if(normalView) drawCivilizationOrbitObjects(cx,cy,false);
   drawLoreSetpieces(cx,cy,false);
+  if(planet.renderer==='eyeuniverse') drawEyeUniverseCloud(cx,cy);
   drawMoons(cx,cy,t,false); ringPoints(cx,cy,false); if(showEnvironment) drawAtmosphereLimb(cx,cy);
   // The procedural world texture is cached offscreen. Rotation, moons, rings,
   // ships and every other visible motion still update at the 60 FPS render loop.
