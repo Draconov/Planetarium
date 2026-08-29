@@ -505,11 +505,35 @@ function infoFieldLines(value,label,maxPx){
   const valueLines=wrapText(String(value??''),Math.max(28,maxPx-prefixW),1);
   return {prefix,prefixW,lines:valueLines.length?valueLines:['']};
 }
-function infoFieldHeight(label,value,maxPx){ return Math.max(1,infoFieldLines(value,label,maxPx).lines.length)*9; }
-function drawInfoField(label,value,x,y,maxPx,color=C.white){
-  const f=infoFieldLines(value,label,maxPx);
-  drawText(f.prefix,x,y,color,1);
-  f.lines.forEach((line,i)=>drawText(line,x+f.prefixW,y+i*9,color,1));
+function measureInfoLabelWidth(rows,maxPx,gapPx=12){
+  let widest=0;
+  for(const row of rows||[]){
+    const label=String((row&&row[0])||'').toUpperCase();
+    widest=Math.max(widest,textWidth(label,1));
+  }
+  return clamp(widest+gapPx,36,Math.max(36,maxPx-28));
+}
+function alignedInfoFieldLines(value,label,maxPx,labelW){
+  const labelText=String(label||'').toUpperCase();
+  const resolvedLabelW=clamp(Math.round(labelW||textWidth(labelText,1)+12),36,Math.max(36,maxPx-28));
+  const valueW=Math.max(24,maxPx-resolvedLabelW);
+  const valueLines=wrapText(String(value??''),valueW,1);
+  return {label:labelText,labelW:resolvedLabelW,lines:valueLines.length?valueLines:['']};
+}
+function infoFieldHeight(label,value,maxPx,labelW=null){
+  if(labelW==null) return Math.max(1,infoFieldLines(value,label,maxPx).lines.length)*9;
+  return Math.max(1,alignedInfoFieldLines(value,label,maxPx,labelW).lines.length)*9;
+}
+function drawInfoField(label,value,x,y,maxPx,color=C.white,labelW=null){
+  if(labelW==null){
+    const f=infoFieldLines(value,label,maxPx);
+    drawText(f.prefix,x,y,color,1);
+    f.lines.forEach((line,i)=>drawText(line,x+f.prefixW,y+i*9,color,1));
+    return y+Math.max(1,f.lines.length)*9;
+  }
+  const f=alignedInfoFieldLines(value,label,maxPx,labelW);
+  drawText(f.label,x,y,color,1);
+  f.lines.forEach((line,i)=>drawText(line,x+f.labelW,y+i*9,color,1));
   return y+Math.max(1,f.lines.length)*9;
 }
 function deepScanModelForPlanet(){
@@ -543,15 +567,15 @@ function deepScanModelForMoon(m){
   if(m.kind==='human_ship') return {rows:[['TYPE',d.type||m.objectClass||'HUMAN VESSEL',C.white],['ORIGIN',d.origin||'HUMAN',C.blue],['STATUS',d.status||'ACTIVE ORBIT',C.green],['ROLE',d.role||'COLONIAL SUPPORT',C.brown],['ACTIVITY',d.activity||'SHUTTLE TRAFFIC',C.red]],anomaly:hasAnomaly(d)?d.anomaly:'',anomalyLines:4};
   return {rows:[['TEMP',`${moonTemperatureC(m)} C`,C.white],['GRAVITY',`${d.gravity.toFixed(2)} G`,C.white],['SURFACE',d.surface,C.brown],['ATMOS',d.atmosphere,C.yellow],['WATER ICE',d.waterIce,C.cyan],['ACTIVITY',d.activity,C.red]],anomaly:hasAnomaly(d)?d.anomaly:'',anomalyLines:4};
 }
-function measureDeepScanModel(model,maxPx){
+function measureDeepScanModel(model,maxPx,labelW=null){
   let h=12;
-  for(const [label,value] of model.rows) h+=infoFieldHeight(label,value,maxPx);
+  for(const [label,value] of model.rows) h+=infoFieldHeight(label,value,maxPx,labelW);
   if(model.anomaly) h+=12+wrapText(model.anomaly,maxPx,1).length*8;
   return h;
 }
-function drawDeepScanModel(model,x,y,maxPx){
+function drawDeepScanModel(model,x,y,maxPx,labelW=null){
   drawText('DEEP SCAN',x,y,C.purple,1); let yy=y+12;
-  for(const [label,value,color] of model.rows) yy=drawInfoField(label,value,x,yy,maxPx,color);
+  for(const [label,value,color] of model.rows) yy=drawInfoField(label,value,x,yy,maxPx,color,labelW);
   if(model.anomaly){
     yy+=2; drawText('ANOMALY',x,yy,C.purple,1); yy+=10;
     const lines=wrapText(model.anomaly,maxPx,1);
@@ -4039,16 +4063,18 @@ function drawPlanetHover(cx,cy){
   const nameLines=wrapText(planet.name,normalW,1);
   const classLines=wrapText(halo?'FORERUNNER HALO':worldClass(),normalW,1);
 
+  const normalLabelW=measureInfoLabelWidth(baseRows,normalW);
   let normalH=Math.max(1,nameLines.length)*9+Math.max(1,classLines.length)*9+4;
-  for(const [label,value] of baseRows) normalH+=infoFieldHeight(label,value,normalW);
+  for(const [label,value] of baseRows) normalH+=infoFieldHeight(label,value,normalW,normalLabelW);
 
-  let narrative='',probeH=0,scanModel=null;
+  let narrative='',probeH=0,scanModel=null,probeLabelW=null;
   if(scanned){
     narrative=halo?(planet.loreReport||planet.lifeText||''):lifeProbeObservation();
     scanModel=deepScanModelForPlanet();
+    probeLabelW=measureInfoLabelWidth(scanModel.rows,probeW);
     probeH=12; // PROBE DATA heading
     if(narrative) probeH+=measureNarrative(narrative,probeW)+4;
-    probeH+=measureDeepScanModel(scanModel,probeW)+6;
+    probeH+=measureDeepScanModel(scanModel,probeW,probeLabelW)+6;
   }
 
   const contentH=scanned?Math.max(normalH,probeH):normalH;
@@ -4062,7 +4088,7 @@ function drawPlanetHover(cx,cy){
   let yy=y+Math.max(1,nameLines.length)*9;
   classLines.forEach((line,i)=>drawText(line,x,yy+i*9,C.green,1));
   yy+=Math.max(1,classLines.length)*9+4;
-  for(const [label,value,color] of baseRows) yy=drawInfoField(label,value,x,yy,normalW,color);
+  for(const [label,value,color] of baseRows) yy=drawInfoField(label,value,x,yy,normalW,color,normalLabelW);
 
   // RIGHT COLUMN — created only after this planet has actually been probed.
   if(scanned){
@@ -4078,7 +4104,7 @@ function drawPlanetHover(cx,cy){
       py=drawNarrative(halo?'INSTALLATION DATA':'LIFE OBSERVED',narrative,probeX,py,probeW,C.green,halo?C.white:C.green);
       py+=4;
     }
-    drawDeepScanModel(scanModel,probeX,py,probeW);
+    drawDeepScanModel(scanModel,probeX,py,probeW,probeLabelW);
   }
 
   endScrollableInfoPanel(rect,contentH,pad);
