@@ -3121,7 +3121,7 @@ function drawMoons(cx,cy,t,front){
     const pos=moonPosition(m,cx,cy); m.screenX=pos.x; m.screenY=pos.y; m.depth=pos.depth;
     if((front && pos.depth<0)||(!front && pos.depth>=0)) continue;
     if(m.kind==='heighliner'){
-      drawHeighliner(pos.x,pos.y);
+      drawHeighliner(pos.x,pos.y,cx,cy);
       m.visualDiameter=34; m.hitRadius=18; m.renderFrame=-2;
       continue;
     }
@@ -3204,20 +3204,99 @@ function drawPandoraOrbiter(x,y){
   ctx.fillStyle=C.cyan; ctx.fillRect(x-5,y-2,2,1); ctx.fillRect(x+3,y-2,2,1);
   ctx.fillStyle=C.black; ctx.fillRect(x+7,y-1,2,2);
 }
-function drawHeighliner(x,y){
-  x=Math.round(x); y=Math.round(y);
-  ctx.fillStyle=mixHex(C.white,C.black,.76);
-  for(let i=-16;i<=16;i++){
-    const span=Math.round(3*(1-Math.abs(i)/16))+1;
-    ctx.fillRect(x+i,y-span,1,span*2+1);
+function drawHeighlinerTraffic(noseX,noseY,planetCx,planetCy){
+  if(planet?.name!=='ARRAKIS') return;
+  const dx=planetCx-noseX, dy=planetCy-noseY;
+  const dist=Math.hypot(dx,dy)||1;
+  const ux=dx/dist, uy=dy/dist;
+  const edgeRadius=Math.max(14,(planet.rx+planet.ry)*.52);
+  const travel=Math.max(18,dist-edgeRadius*1.02);
+  const now=performance.now()/1000;
+  for(let i=0;i<5;i++){
+    const phase=mod(now*(.075+i*.003)+i*.22,1.24);
+    if(phase>.90) continue;
+    const progress=smooth(phase/.90);
+    const px=noseX+ux*travel*progress;
+    const py=noseY+uy*travel*progress;
+    const fade=progress>.82 ? 1-clamp((progress-.82)/.18,0,1) : 1;
+    ctx.globalAlpha=.55*fade;
+    ctx.fillStyle=C.cyan;
+    ctx.fillRect(Math.round(px-ux),Math.round(py-uy),1,1);
+    ctx.globalAlpha=.90*fade;
+    ctx.fillStyle=C.white;
+    ctx.fillRect(Math.round(px),Math.round(py),progress<.16?1:2,1);
+    if(progress>.72){
+      ctx.globalAlpha=.34*fade;
+      ctx.fillStyle=mixHex(C.yellow,C.white,.18);
+      ctx.fillRect(Math.round(px+ux*2),Math.round(py+uy*2),1,1);
+    }
   }
-  ctx.fillStyle=mixHex(C.white,C.black,.22);
-  for(let i=-15;i<=15;i++){
-    const span=Math.round(2*(1-Math.abs(i)/15))+1;
-    ctx.fillRect(x+i,y-span,1,span*2+1);
+  ctx.globalAlpha=1;
+}
+function drawHeighliner(x,y,planetCx=x+48,planetCy=y+12){
+  const dx=planetCx-x, dy=planetCy-y;
+  const len=Math.hypot(dx,dy)||1;
+  const ux=dx/len, uy=dy/len;
+  const px=-uy, py=ux;
+  const bodyLen=58;
+  const tailX=x-ux*bodyLen*.58, tailY=y-uy*bodyLen*.58;
+  const noseX=x+ux*bodyLen*.42, noseY=y+uy*bodyLen*.42;
+  const steps=64;
+  const base=mixHex(C.white,C.black,.84);
+  const light=mixHex(C.white,C.black,.38);
+  const mid=mixHex(C.white,C.black,.66);
+  const dark=mixHex(C.white,C.black,.92);
+  for(let s=0;s<=steps;s++){
+    const t=s/steps;
+    const cx=tailX+(noseX-tailX)*t;
+    const cy=tailY+(noseY-tailY)*t;
+    const radius=4.2+t*4.4+(t>.18&&t<.82&&((s%8)===0)?.45:0);
+    for(let w=-Math.ceil(radius);w<=Math.ceil(radius);w++){
+      const edge=Math.abs(w)/Math.max(1,radius);
+      if(edge>1.06) continue;
+      let col=edge>.88 ? dark : edge>.58 ? mid : base;
+      if(w<0 && edge<.68) col=light;
+      const rx=Math.round(cx+px*w), ry=Math.round(cy+py*w);
+      ctx.fillStyle=col;
+      ctx.fillRect(rx,ry,1,1);
+      if(edge>.74 && (s%6)===0){
+        ctx.fillStyle=mixHex(C.cyan,C.white,.48);
+        ctx.globalAlpha=.20;
+        ctx.fillRect(rx,ry,1,1);
+        ctx.globalAlpha=1;
+      }
+    }
   }
-  ctx.fillStyle=C.black; ctx.fillRect(x+11,y-4,3,8);
-  ctx.fillStyle=C.white; ctx.fillRect(x+12,y-3,1,6);
+  for(let rib=8;rib<steps-8;rib+=8){
+    const t=rib/steps;
+    const cx=tailX+(noseX-tailX)*t;
+    const cy=tailY+(noseY-tailY)*t;
+    const radius=4.2+t*4.2;
+    ctx.fillStyle=mixHex(C.white,C.black,.56);
+    for(let w=-Math.ceil(radius*.80);w<=Math.ceil(radius*.80);w++){
+      const rx=Math.round(cx+px*w), ry=Math.round(cy+py*w);
+      ctx.fillRect(rx,ry,1,1);
+    }
+  }
+  const rimOuter=7.4, rimInner=4.7;
+  for(let rr=Math.ceil(rimOuter);rr>=1;rr--){
+    const col=rr<=rimInner ? C.black : rr>=rimOuter-1 ? mixHex(C.white,C.black,.18) : mixHex(C.white,C.black,.62);
+    ctx.fillStyle=col;
+    for(let a=0;a<Math.PI*2;a+=Math.PI/28){
+      const ex=Math.cos(a)*rr*0.92, ey=Math.sin(a)*rr*0.74;
+      const hx=Math.round(noseX+px*ex+ux*ey*.45);
+      const hy=Math.round(noseY+py*ex+uy*ey*.45);
+      ctx.fillRect(hx,hy,1,1);
+    }
+  }
+  ctx.fillStyle=mixHex(C.cyan,C.white,.34);
+  for(let i=0;i<5;i++){
+    const t=.18+i*.14;
+    const lx=tailX+(noseX-tailX)*t+px*(2.6+i*.25);
+    const ly=tailY+(noseY-tailY)*t+py*(2.6+i*.25);
+    ctx.fillRect(Math.round(lx),Math.round(ly),1,1);
+  }
+  drawHeighlinerTraffic(noseX+ux*2,noseY+uy*2,planetCx,planetCy);
 }
 function drawLoreSetpieces(cx,cy,front){
   if(state.viewMode>1) return;
