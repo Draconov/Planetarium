@@ -14,7 +14,7 @@ const C = {
 
 // Render caches: expensive procedural planet data is built only when the
 // planet/climate/view state changes. Motion still composites at 60 FPS.
-const SURFACE_MAP_W=256, SURFACE_MAP_H=128;
+const SURFACE_MAP_W=256, SURFACE_MAP_H=128, INTERACTIVE_SURFACE_STEP=2;
 const renderCache={
   planetSeed:null,
   surfaceRevision:1,
@@ -32,7 +32,6 @@ const renderCache={
   planetInfo:null,
   moonInfo:new Map(),
   scanStatus:new Map(),
-  lastSurfaceBuildAt:0,
   lastInteractiveInfoRefreshAt:0
 };
 function resetPlanetRenderCaches(){
@@ -48,7 +47,6 @@ function resetPlanetRenderCaches(){
   renderCache.planetInfo=null;
   renderCache.moonInfo.clear();
   renderCache.scanStatus.clear();
-  renderCache.lastSurfaceBuildAt=0;
   renderCache.lastInteractiveInfoRefreshAt=0;
   renderCache.infoRevision++;
 }
@@ -3283,11 +3281,16 @@ function surfaceColor(lon,lat,normY,nx,z){
 function ensureSurfaceMap(){
   ensurePlanetCacheContext();
   if(renderCache.surfaceImage && renderCache.surfaceBuiltRevision===renderCache.surfaceRevision) return renderCache.surfaceImage;
-  // Slider motion must remain responsive at the display's rAF rate. During an
-  // active drag, reuse the last completed climate texture briefly instead of
-  // synchronously recolouring 32K surface samples on every pointer event.
-  const buildNow=performance.now();
-  if(state.draggingSlider && renderCache.surfaceImage && buildNow-renderCache.lastSurfaceBuildAt<55) return renderCache.surfaceImage;
+  // Surface generation only happens from the requestAnimationFrame render path,
+  // never directly inside pointermove. If several slider events arrive before
+  // the next display frame, they therefore collapse naturally into ONE rebuild
+  // using the newest temperature value instead of rendering obsolete states.
+  //
+  // While dragging, sample one climate colour per 2x2 texel block. The texture
+  // remains 256x128, so projection code does not change, but expensive climate/
+  // biome evaluations fall from 32,768 to 8,192 per interactive rebuild. Slider
+  // release invalidates the cache once more and restores full 1x1 quality.
+  const step=state.draggingSlider?INTERACTIVE_SURFACE_STEP:1;
   // terrainAt() lazily builds its static map only for renderers that need it;
   // the map survives climate/view recolours.
   let c=renderCache.surfaceCanvas,g=renderCache.surfaceCtx;
@@ -3297,21 +3300,25 @@ function ensureSurfaceMap(){
     renderCache.surfaceCanvas=c; renderCache.surfaceCtx=g;
   }
   const image=g.createImageData(SURFACE_MAP_W,SURFACE_MAP_H),data=image.data;
-  for(let y=0;y<SURFACE_MAP_H;y++){
-    const lat=(y+.5)/SURFACE_MAP_H;
-    for(let x=0;x<SURFACE_MAP_W;x++){
-      const lon=(x+.5)/SURFACE_MAP_W;
+  for(let y=0;y<SURFACE_MAP_H;y+=step){
+    const lat=(y+step*.5)/SURFACE_MAP_H;
+    for(let x=0;x<SURFACE_MAP_W;x+=step){
+      const lon=(x+step*.5)/SURFACE_MAP_W;
       // nx=0,z=1 intentionally asks every renderer for its unshaded base
       // colour. Lighting is screen-space and applied cheaply during projection.
       const rgb=rgbForHex(surfaceColor(lon,lat,lat-.5,0,1));
-      const i=(y*SURFACE_MAP_W+x)*4;
-      data[i]=rgb[0]; data[i+1]=rgb[1]; data[i+2]=rgb[2]; data[i+3]=255;
+      const maxY=Math.min(SURFACE_MAP_H,y+step),maxX=Math.min(SURFACE_MAP_W,x+step);
+      for(let yy=y;yy<maxY;yy++){
+        let i=(yy*SURFACE_MAP_W+x)*4;
+        for(let xx=x;xx<maxX;xx++,i+=4){
+          data[i]=rgb[0]; data[i+1]=rgb[1]; data[i+2]=rgb[2]; data[i+3]=255;
+        }
+      }
     }
   }
   g.putImageData(image,0,0);
   renderCache.surfaceImage={width:SURFACE_MAP_W,height:SURFACE_MAP_H,data:image.data,canvas:c};
   renderCache.surfaceBuiltRevision=renderCache.surfaceRevision;
-  renderCache.lastSurfaceBuildAt=buildNow;
   return renderCache.surfaceImage;
 }
 function ensurePlanetFrameGeometry(cx,cy){
