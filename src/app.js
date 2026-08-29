@@ -1471,9 +1471,9 @@ const LORE_PRESETS={
   },
   'QUANTUM MOON':{
     renderer:'quantummoon',worldType:'BARREN',worldClass:'QUANTUM SATELLITE',visualRadius:28,radiusKm:1300,gravity:.11,massEarth:.007,density:.42,
-    water:.12,cloudCover:.04,cloudSpeed:.02,defaultTempC:-38,tempRange:[-150,26],life:false,populationBase:0,
+    water:.12,cloudCover:.92,cloudSpeed:.045,defaultTempC:-38,tempRange:[-150,26],life:false,populationBase:0,
     dayHours:0,yearDays:0,distanceAU:1.1,axialTiltDeg:0,rotationDirection:1,
-    atmosDensity:'TRACE',atmosChemistry:'TRACE / UNKNOWN',weather:'QUANTUM FOG',ring:false,moons:[],disableAutoCivilization:true,
+    atmosDensity:'DENSE',atmosChemistry:'QUANTUM FOG / UNKNOWN',weather:'DENSE QUANTUM FOG',ring:false,moons:[],disableAutoCivilization:true,
     observation:'A SILENT SHIFTING MOON THAT REFUSES TO STAY IN ONE PLACE AND SEEMS TO ECHO THE WORLDS IT VISITS.',
     scan:{ageBy:4.5,pressureAtm:.01,pressureText:'TRACE',magField:'UNKNOWN',oxygen:0,nitrogen:1,co2:0,tectonics:'UNKNOWN',volcanism:'UNKNOWN',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'ANCIENT PILGRIMAGE SITE',iron:'UNKNOWN',carbon:'UNKNOWN',uranium:'UNKNOWN',anomaly:'MACROSCOPIC QUANTUM BEHAVIOR / SIX LOCATIONS',lossRisk:false},
     loreReport:'THE QUANTUM MOON ORBITS DIFFERENT PLANETS DEPENDING ON WHO IS OBSERVING IT. ITS SURFACE SEEMS TO BORROW TRAITS FROM NEARBY WORLDS, AND AN ANCIENT PILGRIMAGE TRAIL STILL REMAINS.',
@@ -3583,18 +3583,20 @@ function interloperSurfaceColor(lon,lat,nx,z){
 }
 function quantumMoonSurfaceColor(lon,lat,nx,z){
   const q=terrainAt(lon,lat);
-  const mist=periodicNoise01(lon,lat,22,14,planet.terrainSeed^0x51554e54);
-  const blotch=periodicNoise01(lon,lat,46,27,planet.terrainSeed^0x4d4f4f4e);
+  const mist=periodicNoise01(lon,lat,18,11,planet.terrainSeed^0x51554e54);
+  const blotch=periodicNoise01(lon,lat,44,25,planet.terrainSeed^0x4d4f4f4e);
+  const broad=periodicNoise01(lon,lat,9,6,planet.terrainSeed^0x514d4f4f);
   const seam=Math.abs(lat-(.50+.07*Math.sin((lon+.09)*Math.PI*2.1)+(mist-.5)*.04));
   let col;
-  if(q.ridge>.86) col=mixHex(C.white,C.black,.18);
-  else if(mist>.72) col=mixHex(C.white,C.cyan,.12);
-  else if(blotch<.22) col=mixHex(C.white,C.brown,.20);
-  else if(blotch>.66) col=mixHex(C.white,C.blue,.18);
-  else col=mixHex(C.white,C.black,.24);
-  if(seam<.018) col=seam<.008?mixHex(C.white,C.blue,.14):mixHex(C.white,C.black,.30);
-  const shrine=(lonDistance(lon,.57)/.06)**2+((lat-.49)/.07)**2;
-  if(shrine<1 && q.n>.44) col=shrine<.42?mixHex(C.white,C.cyan,.12):mixHex(C.brown,C.white,.22);
+  if(q.ridge>.88) col=mixHex(C.blue,C.black,.40);
+  else if(broad>.68) col=mixHex(C.blue,C.white,.22);
+  else if(mist>.72) col=mixHex(C.blue,C.cyan,.16);
+  else if(blotch<.22) col=mixHex(C.brown,C.blue,.34);
+  else if(blotch>.66) col=mixHex(C.blue,C.black,.30);
+  else col=mixHex(C.blue,C.black,.20);
+  if(seam<.018) col=seam<.008?mixHex(C.black,C.blue,.18):mixHex(C.blue,C.white,.12);
+  const shrine=(lonDistance(lon,.57)/.055)**2+((lat-.49)/.065)**2;
+  if(shrine<1 && q.n>.44) col=shrine<.38?mixHex(C.white,C.cyan,.18):mixHex(C.brown,C.white,.20);
   return surfaceShade(col,nx,z);
 }
 function eyeUniverseSurfaceColor(lon,lat,nx,z){
@@ -4953,25 +4955,53 @@ function drawNormalAtmosphereHaze(cx,cy){
 }
 function drawQuantumMoonFog(cx,cy){
   if(planet?.renderer!=='quantummoon' || (state.viewMode!==0 && state.viewMode!==2)) return;
-  const diagnostic=state.viewMode===2, tint=mixHex(C.white,C.cyan,.14);
-  ctx.fillStyle=tint;
-  for(let layer=0;layer<3;layer++){
-    const rx=planet.rx+1+layer*2, ry=planet.ry+1+layer*2, steps=Math.max(96,Math.round((rx+ry)*2.8));
-    ctx.globalAlpha=(diagnostic?.42:.16)-layer*.05;
+  const diagnostic=state.viewMode===2;
+  const limb=mixHex(C.white,C.blue,.20), haze=mixHex(C.white,C.blue,.34), darkHaze=mixHex(C.blue,C.black,.12);
+
+  // Thick soft-looking limb: several broken shells rather than one bright ring.
+  for(let layer=0;layer<5;layer++){
+    const rx=planet.rx+1+layer, ry=planet.ry+1+layer, steps=Math.max(110,Math.round((rx+ry)*3.1));
+    ctx.fillStyle=layer<2?limb:haze;
+    ctx.globalAlpha=(diagnostic?.38:.18)-layer*.024;
     for(let i=0;i<steps;i++){
-      if(layer>0 && i%2) continue;
-      const a=i/steps*Math.PI*2, x=Math.round(cx+Math.cos(a)*rx), y=Math.round(cy+Math.sin(a)*ry);
-      ctx.fillRect(x,y,1,1);
+      if(layer>1 && ((i+layer)%3===0)) continue;
+      const a=i/steps*Math.PI*2;
+      const wob=(h2(i,layer+29,planet.seed^0x5146)-.5)*(layer+1)*.55;
+      ctx.fillRect(Math.round(cx+Math.cos(a)*(rx+wob)),Math.round(cy+Math.sin(a)*(ry+wob*.45)),1,1);
     }
   }
-  ctx.fillStyle=mixHex(C.white,C.blue,.08); ctx.globalAlpha=diagnostic?.55:.24;
-  const count=Math.round(74+planet.rx*.8);
+
+  // Broad smoky cloud bands. They drift slowly with simulation time and hide
+  // most of the surface without flattening the whole moon into one white disc.
+  const phase=state.simDays*.018;
+  for(let band=0;band<7;band++){
+    const yBase=cy-planet.ry*.72+band*(planet.ry*1.44/6);
+    const amp=2.2+h2(band,51,planet.seed)*3.2;
+    const width=planet.rx*1.78;
+    const steps=Math.round(width*1.35);
+    ctx.fillStyle=band%3===0?darkHaze:haze;
+    ctx.globalAlpha=diagnostic?.28:(band%3===0?.11:.19);
+    for(let i=0;i<steps;i++){
+      const q=i/Math.max(1,steps-1), x=cx-width*.5+q*width;
+      const wave=Math.sin(q*Math.PI*(2.1+band*.22)+phase+band*.9)*amp;
+      const jitter=(h2(i,band+83,planet.seed^0x514d)-.5)*3.0;
+      const y=yBase+wave+jitter;
+      if(!planetContainsPoint(x,y,cx,cy,0)) continue;
+      const seg=1+((i+band)%4===0?2:0);
+      ctx.fillRect(Math.round(x),Math.round(y),seg,1);
+      if((i+band)%5===0 && planetContainsPoint(x,y+1,cx,cy,0)) ctx.fillRect(Math.round(x+1),Math.round(y+1),1,1);
+    }
+  }
+
+  // Fine interior haze, deliberately gray-blue instead of white.
+  ctx.fillStyle=mixHex(C.white,C.blue,.44); ctx.globalAlpha=diagnostic?.31:.12;
+  const count=Math.round(130+planet.rx*1.4);
   for(let i=0;i<count;i++){
     const a=h2(i,37,planet.seed^0x5155)*Math.PI*2;
-    const rr=Math.sqrt(h2(i,73,planet.seed^0x4d4f))*Math.min(planet.rx,planet.ry)*.96;
+    const rr=Math.sqrt(h2(i,73,planet.seed^0x4d4f))*Math.min(planet.rx,planet.ry)*.95;
     const x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr*(planet.ry/planet.rx);
     if(!planetContainsPoint(x,y,cx,cy,0)) continue;
-    ctx.fillRect(Math.round(x),Math.round(y),h2(i,11,planet.seed)>.72?2:1,1);
+    ctx.fillRect(Math.round(x),Math.round(y),h2(i,11,planet.seed)>.82?2:1,1);
   }
   ctx.globalAlpha=1;
 }
