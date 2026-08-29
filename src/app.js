@@ -802,6 +802,8 @@ const FICTIONAL_ALIASES={
   'WARCRAFT DRAENOR':'DRAENOR','WOW DRAENOR':'DRAENOR','ALTERNATE DRAENOR':'DRAENOR',
   'WARCRAFT OUTLAND':'OUTLAND','WOW OUTLAND':'OUTLAND','THE OUTLAND':'OUTLAND','THE OUTLANDS':'OUTLAND',
   'WARCRAFT ARGUS':'ARGUS','WOW ARGUS':'ARGUS',
+  'OUTER WILDS':'TIMBER HEARTH','TIMBERHEARTH':'TIMBER HEARTH','OUTERWILDS':'TIMBER HEARTH',
+  'DYSON':'DYSON SPHERE','DYSON SPHERE':'DYSON SPHERE','DYSON SHELL':'DYSON SPHERE',
   'GRAND CANYON PLANET':'CHASM','CANYON PLANET':'CHASM','CRACKED PLANET':'CHASM','MEGA CANYON':'CHASM'
 };
 function canonicalPlanetName(name){
@@ -1290,6 +1292,27 @@ const LORE_PRESETS={
     observation:'A GIANT AIRLESS ROCK WORLD CUT BY A CONTINENT-SCALE VERTICAL CHASM VISIBLE EVEN FROM ORBIT.',
     scan:{ageBy:5.7,pressureAtm:0,pressureText:'VACUUM',magField:'WEAK',oxygen:0,nitrogen:0,co2:0,tectonics:'DORMANT',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'COMMON',carbon:'TRACE',uranium:'TRACE',anomaly:'PLANET-SPANNING RIFT / EXPOSED STRATIFIED CRUST',lossRisk:false},
     loreReport:'THE SURFACE IS A BONE-DRY EXPANSE OF CRUMBLING HIGHLANDS, IMPACT-SCARRED BASINS AND EXPOSED BEDROCK. A VAST NORTH-SOUTH CHASM, REMINISCENT OF A GRAND-CANYON SCALE RIFT, SPLITS THE FACE OF THE WORLD.'
+  },
+  'TIMBER HEARTH':{
+    renderer:'timberhearth',worldType:'VERDANT',worldClass:'HEARTHIAN WORLD',visualRadius:41,radiusKm:5600,gravity:.91,massEarth:.74,density:1.12,
+    water:.43,cloudCover:.38,cloudSpeed:.11,defaultTempC:17,tempRange:[-28,44],life:true,populationBase:3,
+    dayHours:23.3,yearDays:281,distanceAU:.82,axialTiltDeg:11,rotationDirection:1,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'BREEZES / SHOWERS',ring:false,
+    moons:[knownMoon('ATTLEROCK',28400,5.1,820,60,14,.40,{tempBias:-18,gravity:.06,surface:'ROCK / DUST / CRATERS',atmosphere:'NONE',waterIce:'TRACE',activity:'LOW GEOLOGIC ACTIVITY',anomaly:'NOMAI RUINS / SIGNAL LOCATOR',lossRisk:false})],
+    observation:'A SMALL WOODED WORLD OF RIVERS, ISLANDS AND ROUND HILLS, HOME TO A CURIOUS EARLY-SPACEFARING SPECIES.',
+    scan:{ageBy:4.2,pressureAtm:.98,pressureText:'0.98 ATM',magField:'MODERATE',oxygen:21,nitrogen:77,co2:.08,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:1.9,lifeTypePotential:'INTELLIGENT',techPotential:'EARLY SPACEFLIGHT',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'ANCIENT NOMAI RUINS / LOCAL TIME-LOOP SIGNALS',lossRisk:false},
+    loreReport:'TIMBER HEARTH IS A COZY, FORESTED WORLD OF LAKES, GULLIES AND WOODEN SETTLEMENTS. HEARTHIAN ASTRONAUTS HAVE REACHED THEIR MOON, ATTLEROCK, WHILE OLDER NOMAI RUINS AND UNUSUAL TEMPORAL SIGNALS LINGER ACROSS THE SYSTEM.',
+    lifeLabel:'ABUNDANT',populationLabel:'FEW',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'EARLY SPACEFLIGHT'
+  },
+  'DYSON SPHERE':{
+    renderer:'dyson',worldType:'BARREN',worldClass:'STELLAR MEGASTRUCTURE',visualRadius:55,radiusKm:94500,gravity:.96,massEarth:22.5,density:.07,
+    water:0,cloudCover:0,cloudSpeed:0,defaultTempC:230,tempRange:[120,420],life:false,populationBase:0,
+    dayHours:36,yearDays:640,distanceAU:1.0,axialTiltDeg:0,rotationDirection:1,
+    atmosDensity:'NONE',atmosChemistry:'NONE',weather:'NONE',ring:false,moons:[],disableAutoCivilization:true,
+    observation:'AN IMMENSE ARTIFICIAL SHELL OF PANELS, ENERGY CONDUITS AND ACCESS APERTURES BUILT TO CAPTURE THE OUTPUT OF A STAR.',
+    scan:{ageBy:.08,pressureAtm:0,pressureText:'SEALED INTERIORS ONLY',magField:'ARTIFICIAL',oxygen:0,nitrogen:0,co2:0,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'KARDASHEV II',iron:'ABUNDANT',carbon:'TRACE',uranium:'ABUNDANT',anomaly:'STAR-ENCLOSING POWER HARVEST ARRAY',lossRisk:false},
+    loreReport:'THE OBJECT IS NOT A NATURAL PLANET AT ALL BUT A TITANIC ENGINEERED SHELL. ITS EXTERIOR IS A PATCHWORK OF COLLECTOR PLATES, MAINTENANCE SEGMENTS, RADIATOR TOWERS AND GLOWING POWER CHANNELS FEEDING THE CIVILIZATION INSIDE.',
+    lifeLabel:'NONE',populationLabel:'UNKNOWN',lifeTypeLabel:'NONE',techLevelLabel:'KARDASHEV II'
   }
 };
 function lorePresetForName(name){ return LORE_PRESETS[name?.replace(/ /g,'_')] || LORE_PRESETS[name] || null; }
@@ -1487,28 +1510,34 @@ function makePlanetScan(p){
     lossRisk:r()<.045
   };
 }
-const PROCEDURAL_DAMAGE_TYPES=['SHATTERED_EDGE','MISSING_HEMISPHERE','EXPLOSION_DAMAGE','BITE','CRATER'];
+const PROCEDURAL_MAJOR_DAMAGE_TYPES=['SHATTERED_EDGE','MISSING_HEMISPHERE','EXPLOSION_DAMAGE','BITE'];
+const PROCEDURAL_SURFACE_DAMAGE_TYPES=['CRATER','CRATER_FIELD','SURFACE_RIFT'];
 function configureRarePlanetDamage(p,r){
   if(!p || p.solar || p.special || p.lorePreset || p.shape==='cube' || p.shape==='haloRing') return;
-  // Roughly one named procedural world in four hundred is born catastrophically damaged.
-  if(r()>=.0025) return;
-  const type=pick(r,PROCEDURAL_DAMAGE_TYPES);
-  const destructive=type!=='CRATER';
-  p.damageProfile={type,angle:r()*Math.PI*2,severity:.62+r()*.32,seed:((p.seed^0x44535452)>>>0)};
-  p.destroyedProcedural=destructive;
-  if(destructive){
-    p.populationBase=0;
-    p.lifeText='NO SURVIVING BIOSPHERE IS DETECTED. THE PLANET HAS SUFFERED CATASTROPHIC STRUCTURAL DAMAGE.';
-    p.noLifeText=p.lifeText;
+  // The old logic was ultra-rare: only a 0.25% roll, so many sessions would never
+  // surface a damaged procedural world at all. Keep catastrophic losses uncommon,
+  // but make surface scars and major fractures discoverable during normal play.
+  if(r()<.11){
+    const type=pick(r,PROCEDURAL_SURFACE_DAMAGE_TYPES);
+    p.damageProfile={type,angle:r()*Math.PI*2,severity:.42+r()*.34,seed:((p.seed^0x44535452)>>>0)};
     if(p.scan){
-      p.scan.lifeTypePotential='NONE'; p.scan.techPotential='NONE';
-      p.scan.anomaly=`CATASTROPHIC PLANETARY DAMAGE / ${type.replaceAll('_',' ')}`;
-      p.scan.tectonics='CATASTROPHIC'; p.scan.volcanism=type==='EXPLOSION_DAMAGE'?'EXTREME':'HIGH';
+      p.scan.anomaly=type==='SURFACE_RIFT'?'PLANETARY RIFT NETWORK':'IMPACT-SCARRED SURFACE';
+      if(type!=='SURFACE_RIFT') p.scan.tectonics=p.scan.tectonics==='DORMANT'?'LOW':p.scan.tectonics;
     }
-    p.civilization=null;
-  }else if(p.scan){
-    p.scan.anomaly='PLANET-SCALE IMPACT CRATER';
   }
+  if(r()>=.015) return;
+  const type=pick(r,PROCEDURAL_MAJOR_DAMAGE_TYPES);
+  p.damageProfile={type,angle:r()*Math.PI*2,severity:.62+r()*.32,seed:((p.seed^0x44535452)>>>0)};
+  p.destroyedProcedural=true;
+  p.populationBase=0;
+  p.lifeText='NO SURVIVING BIOSPHERE IS DETECTED. THE PLANET HAS SUFFERED CATASTROPHIC STRUCTURAL DAMAGE.';
+  p.noLifeText=p.lifeText;
+  if(p.scan){
+    p.scan.lifeTypePotential='NONE'; p.scan.techPotential='NONE';
+    p.scan.anomaly=`CATASTROPHIC PLANETARY DAMAGE / ${type.replaceAll('_',' ')}`;
+    p.scan.tectonics='CATASTROPHIC'; p.scan.volcanism=type==='EXPLOSION_DAMAGE'?'EXTREME':'HIGH';
+  }
+  p.civilization=null;
 }
 
 function makeMoonScan(p,m,index){
@@ -2937,7 +2966,7 @@ function geometryMissingAt(nx,ny,p=planet){
   const fixed=planetFixedDamageCoords(nx,ny);
   if(fixed.z<0) return false;
   if(p.renderer==='wikipedia') return wikipediaMissingPiece(fixed.x,fixed.y);
-  const profile=p.damageProfile; if(!profile||profile.type==='NONE'||profile.type==='CRATER') return false;
+  const profile=p.damageProfile; if(!profile||profile.type==='NONE'||profile.type==='CRATER'||profile.type==='CRATER_FIELD'||profile.type==='SURFACE_RIFT') return false;
   if(profile.type==='PUZZLE_PIECE') return wikipediaMissingPiece(fixed.x,fixed.y);
   const sev=clamp(profile.severity??.72,.2,1),q=damageSpace(fixed.x,fixed.y,profile),x=q.x,y=q.y,n=damageNoise(x,y,profile.seed);
   if(profile.type==='BITE'){
@@ -2978,7 +3007,7 @@ function geometryMissingAt(nx,ny,p=planet){
 function damageEdgeAt(nx,ny,p=planet){
   if(!p||geometryMissingAt(nx,ny,p)) return false;
   const profile=p.renderer==='wikipedia'?{type:'PUZZLE_PIECE'}:p.damageProfile;
-  if(!profile||profile.type==='NONE'||profile.type==='CRATER') return false;
+  if(!profile||profile.type==='NONE'||profile.type==='CRATER'||profile.type==='CRATER_FIELD'||profile.type==='SURFACE_RIFT') return false;
   const e=Math.max(1/Math.max(18,p.rx||40),1/Math.max(18,p.ry||40))*1.65;
   return geometryMissingAt(nx+e,ny,p)||geometryMissingAt(nx-e,ny,p)||geometryMissingAt(nx,ny+e,p)||geometryMissingAt(nx,ny-e,p)||
          geometryMissingAt(nx+e*.7,ny+e*.7,p)||geometryMissingAt(nx-e*.7,ny-e*.7,p);
@@ -2993,6 +3022,34 @@ function damageSurfaceColor(base,nx,ny,p=planet){
       if(d<.68) return mixHex(base,C.black,.52);
       return mixHex(base,p.worldType==='ICE'?C.cyan:C.brown,.42);
     }
+  }
+  if(profile?.type==='CRATER_FIELD'){
+    const fixed=planetFixedDamageCoords(nx,ny);
+    const q=damageSpace(fixed.x,fixed.y,profile),sev=clamp(profile.severity??.62,.2,1);
+    const basins=[[-.18,-.16,.11,.09],[.14,.05,.09,.08],[.28,-.21,.13,.10],[-.02,.22,.08,.07]];
+    for(const [cx,cy,rx,ry] of basins){
+      const d=Math.sqrt(((q.x-cx)/(rx+sev*.05))**2+((q.y-cy)/(ry+sev*.05))**2);
+      if(d<1){
+        if(d<.62) return mixHex(base,C.black,.46);
+        return mixHex(base,p.worldType==='ICE'?C.cyan:C.brown,.34);
+      }
+    }
+    const pepper=damageNoise(q.x*3.1,q.y*3.1,(profile.seed||p.seed)^0x43524154);
+    const pepperShape=((mod(q.x*2.7+pepper,1)-.5)**2+(mod(q.y*2.1-pepper,1)-.5)**2)<(.035+sev*.010);
+    if(pepperShape) return mixHex(base,C.black,.24);
+  }
+  if(profile?.type==='SURFACE_RIFT'){
+    const fixed=planetFixedDamageCoords(nx,ny);
+    const q=damageSpace(fixed.x,fixed.y,profile),sev=clamp(profile.severity??.62,.2,1);
+    const center=damageNoise(q.y*1.6,q.x*1.2,(profile.seed||p.seed)^0x52494654)*0.18;
+    const main=Math.abs(q.x-center)<(.018+sev*.020) && Math.abs(q.y)<.92;
+    const branch=Math.abs(q.x+.24-damageNoise(q.y*2.4,q.x*2.1,(profile.seed||p.seed)^0x424e4348)*0.10)<(.010+sev*.012) && q.y>-.18 && q.y<.56;
+    if(main||branch){
+      const hot=p.worldType==='VOLCANIC' || state.temp>.72;
+      return hot?mixHex(C.red,C.black,.08):mixHex(base,C.black,.60);
+    }
+    const rim=Math.abs(q.x-center)<(.034+sev*.022) && Math.abs(q.y)<.95;
+    if(rim) return mixHex(base,C.brown,.28);
   }
   if(!damageEdgeAt(nx,ny,p)) return base;
   if(p.renderer==='wikipedia') return mixHex(C.white,C.black,.36);
@@ -3061,6 +3118,8 @@ function loreSurfaceColor(lon,lat,normY,nx,z){
   if(planet.renderer==='draenor') return draenorSurfaceColor(lon,lat,nx,z);
   if(planet.renderer==='outland') return outlandSurfaceColor(lon,lat,nx,z);
   if(planet.renderer==='argus') return argusSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='timberhearth') return timberHearthSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='dyson') return dysonSurfaceColor(lon,lat,nx,z);
   return null;
 }
 function subnauticaSurfaceColor(lon,lat,nx,z){
@@ -3129,6 +3188,38 @@ function argusSurfaceColor(lon,lat,nx,z){
   if(ruin>.82) col=mixHex(C.white,C.black,.48);
   const scar=Math.abs(lat-(.48+.06*Math.sin(lon*Math.PI*6)));
   if(scar<.018) col=scar<.007?mixHex(C.yellow,C.green,.16):mixHex(C.green,C.black,.06);
+  return surfaceShade(col,nx,z);
+}
+function timberHearthSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const forest=periodicNoise01(lon,lat,26,17,planet.terrainSeed^0x54494d42);
+  const river=periodicNoise01(lon,lat,40,23,planet.terrainSeed^0x52495652);
+  const plateau=periodicNoise01(lon,lat,15,10,planet.terrainSeed^0x48454152);
+  let col;
+  if(q.n<.49) col=q.n<.42?C.blue:C.cyan;
+  else if(q.ridge>.88) col=mixHex(C.brown,C.white,.18);
+  else if(forest>.68) col=C.green;
+  else if(plateau>.62) col=mixHex(C.green,C.yellow,.20);
+  else col=mixHex(C.brown,C.green,.24);
+  const village=(lonDistance(lon,.58)/.030)**2+((lat-.52)/.022)**2;
+  if(village<1 && q.n>.55) col=village<.40?mixHex(C.yellow,C.white,.12):mixHex(C.brown,C.yellow,.18);
+  const riverBand=Math.abs(lat-.56-(river-.5)*.18)<.012 && q.n>.46;
+  if(riverBand) col=mixHex(C.cyan,C.white,.18);
+  return surfaceShade(col,nx,z);
+}
+function dysonSurfaceColor(lon,lat,nx,z){
+  const band=Math.floor(mod(lon*24,24));
+  const latBand=Math.floor(lat*18);
+  const grid=(band%4===0 || latBand%4===0);
+  const micro=periodicNoise01(lon,lat,90,54,planet.terrainSeed^0x4459534f);
+  const panel=periodicNoise01(lon,lat,30,20,planet.terrainSeed^0x4e50414e);
+  let col=panel>.58?mixHex(C.yellow,C.brown,.26):mixHex(C.white,C.brown,.48);
+  if(grid) col=mixHex(col,C.black,.28);
+  if(micro>.84) col=mixHex(C.cyan,C.white,.22);
+  const conduit=Math.abs(lat-.52-(periodicNoise01(lon,lat,12,9,planet.terrainSeed^0x504f5745)-.5)*.18)<.010 || Math.abs(lon-.25)<.008 || Math.abs(lon-.75)<.008;
+  if(conduit) col=mixHex(C.cyan,C.white,.26);
+  const aperture=((lonDistance(lon,.50)/.070)**2+((lat-.50)/.12)**2)<1;
+  if(aperture) col=mixHex(C.black,C.cyan,.28);
   return surfaceShade(col,nx,z);
 }
 function giediPrimeSurfaceColor(lon,lat,nx,z){
@@ -5132,10 +5223,8 @@ function monitorScreenshotData(){
 function captureUiScreenshot(kind){
   // Camera hold/status copy is useful while choosing a capture tier, but it is
   // transient interaction feedback and should not be baked into the saved UI.
-  // Hide only that camera tooltip, render a clean UI frame, capture it, then
-  // restore the live overlay immediately afterward. Two rAFs guarantee that
-  // at least one normal render pass has occurred with the tooltip suppressed,
-  // whether capture was requested from pointerup or from the 5-second hold.
+  // Hide only the camera tooltip, allow the normal render loop to paint a clean
+  // UI frame, capture it, then restore the live overlay immediately afterward.
   state.hideCameraCaptureTip=true;
   requestAnimationFrame(()=>{
     requestAnimationFrame(()=>{
