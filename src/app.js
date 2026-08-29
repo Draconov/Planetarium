@@ -928,7 +928,7 @@ const LORE_PRESETS={
     worldType:'VERDANT',worldClass:'POST-CATACLYSM WORLD',renderer:'ooo',visualRadius:43,radiusKm:5920,gravity:.94,massEarth:.88,density:1.01,
     water:.57,cloudCover:.66,cloudSpeed:.14,defaultTempC:17,tempRange:[-18,36],life:true,populationBase:6,
     dayHours:24.8,yearDays:394,distanceAU:1.08,axialTiltDeg:19,rotationDirection:1,
-    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'PATCHY STORMS / SWEET BREEZES',ring:false,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'PATCHY STORMS / SWEET BREEZES',ring:false,moons:[],
     damage:{type:'BITE',angle:0,severity:.82,seed:0x00a0f00d},
     observation:'A STRANGE BLUE-GREEN WORLD OF CARTOONISH SEAS, KINGDOMS, RUINS AND A GREAT BITE-SHAPED SCAR REMOVED FROM ONE SIDE OF THE GLOBE.',
     scan:{ageBy:1.1,pressureAtm:1.02,pressureText:'1.02 ATM',magField:'MODERATE',oxygen:20.4,nitrogen:78.2,co2:.06,tectonics:'PATCHY',volcanism:'LOW',oceanDepthKm:2.8,lifeTypePotential:'INTELLIGENT',techPotential:'PATCHWORK / LOST HIGH TECH',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'MUTAGENIC RUINS / MAGIC SIGNATURES',lossRisk:false},
@@ -2766,6 +2766,39 @@ function damageSurfaceColor(base,nx,ny,p=planet){
   if(q<-.18) return mixHex(C.red,C.black,.20);
   return mixHex(C.brown,C.red,.24);
 }
+function damageInteriorColor(nx,ny,p=planet){
+  if(!p) return C.black;
+  if(p.renderer==='deathstar'||p.renderer==='deathstar2'||p.renderer==='deathstar3'){
+    const mech=damageNoise(nx*1.9,ny*1.9,(p.seed^0x44535452)>>>0);
+    const band=mod(Math.floor((ny+1)*20)+Math.floor((nx+1)*14),5);
+    let col=[mixHex(C.white,C.black,.82),mixHex(C.white,C.black,.68),mixHex(C.blue,C.black,.60),mixHex(C.white,C.black,.88),mixHex(C.cyan,C.black,.72)][band];
+    if(mech>.28) col=mixHex(col,C.white,.12);
+    else if(mech<-.26) col=mixHex(col,C.black,.18);
+    return col;
+  }
+  const rr=Math.sqrt(nx*nx+ny*ny);
+  const noise=damageNoise(nx*1.8,ny*1.8,(p.seed^0x434f5245)>>>0);
+  const striation=damageNoise(nx*5.4,ny*5.4,(p.seed^0x4c415941)>>>0);
+  let layerR=rr+noise*.035;
+  if(p.renderer==='ooo'){
+    if(layerR<.18) return striation>.10?mixHex(C.yellow,C.white,.12):mixHex(C.red,C.yellow,.26);
+    if(layerR<.34) return striation>.18?mixHex(C.brown,C.red,.08):mixHex(C.brown,C.red,.24);
+    if(layerR<.56) return striation<-.16?mixHex(C.brown,C.black,.26):mixHex(C.brown,C.red,.10);
+    if(layerR<.78) return striation>.12?mixHex(C.yellow,C.brown,.22):mixHex(C.brown,C.yellow,.16);
+    return striation>.22?mixHex(C.green,C.brown,.42):mixHex(C.brown,C.green,.28);
+  }
+  if(p.worldType==='ICE'){
+    if(layerR<.18) return mixHex(C.yellow,C.red,.18);
+    if(layerR<.42) return mixHex(C.brown,C.red,.18);
+    if(layerR<.72) return striation>.18?mixHex(C.blue,C.white,.32):mixHex(C.cyan,C.white,.26);
+    return mixHex(C.white,C.cyan,.18);
+  }
+  if(layerR<.16) return striation>.08?mixHex(C.yellow,C.white,.20):mixHex(C.yellow,C.red,.12);
+  if(layerR<.34) return striation<-.14?mixHex(C.red,C.black,.12):mixHex(C.red,C.brown,.14);
+  if(layerR<.58) return striation>.16?mixHex(C.brown,C.black,.14):mixHex(C.brown,C.red,.12);
+  if(layerR<.80) return striation<-.18?mixHex(C.yellow,C.brown,.20):mixHex(C.brown,C.yellow,.12);
+  return striation>.16?mixHex(C.white,C.brown,.36):mixHex(C.brown,C.white,.26);
+}
 function specialSurfaceMask(nx,ny){
   return geometryMissingAt(nx,ny,planet);
 }
@@ -3211,6 +3244,7 @@ function drawHeighlinerTraffic(noseX,noseY,planetCx,planetCy){
   const ux=dx/dist, uy=dy/dist;
   const edgeRadius=Math.max(14,(planet.rx+planet.ry)*.52);
   const travel=Math.max(18,dist-edgeRadius*1.02);
+  const atmosX=planetCx-ux*edgeRadius*.98, atmosY=planetCy-uy*edgeRadius*.98;
   const now=performance.now()/1000;
   for(let i=0;i<5;i++){
     const phase=mod(now*(.075+i*.003)+i*.22,1.24);
@@ -3229,6 +3263,25 @@ function drawHeighlinerTraffic(noseX,noseY,planetCx,planetCy){
       ctx.globalAlpha=.34*fade;
       ctx.fillStyle=mixHex(C.yellow,C.white,.18);
       ctx.fillRect(Math.round(px+ux*2),Math.round(py+uy*2),1,1);
+    }
+  }
+  for(let i=0;i<3;i++){
+    const phase=mod(now*(.061+i*.004)+.38+i*.29,1.34);
+    if(phase>.84) continue;
+    const progress=smooth(phase/.84);
+    const px=atmosX-(atmosX-noseX)*progress;
+    const py=atmosY-(atmosY-noseY)*progress;
+    const fade=progress>.74 ? 1-clamp((progress-.74)/.26,0,1) : 1;
+    ctx.globalAlpha=.40*fade;
+    ctx.fillStyle=mixHex(C.yellow,C.red,.22);
+    ctx.fillRect(Math.round(px+ux),Math.round(py+uy),1,1);
+    ctx.globalAlpha=.88*fade;
+    ctx.fillStyle=C.white;
+    ctx.fillRect(Math.round(px),Math.round(py),progress>.18?2:1,1);
+    if(progress<.18){
+      ctx.globalAlpha=.42*fade;
+      ctx.fillStyle=C.cyan;
+      ctx.fillRect(Math.round(px-ux*2),Math.round(py-uy*2),1,1);
     }
   }
   ctx.globalAlpha=1;
@@ -3890,7 +3943,10 @@ function drawPlanet(cx,cy,t){
     for(let x=minX;x<=maxX;x++){
       const nx=(x-cx)/planet.rx;
       const rr=nx*nx+ny*ny; if(rr>1) continue;
-      if(specialSurfaceMask(nx,ny)) continue;
+      if(specialSurfaceMask(nx,ny)){
+        ctx.fillStyle=damageInteriorColor(nx,ny,planet); ctx.fillRect(x,y,1,1);
+        continue;
+      }
       const z=Math.sqrt(Math.max(0,1-rr));
       const lon=mod(.5+Math.atan2(nx,z)/(Math.PI*2)+rot,1);
       const lat=clamp(.5+Math.asin(ny)/Math.PI,0,1);
