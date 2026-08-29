@@ -128,6 +128,61 @@ CHASM
   note: giant airless rocky world with no moons, no atmosphere, and a planet-spanning vertical megacanyon visible from orbit
 
 ----------------------------------------------------------------
+OUTER WILDS CLUSTER
+----------------------------------------------------------------
+
+TIMBER HEARTH
+  aliases: OUTER WILDS, TIMBERHEARTH, OUTERWILDS
+  note: primary Hearthian world with rivers, forests and village settlements
+
+ATTLEROCK
+  aliases: THE ATTLEROCK
+
+BRITTLE HOLLOW
+  aliases: BRITTLEHOLLOW
+  note: volcanic shell world with a large exposed hollow core and collapsing crust
+
+HOLLOW'S LANTERN
+  aliases: HOLLOWS LANTERN
+  note: volcanic moon of Brittle Hollow
+
+GIANT'S DEEP
+  aliases: GIANTS DEEP
+  note: vast storm ocean world
+
+DARK BRAMBLE
+  aliases: DARKBRAMBLE
+  note: fractured thorn world with shard-like silhouette breakup
+
+EMBER TWIN
+  aliases: EMBERTWIN, HOURGLASS TWINS
+
+ASH TWIN
+  aliases: ASHTWIN
+
+INTERLOPER
+  aliases: THE INTERLOPER
+
+QUANTUM MOON
+  aliases: QUANTUMMOON
+
+EYE OF THE UNIVERSE
+  aliases: THE EYE, EYE
+  note: ancient quantum anomaly far beyond the main system
+
+THE STRANGER
+  aliases: STRANGER, OUTER WILDS DLC, ECHOES OF THE EYE, DLC WORLD
+  note: hidden ringworld vessel / artificial habitat with forests, rivers and engineered interior terrain
+
+----------------------------------------------------------------
+MEGASTRUCTURE ANOMALIES
+----------------------------------------------------------------
+
+DYSON SPHERE
+  aliases: DYSON, DYSON SHELL
+  note: artificial energy-harvesting shell of rotating ring layers around a small star
+
+----------------------------------------------------------------
 HALO ARRAY / FORERUNNER CLUSTER
 ----------------------------------------------------------------
 

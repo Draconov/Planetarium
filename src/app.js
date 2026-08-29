@@ -812,6 +812,8 @@ const FICTIONAL_ALIASES={
   'ASH TWIN':'ASH TWIN','ASHTWIN':'ASH TWIN','HOURGLASS TWINS':'EMBER TWIN',
   'INTERLOPER':'INTERLOPER','THE INTERLOPER':'INTERLOPER',
   'QUANTUM MOON':'QUANTUM MOON','QUANTUMMOON':'QUANTUM MOON',
+  'EYE OF THE UNIVERSE':'EYE OF THE UNIVERSE','THE EYE':'EYE OF THE UNIVERSE','EYE':'EYE OF THE UNIVERSE',
+  'THE STRANGER':'THE STRANGER','STRANGER':'THE STRANGER','OUTER WILDS DLC':'THE STRANGER','ECHOES OF THE EYE':'THE STRANGER','DLC WORLD':'THE STRANGER',
   'DYSON':'DYSON SPHERE','DYSON SPHERE':'DYSON SPHERE','DYSON SHELL':'DYSON SPHERE',
   'GRAND CANYON PLANET':'CHASM','CANYON PLANET':'CHASM','CRACKED PLANET':'CHASM','MEGA CANYON':'CHASM'
 };
@@ -1405,6 +1407,27 @@ const LORE_PRESETS={
     scan:{ageBy:4.5,pressureAtm:.01,pressureText:'TRACE',magField:'UNKNOWN',oxygen:0,nitrogen:1,co2:0,tectonics:'UNKNOWN',volcanism:'UNKNOWN',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'ANCIENT PILGRIMAGE SITE',iron:'UNKNOWN',carbon:'UNKNOWN',uranium:'UNKNOWN',anomaly:'MACROSCOPIC QUANTUM BEHAVIOR / SIX LOCATIONS',lossRisk:false},
     loreReport:'THE QUANTUM MOON ORBITS DIFFERENT PLANETS DEPENDING ON WHO IS OBSERVING IT. ITS SURFACE SEEMS TO BORROW TRAITS FROM NEARBY WORLDS, AND AN ANCIENT PILGRIMAGE TRAIL STILL REMAINS.',
     lifeLabel:'NONE',populationLabel:'NONE',lifeTypeLabel:'NONE',techLevelLabel:'ANCIENT PILGRIMAGE SITE'
+  },
+  'EYE OF THE UNIVERSE':{
+    renderer:'eyeuniverse',worldType:'BARREN',worldClass:'ANCIENT QUANTUM WORLD',visualRadius:31,radiusKm:1650,gravity:.12,massEarth:.008,density:.43,
+    water:.07,cloudCover:.03,cloudSpeed:.02,defaultTempC:-92,tempRange:[-210,18],life:false,populationBase:0,
+    dayHours:0,yearDays:0,distanceAU:8.8,axialTiltDeg:0,rotationDirection:1,
+    atmosDensity:'TRACE',atmosChemistry:'TRACE / UNKNOWN',weather:'QUANTUM STATIC',ring:false,moons:[],disableAutoCivilization:true,
+    observation:'THE ELUSIVE SIGNAL SOURCE: A PALE ANCIENT WORLD OF IMPOSSIBLE QUANTUM PROPERTIES SITTING FAR BEYOND THE MAIN SYSTEM.',
+    scan:{ageBy:13.8,pressureAtm:.01,pressureText:'TRACE',magField:'ANOMALOUS',oxygen:0,nitrogen:0,co2:0,tectonics:'UNKNOWN',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'COSMOLOGICAL ARTIFACT',iron:'UNKNOWN',carbon:'UNKNOWN',uranium:'UNKNOWN',anomaly:'PRIMARY SIGNAL SOURCE / EXTREME QUANTUM INSTABILITY / OBSERVER EFFECTS',lossRisk:false},
+    loreReport:'THE EYE OF THE UNIVERSE APPEARS LESS LIKE AN ORDINARY PLANET AND MORE LIKE AN ANCIENT COSMIC NODE. ITS PALE CRUST, EERIE SURFACE PATTERNS AND IMPOSSIBLE SIGNALS SUGGEST A CELESTIAL OBJECT TIED TO QUANTUM PHENOMENA ON A SYSTEM-WIDE SCALE.',
+    lifeLabel:'NONE',populationLabel:'NONE',lifeTypeLabel:'NONE',techLevelLabel:'COSMOLOGICAL ARTIFACT'
+  },
+  'THE STRANGER':{
+    shape:'haloRing',renderer:'stranger',worldType:'VERDANT',worldClass:'GENERATIONAL ARK / RING HABITAT',visualRadius:60,radiusKm:7800,gravity:.83,massEarth:1.18,density:.31,
+    water:.41,cloudCover:.10,cloudSpeed:.03,defaultTempC:14,tempRange:[-32,36],life:false,populationBase:0,
+    dayHours:26,yearDays:420,distanceAU:1.55,axialTiltDeg:0,rotationDirection:1,
+    atmosDensity:'NONE',atmosChemistry:'NONE',weather:'SEALED ARTIFICIAL INTERIOR',ring:false,moons:[],disableAutoCivilization:true,
+    haloBandWidth:19,haloFlatten:.24,haloScreenAngle:-.06,haloStyle:'stranger',haloStatus:'INTACT',
+    observation:'A TITANIC HIDDEN RINGWORLD SHIP WHOSE INNER SURFACE HOLDS FORESTS, RIVERS AND RESERVOIRS UNDER AN ENGINEERED SKY.',
+    scan:{ageBy:0.28,pressureAtm:0,pressureText:'SEALED INTERIOR',magField:'ARTIFICIAL',oxygen:0,nitrogen:0,co2:0,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'INTERSTELLAR ARK',iron:'ABUNDANT',carbon:'COMMON',uranium:'TRACE',anomaly:'ROTATING MEGAHABITAT / CLOAKED GENERATIONAL VESSEL / ARTIFICIAL SUNLINE',lossRisk:false},
+    loreReport:'THE STRANGER IS NOT A NATURAL WORLD BUT A COLOSSAL RING HABITAT HIDDEN INSIDE AN INTERSTELLAR VESSEL. ITS INNER SURFACE CARRIES GREEN LOWLANDS, ARTIFICIAL WATERWAYS, DAMMED RESERVOIRS AND MASSIVE ENGINEERED WALLS BUILT TO SUSTAIN AN ENTIRE CIVILIZATION.',
+    lifeLabel:'NONE',populationLabel:'ABANDONED',lifeTypeLabel:'NONE',techLevelLabel:'INTERSTELLAR ARK'
   },
   'DYSON SPHERE':{
     renderer:'dyson',worldType:'BARREN',worldClass:'STELLAR MEGASTRUCTURE',visualRadius:55,radiusKm:94500,gravity:.96,massEarth:22.5,density:.07,
@@ -3069,6 +3092,23 @@ function geometryMissingAt(nx,ny,p=planet){
   const fixed=planetFixedDamageCoords(nx,ny);
   if(fixed.z<0) return false;
   if(p.renderer==='wikipedia') return wikipediaMissingPiece(fixed.x,fixed.y);
+  if(p.renderer==='brittlehollow'){
+    const x=fixed.x,y=fixed.y;
+    const shellNoise=damageNoise(x*1.7,y*1.9,(p.seed^0x4252484f)>>>0);
+    const cavity=((x+.01)/(.30+shellNoise*.025))**2+((y+.02)/(.38+shellNoise*.030))**2;
+    const upper=((x-.10)/(.17+shellNoise*.015))**2+((y+.24)/(.13+shellNoise*.018))**2;
+    const lower=((x+.08)/(.16+shellNoise*.015))**2+((y-.25)/(.12+shellNoise*.018))**2;
+    const side=((x+.18)/(.14+shellNoise*.014))**2+((y-.02)/(.21+shellNoise*.020))**2;
+    let open=cavity<1||upper<1||lower<1||side<1;
+    if(open){
+      const bridgeA=Math.abs(y+.03)<.042 && x>-.28 && x<.12;
+      const bridgeB=Math.abs(y-.19)<.034 && x>-.10 && x<.24;
+      const bridgeC=Math.abs(x+.10)<.034 && y>-.25 && y<.09;
+      const bridgeNoise=damageNoise(x*5.1,y*5.3,(p.seed^0x42524944)>>>0);
+      if((bridgeA||bridgeB||bridgeC) && bridgeNoise>.08) open=false;
+    }
+    return open;
+  }
   const profile=p.damageProfile; if(!profile||profile.type==='NONE'||profile.type==='CRATER'||profile.type==='CRATER_FIELD'||profile.type==='SURFACE_RIFT') return false;
   if(profile.type==='PUZZLE_PIECE') return wikipediaMissingPiece(fixed.x,fixed.y);
   const sev=clamp(profile.severity??.72,.2,1),q=damageSpace(fixed.x,fixed.y,profile),x=q.x,y=q.y,n=damageNoise(x,y,profile.seed);
@@ -3204,6 +3244,12 @@ function damageInteriorColor(nx,ny,p=planet){
     if(layerR<.78) return striation>.12?mixHex(C.yellow,C.brown,.22):mixHex(C.brown,C.yellow,.16);
     return striation>.22?mixHex(C.green,C.brown,.42):mixHex(C.brown,C.green,.28);
   }
+  if(p.renderer==='brittlehollow'){
+    if(layerR<.22) return striation>.06?mixHex(C.black,C.red,.08):mixHex(C.black,C.purple,.04);
+    if(layerR<.40) return striation>.12?mixHex(C.red,C.yellow,.14):mixHex(C.brown,C.red,.18);
+    if(layerR<.68) return striation<-.10?mixHex(C.brown,C.black,.30):mixHex(C.purple,C.black,.18);
+    return striation>.16?mixHex(C.white,C.black,.56):mixHex(C.brown,C.white,.18);
+  }
   if(p.worldType==='ICE'){
     if(layerR<.18) return mixHex(C.yellow,C.red,.18);
     if(layerR<.42) return mixHex(C.brown,C.red,.18);
@@ -3247,6 +3293,7 @@ function loreSurfaceColor(lon,lat,normY,nx,z){
   if(planet.renderer==='darkbramble') return darkBrambleSurfaceColor(lon,lat,nx,z);
   if(planet.renderer==='interloper') return interloperSurfaceColor(lon,lat,nx,z);
   if(planet.renderer==='quantummoon') return quantumMoonSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='eyeuniverse') return eyeUniverseSurfaceColor(lon,lat,nx,z);
   if(planet.renderer==='dyson') return dysonSurfaceColor(lon,lat,nx,z);
   return null;
 }
@@ -3451,6 +3498,23 @@ function quantumMoonSurfaceColor(lon,lat,nx,z){
   else col=biome>.58?mixHex(C.purple,C.white,.22):mixHex(C.white,C.black,.36);
   const shrine=(lonDistance(lon,.57)/.06)**2+((lat-.49)/.07)**2;
   if(shrine<1 && q.n>.44) col=shrine<.42?mixHex(C.white,C.cyan,.16):mixHex(C.brown,C.white,.22);
+  return surfaceShade(col,nx,z);
+}
+function eyeUniverseSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const quantum=periodicNoise01(lon,lat,22,14,planet.terrainSeed^0x45594531);
+  const shimmer=periodicNoise01(lon,lat,58,32,planet.terrainSeed^0x45594532);
+  const seam=Math.abs(lat-(.48+.08*Math.sin((lon+.06)*Math.PI*2.4)+(quantum-.5)*.05));
+  let col;
+  if(q.ridge>.88) col=mixHex(C.white,C.cyan,.22);
+  else if(quantum>.72) col=mixHex(C.white,C.green,.20);
+  else if(quantum<.24) col=mixHex(C.brown,C.white,.42);
+  else col=mixHex(C.white,C.black,.24);
+  if(seam<.016) col=seam<.007?mixHex(C.black,C.cyan,.12):mixHex(C.cyan,C.white,.16);
+  const iris=((lonDistance(lon,.61)/.10)**2+((lat-.64)/.11)**2);
+  if(iris<1) col=iris<.34?mixHex(C.black,C.purple,.06):iris<.60?mixHex(C.cyan,C.white,.10):mixHex(C.brown,C.white,.28);
+  if(shimmer>.84) col=mixHex(col,C.white,.10);
+  else if(shimmer<.16) col=mixHex(col,C.black,.08);
   return surfaceShade(col,nx,z);
 }
 function dysonSurfaceColor(lon,lat,nx,z){
@@ -4269,6 +4333,37 @@ function drawArgusDebris(cx,cy,front){
     drawArgusDebrisChunk(cx,cy,chunk);
   }
 }
+function drawDarkBrambleSilhouette(cx,cy){
+  if(planet.renderer!=='darkbramble') return;
+  const spikes=[
+    {lon:.08,lat:.33,len:8,side:1},{lon:.14,lat:.57,len:11,side:-1},{lon:.22,lat:.72,len:7,side:1},
+    {lon:.36,lat:.24,len:8,side:-1},{lon:.58,lat:.76,len:7,side:1},{lon:.71,lat:.43,len:10,side:-1},
+    {lon:.84,lat:.62,len:8,side:1},{lon:.92,lat:.31,len:9,side:-1}
+  ];
+  for(let i=0;i<spikes.length;i++){
+    const s=spikes[i], base=spherePointFromLonLat(s.lon,s.lat,cx,cy,1.02); if(!base) continue;
+    const nx=(base.x-cx)/Math.max(1,planet.rx), ny=(base.y-cy)/Math.max(1,planet.ry);
+    const tx=-ny*s.side, ty=nx*s.side;
+    const tipX=base.x+nx*s.len+tx*(s.len*.24), tipY=base.y+ny*s.len+ty*(s.len*.20);
+    drawPixelLine(base.x,base.y,tipX,tipY,mixHex(C.brown,C.black,.34),.90);
+    drawPixelLine(base.x+tx,base.y+ty,tipX,tipY,mixHex(C.black,C.purple,.06),.60);
+    ctx.fillStyle=mixHex(C.white,C.cyan,.20);
+    ctx.fillRect(Math.round(tipX),Math.round(tipY),1,1);
+    if((i&1)===0) ctx.fillRect(Math.round(tipX-nx*1.5+tx),Math.round(tipY-ny*1.5+ty),1,1);
+  }
+  const cutouts=[
+    {lon:.11,lat:.49,r:5.5},{lon:.31,lat:.67,r:4.2},{lon:.62,lat:.36,r:5.0},{lon:.88,lat:.57,r:4.6}
+  ];
+  for(const c of cutouts){
+    const p=spherePointFromLonLat(c.lon,c.lat,cx,cy,.93); if(!p) continue;
+    ctx.fillStyle=mixHex(C.black,C.purple,.02);
+    for(let y=-c.r;y<=c.r;y++) for(let x=-c.r;x<=c.r;x++){
+      const dx=x/Math.max(1,c.r), dy=y/Math.max(1,c.r*.72);
+      if(dx*dx+dy*dy>1) continue;
+      ctx.fillRect(Math.round(p.x+x),Math.round(p.y+y),1,1);
+    }
+  }
+}
 function drawLoreSetpieces(cx,cy,front){
   if(state.viewMode>1) return;
   drawArgusDebris(cx,cy,front);
@@ -4618,6 +4713,19 @@ function haloSurfaceColor(theta,cross,metric,p=planet){
   if(style==='desert'){
     col=terrain<.18?mixHex(C.blue,C.cyan,.24):terrain>.82?mixHex(C.brown,C.white,.08):(macro>.68?mixHex(C.yellow,C.white,.10):C.yellow);
     if(ridge>.84) col=mixHex(C.brown,C.white,.16);
+  }else if(style==='stranger'){
+    const river=Math.abs(cross-(.49+.10*Math.sin(theta*Math.PI*2.2)+(detail-.5)*.035));
+    const reservoir=((lonDistance(theta,.14)/.09)**2+((cross-.43)/.10)**2)<1 || ((lonDistance(theta,.81)/.11)**2+((cross-.56)/.12)**2)<1;
+    const forest=detail>.60;
+    if(reservoir || terrain<.17) col=terrain<.10||reservoir?C.blue:C.cyan;
+    else if(river<.034) col=river<.015?mixHex(C.cyan,C.white,.12):C.cyan;
+    else if(cross<.26||cross>.74) col=ridge>.78?mixHex(C.brown,C.white,.12):mixHex(C.brown,C.green,.18);
+    else if(forest) col=detail>.78?mixHex(C.green,C.black,.14):C.green;
+    else col=macro>.68?mixHex(C.green,C.yellow,.12):mixHex(C.brown,C.green,.26);
+    const dam=Math.abs(theta-.73)<.010 && cross>.34 && cross<.68;
+    if(dam) col=mixHex(C.white,C.black,.52);
+    const hull=Math.abs(theta-.25)<.010 && cross>.30 && cross<.72;
+    if(hull) col=mixHex(C.white,C.black,.44);
   }else if(style==='oceanice'){
     col=terrain<.64?(terrain<.34?C.blue:C.cyan):(detail>.50?C.white:mixHex(C.brown,C.white,.36));
     if(terrain>.62&&ridge>.80) col=C.white;
@@ -4920,6 +5028,7 @@ function drawPlanet(cx,cy,t){
   // The procedural world texture is cached offscreen. Rotation, moons, rings,
   // ships and every other visible motion still update at the 60 FPS render loop.
   renderPlanetSurfaceImage(cx,cy);
+  drawDarkBrambleSilhouette(cx,cy);
   if(normalView) drawNormalAtmosphereHaze(cx,cy);
   // NORMAL shows the full atmosphere. CLEAN and TEMPERATURE intentionally strip it away.
   if(showEnvironment){
