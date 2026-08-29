@@ -4225,6 +4225,19 @@ function drawBlockMoon(pos,m,diameter){
   m.hitRadius=Math.max(6,s*.62+3);
   m.renderFrame=-1;
 }
+function drawMoonLoreDetails(m,pos,diameter){
+  if(!m||!pos) return;
+  if(m.name==='ATTLEROCK'){
+    const x=Math.round(pos.x),y=Math.round(pos.y),r=Math.max(4,Math.round(diameter*.45));
+    // Esker's outpost + signal-locator mast. These are intentionally a little
+    // oversized relative to strict scale so they remain readable at ~12 px.
+    ctx.fillStyle=mixHex(C.white,C.yellow,.14);ctx.fillRect(x-1,y-1,3,2);
+    ctx.fillStyle=C.brown;ctx.fillRect(x,y+1,1,1);
+    ctx.fillStyle=mixHex(C.white,C.cyan,.10);ctx.fillRect(x+r-2,y-2,1,4);
+    ctx.fillRect(x+r-3,y-2,3,1);
+    ctx.fillStyle=C.cyan;ctx.fillRect(x+r-2,y-4,1,1);
+  }
+}
 function drawMoons(cx,cy,t,front){
   for(const m of planet.moonData){
     const pos=moonPosition(m,cx,cy); m.screenX=pos.x; m.screenY=pos.y; m.depth=pos.depth;
@@ -4255,12 +4268,14 @@ function drawMoons(cx,cy,t,front){
       m.visualDiameter=renderedDiameter;
       m.hitRadius=Math.max(5,renderedDiameter*.55+3);
       ctx.drawImage(im,Math.round(pos.x-im.width/2),Math.round(pos.y-im.height/2));
+      drawMoonLoreDetails(m,pos,renderedDiameter);
     } else {
       m.visualDiameter=renderedDiameter;
       m.hitRadius=Math.max(5,renderedDiameter*.55+3);
       ctx.fillStyle=moonTintColor(m);
       const s=Math.max(2,renderedDiameter);
       ctx.beginPath();ctx.arc(Math.round(pos.x),Math.round(pos.y),s*.5,0,Math.PI*2);ctx.fill();
+      drawMoonLoreDetails(m,pos,renderedDiameter);
     }
   }
 }
@@ -4499,6 +4514,28 @@ function drawDarkBrambleSilhouette(cx,cy){
     }
   }
 }
+function drawAttlerockOutposts(cx,cy){
+  if(planet?.renderer!=='attlerock' || state.viewMode>1) return;
+  const sites=[
+    {lon:.58,lat:.44,type:0},{lon:.37,lat:.56,type:1},{lon:.35,lat:.50,type:2}
+  ];
+  for(const s of sites){
+    const p=spherePointFromLonLat(s.lon,s.lat,cx,cy,.985); if(!p||p.depth<.06) continue;
+    const x=Math.round(p.x), y=Math.round(p.y);
+    if(s.type===0){
+      ctx.fillStyle=mixHex(C.white,C.yellow,.12);ctx.fillRect(x-1,y-1,3,2);
+      ctx.fillStyle=C.brown;ctx.fillRect(x,y+1,1,1);
+      ctx.fillStyle=C.cyan;ctx.fillRect(x+2,y-2,1,1);
+    }else if(s.type===1){
+      ctx.fillStyle=mixHex(C.white,C.brown,.18);ctx.fillRect(x-1,y,3,1);ctx.fillRect(x,y-2,1,2);
+      ctx.fillStyle=C.cyan;ctx.fillRect(x,y-3,1,1);
+    }else{
+      ctx.fillStyle=mixHex(C.white,C.cyan,.10);ctx.fillRect(x,y-3,1,4);
+      ctx.fillRect(x-2,y-2,5,1);
+      ctx.fillStyle=C.brown;ctx.fillRect(x-1,y+1,3,1);
+    }
+  }
+}
 function drawInterloperTail(cx,cy){
   if(planet?.renderer!=='interloper') return;
   const axis=-.12+Math.sin(state.simDays*.03)*.06, ux=Math.cos(axis), uy=Math.sin(axis);
@@ -4530,6 +4567,7 @@ function drawInterloperTail(cx,cy){
 function drawLoreSetpieces(cx,cy,front){
   if(state.viewMode>1) return;
   if(!front) drawInterloperTail(cx,cy);
+  if(front) drawAttlerockOutposts(cx,cy);
   drawArgusDebris(cx,cy,front);
 }
 const cloudTintCache=new Map();
@@ -5160,8 +5198,10 @@ function drawDysonRingLayer(cx,cy,rx,ry,planeAngle,phase,front,tint,moduleTint,m
   const cosA=Math.cos(planeAngle), sinA=Math.sin(planeAngle);
   const steps=Math.max(80,Math.round((rx+ry)*2.4));
   for(let i=0;i<steps;i++){
-    const u=(i/steps)*Math.PI*2;
-    const depth=Math.sin(u+phase);
+    // phase is deliberately part of the actual ring coordinate. Previously it
+    // only changed the depth test, so a continuous ellipse looked stationary.
+    const u=(i/steps)*Math.PI*2+phase;
+    const depth=Math.sin(u);
     if(front ? depth<0 : depth>=0) continue;
     const ex=Math.cos(u)*rx;
     const ey=Math.sin(u)*ry*.36;
@@ -5169,12 +5209,20 @@ function drawDysonRingLayer(cx,cy,rx,ry,planeAngle,phase,front,tint,moduleTint,m
     const py=ex*sinA+ey*cosA;
     const x=Math.round(cx+px), y=Math.round(cy+py);
     const bright=.16+.22*Math.max(0,depth);
+    // Small moving construction gaps make the otherwise continuous ellipse's
+    // rotation legible at pixel scale without turning it into a dotted ring.
+    const segment=i%moduleEvery;
+    if(segment===moduleEvery-1 && ((i/moduleEvery)|0)%3===1) continue;
     ctx.fillStyle=mixHex(tint,C.white,front?bright:.05);
     ctx.fillRect(x,y,front?2:1,1);
-    if(i%moduleEvery===0){
+    if(segment===0){
       const mx=Math.round(cx+px*1.01), my=Math.round(cy+py*1.01);
       ctx.fillStyle=front?moduleTint:mixHex(moduleTint,C.black,.26);
       ctx.fillRect(mx-1,my-1,2,2);
+      if(((i/moduleEvery)|0)%4===0){
+        ctx.fillStyle=front?mixHex(moduleTint,C.white,.18):mixHex(moduleTint,C.black,.34);
+        ctx.fillRect(mx,my-2,1,1);
+      }
     }
   }
 }
@@ -5201,7 +5249,13 @@ function drawDysonStar(cx,cy){
 }
 function drawDysonSphereWorld(cx,cy,t){
   drawLoreSetpieces(cx,cy,false);
-  const outerPhase=t*.10, middlePhase=-t*.075, innerPhase=t*.055;
+  const sec=t*.001;
+  // Each shell now takes several real minutes per revolution. They counter-
+  // rotate at slightly different rates so the megastructure slowly changes
+  // configuration instead of spinning like a fan.
+  const outerPhase=sec*.018;   // ~5.8 min / revolution
+  const middlePhase=-sec*.013; // ~8.1 min / revolution
+  const innerPhase=sec*.009;   // ~11.6 min / revolution
   const bronze=mixHex(C.yellow,C.brown,.26), pale=mixHex(C.white,C.yellow,.20), conduit=mixHex(C.cyan,C.white,.18);
   drawDysonRingLayer(cx,cy,planet.rx+8,planet.ry+6,-.95,outerPhase,false,bronze,pale,13);
   drawDysonRingLayer(cx,cy,planet.rx+2,planet.ry+10,-.28,middlePhase,false,mixHex(C.brown,C.white,.42),conduit,11);
