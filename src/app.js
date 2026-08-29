@@ -3063,8 +3063,9 @@ function damageSpace(nx,ny,profile){
 function damageNoise(x,y,seed=0){
   return h2(Math.floor((x+1.2)*43),Math.floor((y+1.2)*43),seed>>>0)-.5;
 }
+function damageVisibleInCurrentView(){ return state.viewMode===0 || state.viewMode===1; }
 function geometryMissingAt(nx,ny,p=planet){
-  if(!p) return false;
+  if(!p || !damageVisibleInCurrentView()) return false;
   const fixed=planetFixedDamageCoords(nx,ny);
   if(fixed.z<0) return false;
   if(p.renderer==='wikipedia') return wikipediaMissingPiece(fixed.x,fixed.y);
@@ -3143,15 +3144,32 @@ function damageSurfaceColor(base,nx,ny,p=planet){
   if(profile?.type==='SURFACE_RIFT'){
     const fixed=planetFixedDamageCoords(nx,ny);
     const q=damageSpace(fixed.x,fixed.y,profile),sev=clamp(profile.severity??.62,.2,1);
-    const center=damageNoise(q.y*1.6,q.x*1.2,(profile.seed||p.seed)^0x52494654)*0.18;
-    const main=Math.abs(q.x-center)<(.018+sev*.020) && Math.abs(q.y)<.92;
-    const branch=Math.abs(q.x+.24-damageNoise(q.y*2.4,q.x*2.1,(profile.seed||p.seed)^0x424e4348)*0.10)<(.010+sev*.012) && q.y>-.18 && q.y<.56;
-    if(main||branch){
-      const hot=p.worldType==='VOLCANIC' || state.temp>.72;
-      return hot?mixHex(C.red,C.black,.08):mixHex(base,C.black,.60);
+    const seed=(profile.seed||p.seed)>>>0;
+    // Smooth low-frequency wandering gives the main fault a canyon/crack silhouette
+    // instead of the old cell-hash stair-step line. Fine noise varies its width.
+    const bend=(valueNoise((q.y+1.35)*2.4,.41,seed^0x52494654,64)-.5)*.34
+      +Math.sin(q.y*5.2+(seed%997)*.0063)*.035;
+    const fine=valueNoise((q.y+1.7)*7.2,1.13,seed^0x46494e45,64)-.5;
+    const mainWidth=.010+sev*.011+Math.max(-.003,fine*.006);
+    const mainDist=Math.abs(q.x-bend);
+    const main=mainDist<mainWidth && Math.abs(q.y)<.91;
+
+    // Two short offshoots peel away from the main fracture. They deliberately
+    // occupy only part of the latitude range so the result reads as branching
+    // geology rather than a second parallel stripe.
+    const upperT=clamp((q.y+.46)/.48,0,1);
+    const upperCenter=bend-(upperT*.17)+(valueNoise((q.y+1.1)*4.0,2.37,seed^0x425231,64)-.5)*.035;
+    const upper=q.y>-.46&&q.y<.02&&Math.abs(q.x-upperCenter)<(.006+sev*.007);
+    const lowerT=clamp((q.y-.08)/.46,0,1);
+    const lowerCenter=bend+(lowerT*.14)+(valueNoise((q.y+1.0)*4.6,3.11,seed^0x425232,64)-.5)*.030;
+    const lower=q.y>.08&&q.y<.54&&Math.abs(q.x-lowerCenter)<(.006+sev*.006);
+
+    if(main||upper||lower){
+      if(p.worldType==='VOLCANIC') return mixHex(C.red,C.black,.18);
+      return mixHex(base,C.black,.68);
     }
-    const rim=Math.abs(q.x-center)<(.034+sev*.022) && Math.abs(q.y)<.95;
-    if(rim) return mixHex(base,C.brown,.28);
+    const rimWidth=mainWidth+.010+sev*.006;
+    if(mainDist<rimWidth && Math.abs(q.y)<.93) return mixHex(base,C.brown,.22);
   }
   if(!damageEdgeAt(nx,ny,p)) return base;
   if(p.renderer==='wikipedia') return mixHex(C.white,C.black,.36);
@@ -3724,7 +3742,7 @@ function renderPlanetSurfaceImage(cx,cy){
   const out=frame.image.data; out.fill(0);
   const src=surface.data,sw=surface.width;
   const profile=planet.damageProfile;
-  const dynamicDamage=planet.renderer==='wikipedia'||!!(profile&&profile.type&&profile.type!=='NONE');
+  const dynamicDamage=damageVisibleInCurrentView() && (planet.renderer==='wikipedia'||!!(profile&&profile.type&&profile.type!=='NONE'));
   for(let i=0;i<frame.active.length;i++){
     if(!frame.active[i]) continue;
     const lon=mod(frame.lonBase[i]+state.phase,1);
