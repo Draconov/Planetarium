@@ -31,7 +31,9 @@ const renderCache={
   infoRevision:1,
   planetInfo:null,
   moonInfo:new Map(),
-  scanStatus:new Map()
+  scanStatus:new Map(),
+  lastSurfaceBuildAt:0,
+  lastInteractiveInfoRefreshAt:0
 };
 function resetPlanetRenderCaches(){
   renderCache.planetSeed=planet?.seed??null;
@@ -46,6 +48,8 @@ function resetPlanetRenderCaches(){
   renderCache.planetInfo=null;
   renderCache.moonInfo.clear();
   renderCache.scanStatus.clear();
+  renderCache.lastSurfaceBuildAt=0;
+  renderCache.lastInteractiveInfoRefreshAt=0;
   renderCache.infoRevision++;
 }
 function ensurePlanetCacheContext(){
@@ -1244,7 +1248,7 @@ const LORE_PRESETS={
   },
   ARRAKIS:{
     worldType:'DESERT',worldClass:'DESERT PLANET',visualRadius:42,radiusKm:6200,gravity:.91,massEarth:.86,density:.93,
-    water:.00,cloudCover:.01,cloudSpeed:.05,defaultTempC:47,tempRange:[10,92],life:true,populationBase:5,
+    water:.00,cloudCover:.01,cloudSpeed:.05,defaultTempC:47,tempRange:[-50,92],life:true,populationBase:5,
     dayHours:26.5,yearDays:687,distanceAU:1.9,axialTiltDeg:19,rotationDirection:1,
     atmosDensity:'THIN',atmosChemistry:'N2 / O2',weather:'SPICE DUST / SANDSTORMS',ring:false,
     moons:[knownMoon('SPACING GUILD HEIGHLINER',0,0,10,0,0,1,{kind:'heighliner',fixedPosition:{x:-88,y:-58,depth:1},displayLengthKm:20,objectClass:'GUILD HEIGHLINER',surface:'GUILD MEGASTRUCTURE HULL',atmosphere:'SEALED INTERIOR',waterIce:'NONE',activity:'FIXED TRANSPORT HOLD',anomaly:'HOLTZMAN / FOLDSPACE SIGNATURE',lossRisk:false})],
@@ -1941,17 +1945,17 @@ function syncSolarTemperatureState(p=planet){
       else {p.scan.pressureAtm=.86;p.scan.pressureText='0.86 ATM';p.scan.oxygen=18.2;p.scan.nitrogen=73;p.scan.co2=5.5;p.scan.oceanDepthKm=2.7;}
       configureWeatherSystems(p,mulberry32(hashString(`MARS:CLIMATE:${stage}`)));
       p.hurricanePotential=stage>=3;
-    }
-    if(stage>=2){
-      p.scan.lifeTypePotential=stage>=3?'INTELLIGENT':'MICROBIAL';
-      p.scan.techPotential='INTERPLANETARY';
-      p.populationBase=stage>=3?5:4;
-      configureCivilization(p);
-    }else{
-      p.scan.lifeTypePotential='NONE';
-      p.scan.techPotential='NONE';
-      p.populationBase=0;
-      p.civilization=null;
+      if(stage>=2){
+        p.scan.lifeTypePotential=stage>=3?'INTELLIGENT':'MICROBIAL';
+        p.scan.techPotential='INTERPLANETARY';
+        p.populationBase=stage>=3?5:4;
+        configureCivilization(p);
+      }else{
+        p.scan.lifeTypePotential='NONE';
+        p.scan.techPotential='NONE';
+        p.populationBase=0;
+        p.civilization=null;
+      }
     }
   }
 }
@@ -2391,7 +2395,7 @@ function exportCaptainLog(){
   const payload={
     format:'planetarium-captains-log',
     schema:1,
-    appVersion:'1.2.0',
+    appVersion:'1.1.0',
     exportedAt:new Date().toISOString(),
     data:planetariumStorageEntries()
   };
@@ -3101,6 +3105,24 @@ function argusSurfaceColor(lon,lat,nx,z){
   if(scar<.018) col=scar<.007?mixHex(C.yellow,C.green,.16):mixHex(C.green,C.black,.06);
   return surfaceShade(col,nx,z);
 }
+function giediPrimeSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const industry=periodicNoise01(lon,lat,28,17,planet.terrainSeed^0x47494544);
+  const pits=periodicNoise01(lon,lat,57,31,planet.terrainSeed^0x5052494d);
+  const slag=periodicNoise01(lon,lat,84,49,planet.terrainSeed^0x534c4147);
+  const smogBand=Math.abs(lat-(.50+.09*Math.sin(lon*Math.PI*5.5)+(industry-.5)*.04));
+  let col;
+  if(q.ridge>.86 || pits>.84) col=mixHex(C.black,C.brown,.22);
+  else if(industry>.78) col=mixHex(C.white,C.black,.58);
+  else if(slag>.76) col=mixHex(C.brown,C.black,.12);
+  else if(q.n<.34) col=mixHex(C.yellow,C.brown,.26);
+  else if(q.n>.68) col=mixHex(C.brown,C.black,.18);
+  else col=mixHex(C.brown,C.yellow,.18);
+  if(smogBand<.024) col=smogBand<.010 ? mixHex(C.white,C.yellow,.22) : mixHex(C.white,C.black,.54);
+  if(pits<.12) col=mixHex(col,C.black,.20);
+  if(industry>.90 && slag>.52) col=mixHex(C.white,C.black,.44);
+  return surfaceShade(col,nx,z);
+}
 function arrakisSurfaceColor(lon,lat,nx,z){
   const q=terrainAt(lon,lat);
   const tC=tempC();
@@ -3115,12 +3137,21 @@ function arrakisSurfaceColor(lon,lat,nx,z){
   const sparseVegetation=mixHex(C.green,C.yellow,.34);
   const lushVegetation=greenNoise>.62?mixHex(C.green,C.yellow,.08):C.green;
   if(tC<=2){
-    const coldReach=clamp((2-tC)/78,.02,.16);
-    const cap=polarCapAt(lon,lat,coldReach,{forceBoth:tC<-26,seedSalt:0x434f4c44});
-    if(cap.ice && tempLocal<-8) return surfaceShade(polarIceColor(cap),nx,z);
-    if(tempLocal<-10 && basin>.74) return surfaceShade(mixHex(C.cyan,C.white,.62),nx,z);
+    const cold=clamp((2-tC)/52,0,1);
+    // As ecological restoration overshoots into a deep freeze, Arrakis becomes
+    // an icy desert rather than a snowball: broad irregular polar caps, frozen
+    // oasis basins and scattered frost spread across the dunes toward -50 C.
+    const coldReach=lerp(.025,.34,cold);
+    const cap=polarCapAt(lon,lat,coldReach,{forceBoth:tC<-8,seedSalt:0x434f4c44});
+    const frostNoise=periodicNoise01(lon,lat,42,27,planet.terrainSeed^0x46524f53);
+    if(cap.ice && tempLocal<4-cold*8) return surfaceShade(polarIceColor(cap),nx,z);
+    const frozenBasin=tempLocal<-5 && basin>(.78-cold*.24);
+    const duneFrost=tempLocal<-12 && frostNoise>(.84-cold*.30) && q.n<.70;
+    if(frozenBasin) return surfaceShade(basin>.90?mixHex(C.blue,C.white,.52):mixHex(C.cyan,C.white,.68),nx,z);
+    if(duneFrost) return surfaceShade(mixHex(C.white,C.cyan,.16+cold*.18),nx,z);
     let col=dryRidge?mixHex(C.brown,C.black,.22):mixHex(coolSand,C.brown,.18);
-    if(duneNoise>.76) col=mixHex(col,C.white,.16);
+    if(cold>.58 && frostNoise>.58) col=mixHex(col,C.white,.12+cold*.14);
+    else if(duneNoise>.76) col=mixHex(col,C.white,.16);
     else if(greenNoise<.18) col=mixHex(col,C.black,.08);
     return surfaceShade(col,nx,z);
   }
@@ -3160,6 +3191,7 @@ function surfaceColor(lon,lat,normY,nx,z){
     return surfaceShade(col,nx,z);
   }
   if(planet.name==='ARRAKIS') return arrakisSurfaceColor(lon,lat,nx,z);
+  if(planet.name==='GIEDI PRIME') return giediPrimeSurfaceColor(lon,lat,nx,z);
   const type=planet.worldType||'TERRESTRIAL';
   const iceLine=clamp(.31+state.temp*.33,.25,.64);
   const cap=polarCapAt(lon,lat,.5-iceLine);
@@ -3233,6 +3265,11 @@ function surfaceColor(lon,lat,normY,nx,z){
 function ensureSurfaceMap(){
   ensurePlanetCacheContext();
   if(renderCache.surfaceImage && renderCache.surfaceBuiltRevision===renderCache.surfaceRevision) return renderCache.surfaceImage;
+  // Slider motion must remain responsive at the display's rAF rate. During an
+  // active drag, reuse the last completed climate texture briefly instead of
+  // synchronously recolouring 32K surface samples on every pointer event.
+  const buildNow=performance.now();
+  if(state.draggingSlider && renderCache.surfaceImage && buildNow-renderCache.lastSurfaceBuildAt<55) return renderCache.surfaceImage;
   // terrainAt() lazily builds its static map only for renderers that need it;
   // the map survives climate/view recolours.
   let c=renderCache.surfaceCanvas,g=renderCache.surfaceCtx;
@@ -3256,6 +3293,7 @@ function ensureSurfaceMap(){
   g.putImageData(image,0,0);
   renderCache.surfaceImage={width:SURFACE_MAP_W,height:SURFACE_MAP_H,data:image.data,canvas:c};
   renderCache.surfaceBuiltRevision=renderCache.surfaceRevision;
+  renderCache.lastSurfaceBuildAt=buildNow;
   return renderCache.surfaceImage;
 }
 function ensurePlanetFrameGeometry(cx,cy){
@@ -3785,8 +3823,50 @@ function drawHeighliner(x,y,planetCx=x+48,planetCy=y+12){
   }
   drawHeighlinerTraffic(noseX+ux*2,noseY+uy*2,planetCx,planetCy);
 }
+function drawArgusDebrisChunk(cx,cy,chunk){
+  const ox=Math.round(cx+chunk.x), oy=Math.round(cy+chunk.y);
+  const rx=chunk.rx, ry=chunk.ry;
+  const baseA=mixHex(C.purple,C.black,.22), baseB=mixHex(C.red,C.purple,.18);
+  const edgeLight=mixHex(C.white,C.purple,.26), edgeDark=mixHex(C.black,C.purple,.10);
+  for(let py=-ry;py<=ry;py++){
+    for(let px=-rx;px<=rx;px++){
+      const nx=px/Math.max(1,rx), ny=py/Math.max(1,ry);
+      const rr=nx*nx+ny*ny;
+      if(rr>1.08) continue;
+      const wobble=h2(px+17,py-13,chunk.seed)-.5;
+      if(rr>1+.18*wobble) continue;
+      const globalX=(ox+px), globalY=(oy+py);
+      let col=rr>.88?edgeDark:(chunk.seed&1?baseA:baseB);
+      const metal=h2(globalX*3,globalY*5,chunk.seed^0x4d455441);
+      const fel=h2(globalX*7,globalY*3,chunk.seed^0x46454c21);
+      if(metal>.72) col=mixHex(C.white,C.black,.48);
+      else if(metal<.18) col=mixHex(col,C.black,.18);
+      if(fel>.77) col=mixHex(C.green,C.yellow,.20);
+      if(rr<.78 && Math.abs(ny-(.08*Math.sin((nx+1.3)*4+chunk.seed*.001)))<.10 && fel>.56) col=mixHex(C.green,C.black,.06);
+      if(rr>.82 && wobble>.18) col=edgeLight;
+      ctx.fillStyle=col;
+      ctx.fillRect(globalX,globalY,1,1);
+    }
+  }
+}
+function drawArgusDebris(cx,cy,front){
+  if(planet.renderer!=='argus' || state.viewMode>1) return;
+  const chunks=[
+    {x:50,y:-31,rx:8,ry:5,front:false,seed:planet.seed^0xa1},
+    {x:63,y:-14,rx:5,ry:4,front:true,seed:planet.seed^0xa2},
+    {x:70,y:6,rx:9,ry:6,front:true,seed:planet.seed^0xa3},
+    {x:49,y:23,rx:6,ry:4,front:false,seed:planet.seed^0xa4},
+    {x:29,y:-48,rx:4,ry:3,front:false,seed:planet.seed^0xa5},
+    {x:-32,y:43,rx:5,ry:4,front:true,seed:planet.seed^0xa6}
+  ];
+  for(const chunk of chunks){
+    if(!!chunk.front!==!!front) continue;
+    drawArgusDebrisChunk(cx,cy,chunk);
+  }
+}
 function drawLoreSetpieces(cx,cy,front){
   if(state.viewMode>1) return;
+  drawArgusDebris(cx,cy,front);
 }
 const cloudTintCache=new Map();
 function cloudTintColor(){
@@ -4893,9 +4973,32 @@ function render(t){
 }
 
 function saveTemp(){ storageSet(tempStorageKey(planet),String(state.temp)); }
-function setTemp(v){
+function setTemp(v,{interactive=false}={}){
   const next=clamp(v,0,1); if(next===state.temp) return;
-  state.temp=next; syncSolarTemperatureState(planet); invalidatePlanetPresentation(); saveTemp(); syncUrl();
+  state.temp=next;
+  syncSolarTemperatureState(planet);
+  if(interactive){
+    invalidateSurfaceCache();
+    const now=performance.now();
+    if(now-renderCache.lastInteractiveInfoRefreshAt>=80){
+      invalidateInfoCache();
+      renderCache.lastInteractiveInfoRefreshAt=now;
+    }
+    return;
+  }
+  invalidatePlanetPresentation();
+  saveTemp();
+  syncUrl();
+}
+function finishSliderDrag(){
+  if(!state.draggingSlider) return;
+  state.draggingSlider=false;
+  // Force one exact climate/report rebuild for the final thumb position, then
+  // persist/share it once instead of hammering storage + URL on every pixel.
+  invalidatePlanetPresentation();
+  renderCache.lastInteractiveInfoRefreshAt=0;
+  saveTemp();
+  syncUrl();
 }
 function toggleMute(){ state.muted=!state.muted; audio.muted=state.muted; startAudio(); }
 function doAction(id){
@@ -4967,7 +5070,7 @@ function getPoint(ev){
   const r=canvas.getBoundingClientRect(); return {x:(ev.clientX-r.left)*W/r.width,y:(ev.clientY-r.top)*H/r.height};
 }
 function sliderHit(p){ return p.x>=UI.sliderX-5&&p.x<=UI.sliderX+UI.sliderW+5&&p.y>=UI.sliderY-8&&p.y<=UI.sliderY+12; }
-function updateSliderFromPoint(p){ setTemp((p.x-UI.sliderX)/(UI.sliderW-7)); }
+function updateSliderFromPoint(p){ setTemp((p.x-UI.sliderX)/(UI.sliderW-7),{interactive:true}); }
 function buttonAtPoint(p){
   for(const b of UI.buttons){
     if(p.x>=b.x-4&&p.x<=b.x+15&&p.y>=UI.buttonY-5&&p.y<=UI.buttonY+15) return b;
@@ -4976,7 +5079,7 @@ function buttonAtPoint(p){
 }
 canvas.addEventListener('pointermove',ev=>{ const p=getPoint(ev);state.mouse={...state.mouse,...p,inside:true,pointerType:ev.pointerType||'mouse'};if(state.draggingSlider)updateSliderFromPoint(p); if(state.cameraHold && state.cameraHold.active && (!buttonAtPoint(p) || buttonAtPoint(p).id!=='camera')) state.cameraHold=null; });
 canvas.addEventListener('pointerenter',ev=>{const p=getPoint(ev);state.mouse={...state.mouse,...p,inside:true,pointerType:ev.pointerType||'mouse'};});
-canvas.addEventListener('pointerleave',()=>{state.mouse.inside=false;state.draggingSlider=false;state.mouse.down=false;state.cameraHold=null;if(state.mouse.pointerType==='mouse' && !state.moonHoverGrace)state.hoverBody=null;});
+canvas.addEventListener('pointerleave',()=>{state.mouse.inside=false;finishSliderDrag();state.mouse.down=false;state.cameraHold=null;if(state.mouse.pointerType==='mouse' && !state.moonHoverGrace)state.hoverBody=null;});
 canvas.addEventListener('pointerdown',ev=>{
   startAudio();canvas.focus();const p=getPoint(ev);state.mouse={...state.mouse,...p,down:true,inside:true,pointerType:ev.pointerType||'mouse'};
   if(state.intro){ ev.preventDefault(); return; }
@@ -5025,10 +5128,11 @@ canvas.addEventListener('pointerdown',ev=>{
 });
 canvas.addEventListener('pointerup',()=>{
   const hold=state.cameraHold;
-  state.mouse.down=false;state.draggingSlider=false;
+  state.mouse.down=false;finishSliderDrag();
   if(hold?.active && !hold.triggered) takeScreenshot({full:false});
   state.cameraHold=null;
 });
+canvas.addEventListener('pointercancel',()=>{state.mouse.down=false;finishSliderDrag();state.cameraHold=null;});
 canvas.addEventListener('wheel',ev=>{
   if(state.intro) return;
   const dir=ev.deltaY===0?0:(ev.deltaY>0?1:-1);
