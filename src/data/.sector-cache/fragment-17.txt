@@ -13,9 +13,11 @@ REFERENCE CLUSTER
 
 WIKIPEDIA
   aliases: WIKI, WIKIPEDIA.ORG, WIKIMEDIA
+  note: the missing puzzle segment remains genuinely transparent / see-through
 
 WORLD OF OOO
   aliases: OOO, LAND OF OOO, ADVENTURE TIME, ADVENTURE TIME WORLD
+  note: no moons; the great missing bite exposes layered planetary interior
 
 ----------------------------------------------------------------
 ALPHA CENTAURI / AVATAR CLUSTER
@@ -23,7 +25,7 @@ ALPHA CENTAURI / AVATAR CLUSTER
 
 PANDORA
   aliases: AVATAR, PANDORA (AVATAR), MOON OF PANDORA, EYWA
-  note: PANDORA ITSELF HAS NO MOONS IN THE CURRENT CHART
+  note: no natural moons in the current chart; the ISV VENTURE STAR can appear as an artificial orbital object
 
 POLYPHEMUS
   aliases: AVATAR GAS GIANT, POLYPHEMUS GAS GIANT
@@ -31,19 +33,36 @@ POLYPHEMUS
 DANTE
 HADES
 POLYPHEMUS III
+  aliases: POLYPHEMUS MOON 3, POLYPHEMUS MOON III
 POLYPHEMUS IV
+  aliases: POLYPHEMUS MOON 4, POLYPHEMUS MOON IV
 CASSANDRA
 POLYPHEMUS VII
+  aliases: POLYPHEMUS MOON 7, POLYPHEMUS MOON VII
 POLYPHEMUS VIII
+  aliases: POLYPHEMUS MOON 8, POLYPHEMUS MOON VIII
 POLYPHEMUS IX
+  aliases: POLYPHEMUS MOON 9, POLYPHEMUS MOON IX
 POLYPHEMUS X
+  aliases: POLYPHEMUS MOON 10, POLYPHEMUS MOON X
 POLYPHEMUS XI
+  aliases: POLYPHEMUS MOON 11, POLYPHEMUS MOON XI
 CHAOS
 POLYPHEMUS XIII
+  aliases: POLYPHEMUS MOON 13, POLYPHEMUS MOON XIII
 POLYPHEMUS XIV
+  aliases: POLYPHEMUS MOON 14, POLYPHEMUS MOON XIV
 
 ERID
   aliases: ROCKY, ROCKY PLANET, PROJECT HAIL MARY
+
+----------------------------------------------------------------
+SUBNAUTICA CLUSTER
+----------------------------------------------------------------
+
+4546B
+  aliases: SUBNAUTICA, PLANET 4546B, 4546 B, PLANET 4546 B
+  note: Category-3 ocean planet with two moons, deep-ocean life and precursor/Architect signatures
 
 ----------------------------------------------------------------
 STAR WARS CLUSTER
@@ -77,12 +96,32 @@ DUNE CLUSTER
 
 ARRAKIS
   aliases: DUNE, RAKIS, SAND BLAST
-  note: includes a fixed Spacing Guild Heighliner target
+  note: fixed Spacing Guild Heighliner with shuttle traffic in both directions; cooling can produce oases, broad greening, then a frozen desert
 
 CALADAN
 GIEDI PRIME
   alias: GEIDI PRIME
 SALUSA SECUNDUS
+
+----------------------------------------------------------------
+WARCRAFT CLUSTER
+----------------------------------------------------------------
+
+AZEROTH
+  aliases: WARCRAFT, WORLD OF WARCRAFT, WOW, WOW AZEROTH
+  note: two moons — WHITE LADY and BLUE CHILD
+
+DRAENOR
+  aliases: WARCRAFT DRAENOR, WOW DRAENOR, ALTERNATE DRAENOR
+  note: intact pre-shattering world with two moons
+
+OUTLAND
+  aliases: WARCRAFT OUTLAND, WOW OUTLAND, THE OUTLAND, THE OUTLANDS
+  note: shattered remnant of Draenor; missing world geometry remains transparent
+
+ARGUS
+  aliases: WARCRAFT ARGUS, WOW ARGUS
+  note: fel-corrupted shattered world with exposed planetary interior and debris
 
 ----------------------------------------------------------------
 HALO ARRAY / FORERUNNER CLUSTER

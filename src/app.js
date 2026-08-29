@@ -97,7 +97,10 @@ const SOLAR_MOON_COLORS = {
   PANDORA:mixHex(C.green,C.cyan,.26), CASSANDRA:mixHex(C.green,C.blue,.20), DANTE:mixHex(C.red,C.yellow,.18), HADES:mixHex(C.brown,C.red,.16),
   CHAOS:mixHex(C.purple,C.blue,.18), 'POLYPHEMUS III':mixHex(C.cyan,C.blue,.22), 'POLYPHEMUS IV':mixHex(C.white,C.cyan,.28),
   'POLYPHEMUS VII':mixHex(C.blue,C.cyan,.30), 'POLYPHEMUS VIII':mixHex(C.white,C.blue,.18), 'POLYPHEMUS IX':C.brown,
-  'POLYPHEMUS X':mixHex(C.cyan,C.green,.18), 'POLYPHEMUS XI':mixHex(C.white,C.purple,.14), 'POLYPHEMUS XIII':mixHex(C.brown,C.white,.12), 'POLYPHEMUS XIV':mixHex(C.blue,C.black,.12)
+  'POLYPHEMUS X':mixHex(C.cyan,C.green,.18), 'POLYPHEMUS XI':mixHex(C.white,C.purple,.14), 'POLYPHEMUS XIII':mixHex(C.brown,C.white,.12), 'POLYPHEMUS XIV':mixHex(C.blue,C.black,.12),
+  'WHITE LADY':mixHex(C.white,C.blue,.08), 'BLUE CHILD':mixHex(C.cyan,C.blue,.32),
+  'PALE LADY':mixHex(C.white,C.brown,.10), 'SMALLER MOON':mixHex(C.brown,C.black,.30),
+  '4546B INNER MOON':mixHex(C.brown,C.white,.18), '4546B OUTER MOON':mixHex(C.cyan,C.white,.18)
 };
 
 const RING_STYLE_PROFILES = {
@@ -713,7 +716,12 @@ const FICTIONAL_ALIASES={
   'INSTALLATION 03':'GAMMA HALO','INSTALLATION 3':'GAMMA HALO','I03':'GAMMA HALO',
   'INSTALLATION 05':'DELTA HALO','INSTALLATION 5':'DELTA HALO','I05':'DELTA HALO','HALO 2':'DELTA HALO',
   'INSTALLATION 06':'KAPPA HALO','INSTALLATION 6':'KAPPA HALO','I06':'KAPPA HALO',
-  'INSTALLATION 07':'ZETA HALO','INSTALLATION 7':'ZETA HALO','I07':'ZETA HALO','HALO INFINITE':'ZETA HALO'
+  'INSTALLATION 07':'ZETA HALO','INSTALLATION 7':'ZETA HALO','I07':'ZETA HALO','HALO INFINITE':'ZETA HALO',
+  'SUBNAUTICA':'4546B','PLANET 4546B':'4546B','4546 B':'4546B','PLANET 4546 B':'4546B',
+  'WARCRAFT':'AZEROTH','WORLD OF WARCRAFT':'AZEROTH','WOW':'AZEROTH','WOW AZEROTH':'AZEROTH',
+  'WARCRAFT DRAENOR':'DRAENOR','WOW DRAENOR':'DRAENOR','ALTERNATE DRAENOR':'DRAENOR',
+  'WARCRAFT OUTLAND':'OUTLAND','WOW OUTLAND':'OUTLAND','THE OUTLAND':'OUTLAND','THE OUTLANDS':'OUTLAND',
+  'WARCRAFT ARGUS':'ARGUS','WOW ARGUS':'ARGUS'
 };
 function canonicalPlanetName(name){
   const upper=(name||'').trim().toUpperCase().slice(0,60) || 'PLANET';
@@ -976,6 +984,74 @@ const LORE_PRESETS={
     atmosDensity:'SUPERDENSE',atmosChemistry:'H2 / HE / CH4 / NH3 / H2S',weather:'AMMONIA / LIGHTNING STORMS',ring:false,moons:AVATAR_POLYPHEMUS_MOONS,
     observation:'NARANAWM, THE GREAT EYE: A MASSIVE GAS GIANT ORBITED BY PANDORA AND THIRTEEN LUNAR SISTERS. ITS GRAVITY AND MAGNETIC FIELD STRONGLY SHAPE THE MOONS AROUND IT.',
     scan:{ageBy:4.6,pressureAtm:1,pressureText:'1 BAR REF',magField:'EXTREME',oxygen:0,nitrogen:0,co2:0,tectonics:'ATMOSPHERIC',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'COMMON',carbon:'RICH',uranium:'TRACE',anomaly:'FOURTEEN-MOON SYSTEM / INTENSE MAGNETIC COUPLING',lossRisk:false}
+  },
+  '4546B':{
+    worldType:'OCEAN',worldClass:'CATEGORY 3 OCEAN PLANET',renderer:'subnautica',visualRadius:44,radiusKm:5600,gravity:.86,massEarth:.66,density:.98,
+    water:.94,cloudCover:.48,cloudSpeed:.18,defaultTempC:18,tempRange:[-55,48],life:true,populationBase:3,
+    dayHours:24.6,yearDays:382,distanceAU:1.02,axialTiltDeg:18,rotationDirection:1,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'OCEAN STORMS / ARCTIC SNOW',ring:false,
+    moons:[
+      knownMoon('4546B INNER MOON',118000,8.7,1250,72,5,.68,{surface:'ROCK / ICE',atmosphere:'TRACE',waterIce:'COMMON',activity:'STRONG TIDAL COUPLING',anomaly:'FREQUENT ECLIPSES / EXTREME TIDAL FORCING',lossRisk:false}),
+      knownMoon('4546B OUTER MOON',286000,27.6,720,96,8,.55,{surface:'ICE / ROCK',atmosphere:'NONE',waterIce:'RICH',activity:'DORMANT',anomaly:'NONE',lossRisk:false})
+    ],
+    observation:'A TEMPERATE CATEGORY-3 OCEAN WORLD ALMOST COMPLETELY COVERED BY WATER, WITH ONLY SMALL ISLANDS, ARCTIC LAND AND VOLCANIC CRATER REGIONS BREAKING THE SURFACE.',
+    scan:{ageBy:4.3,pressureAtm:1.03,pressureText:'1.03 ATM',magField:'MODERATE',oxygen:21,nitrogen:77,co2:.06,tectonics:'ACTIVE',volcanism:'HIGH',oceanDepthKm:8.4,lifeTypePotential:'ABUNDANT / LEVIATHAN',techPotential:'ANCIENT ARCHITECT RUINS',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'KHARAA QUARANTINE NETWORK / PRECURSOR ENERGY SIGNATURES',lossRisk:false},
+    loreReport:'THE CRATER AND SECTOR ZERO SUPPORT DENSE, HIGHLY VARIED ECOSYSTEMS WHILE THE VAST DEAD ZONE IS MUCH DEEPER AND FAR LESS HOSPITABLE. ARCHITECT FACILITIES, ALTERRA WRECKAGE AND LEVIATHAN-CLASS ORGANISMS PRODUCE STRONG ANOMALOUS RETURNS.',
+    lifeLabel:'ABUNDANT',populationLabel:'WILD',lifeTypeLabel:'COMPLEX',techLevelLabel:'ANCIENT RUINS'
+  },
+  AZEROTH:{
+    worldType:'VERDANT',worldClass:'TITAN WORLDSOUL PLANET',renderer:'azeroth',visualRadius:45,radiusKm:6600,gravity:1.00,massEarth:1.04,density:1.00,
+    water:.62,cloudCover:.50,cloudSpeed:.16,defaultTempC:16,tempRange:[-65,58],life:true,populationBase:9,
+    dayHours:24,yearDays:365,distanceAU:1,axialTiltDeg:23,rotationDirection:1,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2 / ARCANE TRACE',weather:'VARIED / ARCANE STORMS',ring:false,
+    moons:[
+      knownMoon('WHITE LADY',390000,28.0,1820,82,1,.78,{surface:'PALE ROCK / ARCANE DUST',atmosphere:'NONE',waterIce:'TRACE',activity:'LUNAR CYCLE',anomaly:'ELUNE-ASSOCIATED ARCANE SIGNATURE',lossRisk:false}),
+      knownMoon('BLUE CHILD',245000,17.3,790,64,5,.58,{surface:'BLUE-GREEN ROCK / ICE',atmosphere:'TRACE',waterIce:'COMMON',activity:'VARIABLE ORBITAL APPEARANCE',anomaly:'RARE CONJUNCTION WITH WHITE LADY',lossRisk:false})
+    ],
+    observation:'A BLUE-GREEN WORLD OF VAST OCEANS, CONTINENTS, MOUNTAIN CHAINS, DESERTS AND MAGICAL CIVILIZATIONS BUILT ABOVE AN IMMENSE TITAN WORLDSOUL.',
+    scan:{ageBy:4.6,pressureAtm:1.0,pressureText:'1.00 ATM',magField:'STRONG',oxygen:21,nitrogen:77,co2:.05,tectonics:'ACTIVE',volcanism:'ACTIVE',oceanDepthKm:4.6,lifeTypePotential:'INTELLIGENT / MAGICAL',techPotential:'ARCANE / INDUSTRIAL',iron:'RICH',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'TITAN WORLDSOUL / PLANETARY LEY-LINE NEXUS',lossRisk:false},
+    loreReport:'MULTIPLE INTELLIGENT CIVILIZATIONS COVER AZEROTH. ARCANE LEY LINES, TITAN FACILITIES, OLD-GOD SCARS AND THE MAELSTROM CREATE PLANET-SCALE ENERGY SIGNATURES. THE WHITE LADY AND BLUE CHILD ORBIT ABOVE.',
+    lifeLabel:'ABUNDANT',populationLabel:'MASSIVE',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'ARCANE / INDUSTRIAL'
+  },
+  DRAENOR:{
+    worldType:'VERDANT',worldClass:'PRIMORDIAL ORCISH WORLD',renderer:'draenor',visualRadius:43,radiusKm:5600,gravity:.91,massEarth:.71,density:1.04,
+    water:.40,cloudCover:.43,cloudSpeed:.14,defaultTempC:19,tempRange:[-55,61],life:true,populationBase:7,
+    dayHours:26,yearDays:410,distanceAU:1.15,axialTiltDeg:20,rotationDirection:1,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'PLAINS STORMS / FROST / SPORES',ring:false,
+    moons:[
+      knownMoon('PALE LADY',322000,24.8,1700,82,1,.76,{surface:'PALE ROCK',atmosphere:'NONE',waterIce:'TRACE',activity:'DORMANT',anomaly:'STRONG SHADOWMOON CULTURAL SIGNIFICANCE',lossRisk:false}),
+      knownMoon('SMALLER MOON',178000,12.6,720,62,10,.52,{surface:'DARK ROCK',atmosphere:'NONE',waterIce:'TRACE',activity:'DORMANT',anomaly:'DARK LOW-ALBEDO SATELLITE',lossRisk:false})
+    ],
+    observation:'THE UNSHATTERED HOMEWORLD OF ORCS AND OGRES: A FERTILE WORLD OF PLAINS, FORESTS, SWAMPS, FUNGAL SEAS, VOLCANIC BADLANDS AND DRAENEI SETTLEMENTS.',
+    scan:{ageBy:4.4,pressureAtm:.97,pressureText:'0.97 ATM',magField:'MODERATE',oxygen:20,nitrogen:78,co2:.08,tectonics:'ACTIVE',volcanism:'MODERATE',oceanDepthKm:2.4,lifeTypePotential:'INTELLIGENT',techPotential:'SHAMANIC / ARCANE',iron:'RICH',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'ELEMENTAL NEXUS / DRAENEI CRYSTAL TECHNOLOGY',lossRisk:false},
+    loreReport:'VAST GRASSLANDS, FROSTFIRE RIDGES, SHADOWED VALLEYS, ZANGAR FUNGAL REGIONS AND DRAENEI CITIES SHARE THE WORLD. TWO MOONS DOMINATE THE NIGHT SKY, THE LARGER COMMONLY CALLED THE PALE LADY.',
+    lifeLabel:'ABUNDANT',populationLabel:'MANY',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'SHAMANIC / ARCANE'
+  },
+  OUTLAND:{
+    worldType:'BARREN',worldClass:'SHATTERED WORLD REMNANT',renderer:'outland',visualRadius:45,radiusKm:5200,gravity:.72,massEarth:.49,density:.94,
+    water:.18,cloudCover:.22,cloudSpeed:.12,defaultTempC:22,tempRange:[-70,78],life:true,populationBase:5,
+    dayHours:29,yearDays:410,distanceAU:0,axialTiltDeg:31,rotationDirection:1,
+    atmosDensity:'THIN',atmosChemistry:'N2 / O2 / NETHER TRACE',weather:'ARCANE STORMS / NETHER WINDS',ring:false,
+    damage:{type:'MISSING_HEMISPHERE',angle:-.22,severity:.72,seed:0x0a71a0d1},
+    moons:[
+      knownMoon('PALE LADY',322000,24.8,1700,82,1,.76,{surface:'PALE ROCK',atmosphere:'NONE',waterIce:'TRACE',activity:'DORMANT',anomaly:'LOOMS LARGE OVER THE SHATTERED REMNANT',lossRisk:false}),
+      knownMoon('SMALLER MOON',178000,12.6,720,62,10,.52,{surface:'DARK ROCK',atmosphere:'NONE',waterIce:'TRACE',activity:'DORMANT',anomaly:'DARK LOW-ALBEDO SATELLITE',lossRisk:false})
+    ],
+    observation:'THE BROKEN REMAINS OF DRAENOR, TORN APART BY DIMENSIONAL PORTALS AND LEFT FLOATING BETWEEN THE GREAT DARK AND THE TWISTING NETHER.',
+    scan:{ageBy:4.4,pressureAtm:.61,pressureText:'UNSTABLE / LOCAL',magField:'FRACTURED',oxygen:17,nitrogen:68,co2:.4,tectonics:'DISCONTINUOUS',volcanism:'LOCAL',oceanDepthKm:.8,lifeTypePotential:'INTELLIGENT',techPotential:'ARCANE / INTERPLANAR',iron:'COMMON',carbon:'COMMON',uranium:'TRACE',anomaly:'REALITY FRACTURES / FLOATING LANDMASSES / UNSTABLE TIMEFLOW',lossRisk:false},
+    loreReport:'OUTLAND IS NO LONGER A COMPLETE PLANET. LARGE HABITABLE LANDMASSES, MOUNTAINS AND CITIES SURVIVE AS A SHATTERED FRAGMENT WHILE THE TWISTING NETHER SHOWS THROUGH AROUND BROKEN EDGES AND FLOATING ROCK.',
+    lifeLabel:'PERSISTENT',populationLabel:'MANY',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'ARCANE / INTERPLANAR'
+  },
+  ARGUS:{
+    worldType:'TOXIC',worldClass:'FEL-SHATTERED TITAN WORLD',renderer:'argus',visualRadius:46,radiusKm:6400,gravity:1.03,massEarth:1.08,density:1.02,
+    water:.02,cloudCover:.37,cloudSpeed:.20,defaultTempC:39,tempRange:[-30,110],life:true,populationBase:6,
+    dayHours:27,yearDays:455,distanceAU:0,axialTiltDeg:17,rotationDirection:1,
+    atmosDensity:'DENSE',atmosChemistry:'N2 / FEL / METALLIC VAPOR',weather:'FEL STORMS / ASH',ring:false,moons:[],
+    damage:{type:'SHATTERED_EDGE',angle:.36,severity:.76,seed:0xa2655001},
+    observation:'THE RUINED HOMEWORLD OF THE EREDAR, SATURATED WITH FEL ENERGY AND SPLIT BY ENORMOUS CRUSTAL WOUNDS, WITH BROKEN LAND AND CITY SECTIONS HANGING ABOVE THE SURFACE.',
+    scan:{ageBy:5.1,pressureAtm:1.42,pressureText:'1.42 ATM TOXIC',magField:'CHAOTIC',oxygen:4,nitrogen:54,co2:8,tectonics:'CATASTROPHIC',volcanism:'EXTREME',oceanDepthKm:0,lifeTypePotential:'DEMONIC / INTELLIGENT',techPotential:'INTERSTELLAR / FEL',iron:'RICH',carbon:'COMMON',uranium:'ABUNDANT',anomaly:'TORTURED TITAN WORLDSOUL / LEGION RESURRECTION ENGINE',lossRisk:false},
+    loreReport:'ARGUS WAS ONCE A LUSH EREDAR HOMEWORLD. IT IS NOW A BURNING-LEGION STRONGHOLD SHROUDED IN THE TWISTING NETHER, ITS CRUST SPLIT OPEN AND LARGE SECTIONS OF LAND BLOWN INTO ORBIT.',
+    lifeLabel:'HOSTILE',populationLabel:'MANY',lifeTypeLabel:'DEMONIC / INTELLIGENT',techLevelLabel:'INTERSTELLAR / FEL'
   },
   ERID:{
     worldType:'TOXIC',worldClass:'AMMONIA WORLD',visualRadius:46,radiusKm:7120,gravity:2.05,massEarth:2.56,density:1.84,
@@ -2840,7 +2916,80 @@ function loreSurfaceColor(lon,lat,normY,nx,z){
   if(planet.renderer==='coruscant') return coruscantSurfaceColor(lon,lat,nx,z);
   if(planet.renderer==='wikipedia') return wikipediaSurfaceColor(lon,lat,nx,z);
   if(planet.renderer==='ooo') return oooSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='subnautica') return subnauticaSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='azeroth') return azerothSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='draenor') return draenorSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='outland') return outlandSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='argus') return argusSurfaceColor(lon,lat,nx,z);
   return null;
+}
+function subnauticaSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const shelf=periodicNoise01(lon,lat,28,18,planet.terrainSeed^0x45464231);
+  const bio=periodicNoise01(lon,lat,64,34,planet.terrainSeed^0x53454121);
+  const arctic=lat<.14+(periodicNoise01(lon,lat,24,12,planet.terrainSeed^0x53454330)-.5)*.055;
+  const island=q.n>.84 || (q.ridge>.88&&shelf>.64);
+  let col;
+  if(arctic && q.n>.52) col=bio>.55?mixHex(C.white,C.cyan,.16):C.white;
+  else if(island) col=q.ridge>.91?C.brown:(bio>.54?mixHex(C.green,C.cyan,.16):C.green);
+  else if(q.n>.67) col=shelf>.52?C.cyan:mixHex(C.blue,C.cyan,.34);
+  else col=bio>.72?mixHex(C.blue,C.cyan,.18):C.blue;
+  const crater=((lonDistance(lon,.63)/.055)**2+((lat-.58)/.045)**2);
+  if(crater<1 && q.n>.54) col=crater<.42?mixHex(C.red,C.brown,.28):C.brown;
+  return surfaceShade(col,nx,z);
+}
+function azerothSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const continent=periodicNoise01(lon,lat,16,11,planet.terrainSeed^0x415a4552)+periodicNoise01(lon,lat,35,23,planet.terrainSeed^0x4f544821)*.34;
+  const biome=periodicNoise01(lon,lat,42,29,planet.terrainSeed^0x42494f4d);
+  const land=continent>.69;
+  let col;
+  if(!land) col=continent>.63?C.cyan:C.blue;
+  else if(Math.abs(lat-.5)>.40) col=biome>.50?C.white:mixHex(C.cyan,C.white,.60);
+  else if(q.ridge>.86) col=Math.abs(lat-.5)>.27?mixHex(C.white,C.brown,.32):C.brown;
+  else if(biome<.18) col=mixHex(C.yellow,C.brown,.15);
+  else if(biome>.79) col=mixHex(C.green,C.blue,.12);
+  else col=biome>.48?C.green:mixHex(C.green,C.yellow,.18);
+  const maelstrom=(lonDistance(lon,.49)/.034)**2+((lat-.54)/.028)**2;
+  if(maelstrom<1) col=maelstrom<.28?mixHex(C.blue,C.black,.42):mixHex(C.cyan,C.blue,.30);
+  return surfaceShade(col,nx,z);
+}
+function draenorSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const land=periodicNoise01(lon,lat,15,11,planet.terrainSeed^0x44524145);
+  const biome=periodicNoise01(lon,lat,34,21,planet.terrainSeed^0x4e4f5221);
+  let col;
+  if(land<.34) col=land<.22?C.blue:C.cyan;
+  else if(lat<.18) col=biome>.45?C.white:mixHex(C.brown,C.white,.36);
+  else if(biome<.17) col=mixHex(C.red,C.brown,.20);
+  else if(biome>.82) col=mixHex(C.cyan,C.purple,.18);
+  else if(q.ridge>.84) col=C.brown;
+  else col=biome>.48?C.green:mixHex(C.green,C.yellow,.22);
+  return surfaceShade(col,nx,z);
+}
+function outlandSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const fel=periodicNoise01(lon,lat,31,19,planet.terrainSeed^0x4f55544c);
+  const nether=periodicNoise01(lon,lat,59,33,planet.terrainSeed^0x414e4421);
+  let col;
+  if(q.n<.30) col=fel>.58?mixHex(C.purple,C.blue,.30):C.blue;
+  else if(q.ridge>.82) col=mixHex(C.brown,C.black,.24);
+  else if(fel>.78) col=mixHex(C.green,C.yellow,.18);
+  else if(fel<.20) col=mixHex(C.purple,C.red,.20);
+  else col=nether>.60?mixHex(C.green,C.brown,.28):mixHex(C.brown,C.yellow,.16);
+  return surfaceShade(col,nx,z);
+}
+function argusSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const fel=periodicNoise01(lon,lat,38,22,planet.terrainSeed^0x41524755);
+  const ruin=periodicNoise01(lon,lat,78,43,planet.terrainSeed^0x5346454c);
+  let col=q.ridge>.82?mixHex(C.brown,C.black,.32):mixHex(C.purple,C.black,.18);
+  if(fel>.68) col=mixHex(C.green,C.yellow,.22);
+  else if(fel<.22) col=mixHex(C.red,C.purple,.20);
+  if(ruin>.82) col=mixHex(C.white,C.black,.48);
+  const scar=Math.abs(lat-(.48+.06*Math.sin(lon*Math.PI*6)));
+  if(scar<.018) col=scar<.007?mixHex(C.yellow,C.green,.16):mixHex(C.green,C.black,.06);
+  return surfaceShade(col,nx,z);
 }
 function arrakisSurfaceColor(lon,lat,nx,z){
   const q=terrainAt(lon,lat);
@@ -4026,7 +4175,7 @@ function drawPlanet(cx,cy,t){
       const nx=(x-cx)/planet.rx;
       const rr=nx*nx+ny*ny; if(rr>1) continue;
       if(specialSurfaceMask(nx,ny)){
-        if(planet.renderer==='wikipedia') continue;
+        if(planet.renderer==='wikipedia'||planet.renderer==='outland') continue;
         ctx.fillStyle=damageInteriorColor(nx,ny,planet); ctx.fillRect(x,y,1,1);
         continue;
       }

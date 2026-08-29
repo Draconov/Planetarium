@@ -50,19 +50,26 @@ The interface intentionally stays compact. Most information appears only when yo
 
 - Deterministic procedural planets generated from names
 - Terrestrial, ocean, desert, ice, volcanic, toxic, barren, verdant and dwarf worlds
-- Very rare damaged or partially destroyed procedural planets
-- Physically scaled moons with textured native pixel sprites
-- Dotted moon orbits with animated direction markers on hover, click-to-pin and slow inspection behavior
+- Handcrafted hidden destinations including unusual ocean worlds, shattered worlds, megastructures and ringworld installations
+- Very rare damaged or partially destroyed procedural planets with exposed planetary interiors instead of simple black cut-outs
+- Special transparent-damage exceptions where the missing geometry is meant to reveal space behind the world
+- Physically scaled moons with textured native pixel sprites, including a dedicated cratered/maria texture for Earth's Moon
+- Dotted moon orbits with smooth bright-green motion guides on hover, click-to-pin and slow inspection behavior
 - Deterministic orbital distances and periods
 - Multiple ring types, widths, materials and densities with differential particle rotation
-- Dynamic temperature simulation that can radically transform a world
+- Irregular climate-driven polar caps; procedural worlds may form a north cap, south cap or both
+- Dynamic temperature simulation that can radically transform a world, including oasis/greening/frozen-desert state changes on certain handcrafted planets
 - Two moving procedural cloud layers with shadows and climate-dependent coverage
 - Hurricanes, storms, dust, snow, atmospheric haze, lightning, auroras and volcanic plumes
 - Atmosphere chemistry that influences clouds, weather and precipitation
 - Procedural alien life ranging from microbes to complex animals and intelligent civilizations
-- Orbital satellites, stations, spacecraft and moon missions on capable civilizations
+- Orbital satellites, stations, spacecraft, moon missions and special shuttle traffic on capable worlds
 - Probe missions with persistent deep-scan discoveries
+- Aligned, wrapping and scrollable scientific report cards for planets and moons
+- Planet reports expand into a two-column normal-data + probe-data layout after a scan
 - Deterministic anomalies and rare probe-loss events
+- Cached procedural terrain/noise, offscreen surface textures, reusable `ImageData` projection and cached report canvases
+- Smooth dynamic motion remains on the `requestAnimationFrame` path while expensive world-state work is rebuilt only when required
 - Shareable planet URLs
 - Captain's Log with Favorites, Recent and Scanned worlds
 - JSON export/import of exploration data
@@ -99,13 +106,17 @@ The same destination always resolves to the same generated world.
 
 Interactive objects use the same pixel focus-frame language as the original interface.
 
-Hovering the planet reveals information such as world class, temperature, radius, gravity, water, atmosphere, life, day length and year length. Moons and special orbital objects show a compact card beside the object itself, while the planet’s normal label remains visible. Hovering a dotted orbit keeps the associated object information accessible without forcing you to chase a fast-moving target, and animated guide particles make the orbit direction readable.
+Hovering the planet opens its report beside the planet on the right. Before a probe scan, this is a compact single-column science report. After probe data is available, the same card expands into two aligned columns: normal planetary information on the left and probe/deep-scan information on the right. Long values wrap instead of spilling outside the card, and oversized reports can be scrolled.
 
-Clicking a moon or its orbit pins it for inspection and slows that moon substantially until you click away. If that object has already been probed, pinning it also opens the full deep-scan panel without expanding the local hover card over the world.
+Moons and special orbital objects keep their own compact panel beside the object itself. Their values use the same aligned report formatting, and completed probe information appears in that same moon/object card rather than opening a second detached panel. Long moon reports also wrap and scroll without covering the object texture unnecessarily.
+
+Hovering a dotted orbit keeps the associated object information accessible without forcing you to chase a moving target. The highlighted orbit uses a brighter green moving-dot pattern with a continuous real-time phase so orbital direction remains readable even while simulation time is paused.
+
+Clicking a moon or its orbit pins it for inspection and slows that moon substantially until you click away.
 
 ### Launch Probe
 
-Probes can target planets, moons and certain special orbital objects. A completed scan can reveal:
+Probes can target planets, moons and certain special orbital objects. Completed data is merged into the same local report card used for normal inspection; planets gain a second report column, while moon/object cards retain their compact single-card layout. A completed scan can reveal:
 
 - atmospheric pressure and major gases
 - magnetic field
@@ -117,6 +128,48 @@ Probes can target planets, moons and certain special orbital objects. A complete
 - unusual anomalies
 
 Scan results persist locally and are restored when the same destination is revisited.
+
+### Temperature, ice and world-state changes
+
+Temperature is not only a number on the HUD. It can change surface water, vegetation, snow/ice coverage, clouds and the habitability state of supported worlds.
+
+Polar ice boundaries use procedural texture instead of straight latitude cuts. Procedural planets may generate only a northern cap, only a southern cap, or both; worlds with established two-pole geography can force both caps while still keeping irregular coastlines.
+
+Some handcrafted worlds have additional temperature-driven states. A hot desert world, for example, can develop scattered oasis pockets as it cools, become predominantly green with surviving desert regions at a more favorable climate, then lose that biosphere again if pushed into a deep freeze.
+
+### Damage and unusual geometry
+
+Large destructive events are treated as geometry, not merely painted scars. Most heavily damaged rocky worlds expose layered crust/mantle/core material where a chunk is gone, and mechanical worlds can expose engineered interior structure. Some deliberately special worlds remain transparent through missing geometry when seeing the star field through the hole is part of their design.
+
+### Rendering and performance
+
+Planetarium keeps visible motion smooth while avoiding unnecessary procedural work every animation frame. The current renderer separates expensive world-state generation from dynamic composition:
+
+```text
+STATIC / EXPENSIVE
+|-- cached noise lattice values
+|-- 256x128 terrain/ridge map
+|-- 256x128 offscreen surface texture
+`-- cached sphere projection geometry
+
+DYNAMIC / requestAnimationFrame
+|-- cached texture -> rotating sphere ImageData
+|-- clouds and atmosphere
+|-- planetary rings
+|-- moons and moving orbit guides
+|-- ships / special shuttle traffic
+|-- probes and rockets
+`-- UI composition
+
+UI CACHE
+|-- text-width and wrapping results
+|-- planet report canvas
+`-- moon/object report canvases
+```
+
+The underlying terrain map remains stable across climate recoloring. Temperature changes and view-mode changes invalidate the finished surface presentation, while probe completion invalidates report content. Ordinary rotation does not regenerate terrain or biomes; it samples a different longitude from the cached surface and writes the projected sphere into one reusable `ImageData` buffer before compositing it with `drawImage()`.
+
+The main animation path is not deliberately reduced to 30 FPS. `requestAnimationFrame` continues to drive moons, rings, orbit guides, ships, probes, rockets and planet rotation smoothly (typically 60 FPS on a 60 Hz display).
 
 ### Captain's Log
 
@@ -161,7 +214,7 @@ Experiment with names. Familiar places, fictional worlds and suspiciously specif
 | **L** | Open / close Captain's Log |
 | **C** | Copy a shareable planet link |
 | **Click planet / moon / orbit** | Pin or unpin an inspection target |
-| **Mouse wheel over life report** | Scroll long probe-life reports |
+| **Mouse wheel over info report** | Scroll long planet, moon or probe reports |
 | **Alt + Enter** | Toggle fullscreen |
 | **Esc** | First press shows exit prompt; second press exits desktop app |
 
@@ -336,7 +389,7 @@ Planetarium/
 |-- scripts/                Build, validation and local-server utilities
 |-- src/
 |   |-- assets/             Pixel art, audio and other bundled resources
-|   |-- app.js              Main Planetarium implementation
+|   |-- app.js              Main Planetarium implementation and cached renderer
 |   |-- font_data.js        Bitmap-font data
 |   `-- index.html          Browser entry point
 |-- src-tauri/              Minimal native desktop shell
