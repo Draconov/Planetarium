@@ -123,6 +123,10 @@ ARGUS
   aliases: WARCRAFT ARGUS, WOW ARGUS
   note: fel-corrupted shattered world with exposed planetary interior and debris
 
+CHASM
+  aliases: GRAND CANYON PLANET, CANYON PLANET, CRACKED PLANET, MEGA CANYON
+  note: giant airless rocky world with no moons, no atmosphere, and a planet-spanning vertical megacanyon visible from orbit
+
 ----------------------------------------------------------------
 HALO ARRAY / FORERUNNER CLUSTER
 ----------------------------------------------------------------

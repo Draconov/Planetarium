@@ -801,7 +801,8 @@ const FICTIONAL_ALIASES={
   'WARCRAFT':'AZEROTH','WORLD OF WARCRAFT':'AZEROTH','WOW':'AZEROTH','WOW AZEROTH':'AZEROTH',
   'WARCRAFT DRAENOR':'DRAENOR','WOW DRAENOR':'DRAENOR','ALTERNATE DRAENOR':'DRAENOR',
   'WARCRAFT OUTLAND':'OUTLAND','WOW OUTLAND':'OUTLAND','THE OUTLAND':'OUTLAND','THE OUTLANDS':'OUTLAND',
-  'WARCRAFT ARGUS':'ARGUS','WOW ARGUS':'ARGUS'
+  'WARCRAFT ARGUS':'ARGUS','WOW ARGUS':'ARGUS',
+  'GRAND CANYON PLANET':'CHASM','CANYON PLANET':'CHASM','CRACKED PLANET':'CHASM','MEGA CANYON':'CHASM'
 };
 function canonicalPlanetName(name){
   const upper=(name||'').trim().toUpperCase().slice(0,60) || 'PLANET';
@@ -1280,6 +1281,15 @@ const LORE_PRESETS={
     observation:'A BLEAK AND DEADLY IMPERIAL PRISON PLANET, HARDENED BY EXTREME CONDITIONS.',
     scan:{ageBy:4.7,pressureAtm:.81,pressureText:'0.81 ATM',magField:'WEAK',oxygen:18,nitrogen:79,co2:.5,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'INTELLIGENT',techPotential:'INTERPLANETARY',iron:'COMMON',carbon:'TRACE',uranium:'TRACE',anomaly:'SURVIVAL-SELECTED MILITARY POPULATION',lossRisk:false},
     loreReport:'THE WORLD IS DELIBERATELY BRUTAL: WASTELANDS, ROCKY BASINS AND MINIMAL RESOURCES PUSH ITS PEOPLE TOWARD RELENTLESS SURVIVAL. MILITARIZED ENCAMPMENTS AND HARDENED FORTRESSES ARE VISIBLE.'
+  },
+  CHASM:{
+    renderer:'chasm',worldType:'BARREN',worldClass:'MEGACANYON WORLD',visualRadius:56,radiusKm:11200,gravity:1.24,massEarth:2.35,density:1.10,
+    water:0,cloudCover:0,cloudSpeed:0,defaultTempC:12,tempRange:[-95,58],life:false,populationBase:0,
+    dayHours:29,yearDays:602,distanceAU:2.2,axialTiltDeg:7,rotationDirection:1,
+    atmosDensity:'NONE',atmosChemistry:'NONE',weather:'NONE',ring:false,moons:[],disableAutoCivilization:true,
+    observation:'A GIANT AIRLESS ROCK WORLD CUT BY A CONTINENT-SCALE VERTICAL CHASM VISIBLE EVEN FROM ORBIT.',
+    scan:{ageBy:5.7,pressureAtm:0,pressureText:'VACUUM',magField:'WEAK',oxygen:0,nitrogen:0,co2:0,tectonics:'DORMANT',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'COMMON',carbon:'TRACE',uranium:'TRACE',anomaly:'PLANET-SPANNING RIFT / EXPOSED STRATIFIED CRUST',lossRisk:false},
+    loreReport:'THE SURFACE IS A BONE-DRY EXPANSE OF CRUMBLING HIGHLANDS, IMPACT-SCARRED BASINS AND EXPOSED BEDROCK. A VAST NORTH-SOUTH CHASM, REMINISCENT OF A GRAND-CANYON SCALE RIFT, SPLITS THE FACE OF THE WORLD.'
   }
 };
 function lorePresetForName(name){ return LORE_PRESETS[name?.replace(/ /g,'_')] || LORE_PRESETS[name] || null; }
@@ -3139,6 +3149,38 @@ function giediPrimeSurfaceColor(lon,lat,nx,z){
   if(industry>.90 && slag>.52) col=mixHex(C.white,C.black,.44);
   return surfaceShade(col,nx,z);
 }
+function chasmSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const strata=periodicNoise01(lon,lat,36,18,planet.terrainSeed^0x43484153);
+  const rubble=periodicNoise01(lon,lat,88,47,planet.terrainSeed^0x52494654);
+  const mesa=periodicNoise01(lon,lat,19,9,planet.terrainSeed^0x4d455341);
+  let col;
+  if(q.ridge>.84) col=mixHex(C.brown,C.black,.30);
+  else if(q.n>.66) col=mixHex(C.brown,C.yellow,.18);
+  else if(q.n<.30) col=mixHex(C.red,C.black,.16);
+  else col=mixHex(C.brown,C.white,.18);
+  if(strata>.76) col=mixHex(col,C.yellow,.14);
+  else if(strata<.18) col=mixHex(col,C.black,.10);
+  if(mesa>.82) col=mixHex(col,C.white,.10);
+  const spine=.505 + Math.sin((lat-.5)*Math.PI*2.6)*.020 + (strata-.5)*.030 + (mesa-.5)*.010;
+  const dist=lonDistance(lon,spine);
+  const width=.020 + (1-q.ridge)*.010 + (rubble-.5)*.009;
+  const inner=.010 + (rubble-.5)*.004;
+  if(dist<width){
+    const wall=clamp((width-dist)/Math.max(.001,width-inner),0,1);
+    if(dist<inner){
+      col=rubble>.58?mixHex(C.black,C.red,.10):mixHex(C.black,C.brown,.12);
+    }else{
+      col=wall>.66?mixHex(C.yellow,C.brown,.12):mixHex(C.brown,C.red,.14);
+      if(rubble>.80) col=mixHex(col,C.white,.16);
+    }
+    if(Math.abs(lat-.5)<.18 && dist<width*.82) col=mixHex(col,C.black,.06);
+  }else if(dist<width+.008){
+    col=mixHex(C.white,C.brown,.26);
+  }
+  if(rubble>.90 && dist>width+.006) col=mixHex(col,C.black,.12);
+  return surfaceShade(col,nx,z);
+}
 function arrakisSurfaceColor(lon,lat,nx,z){
   const q=terrainAt(lon,lat);
   const tC=tempC();
@@ -3208,6 +3250,7 @@ function surfaceColor(lon,lat,normY,nx,z){
   }
   if(planet.name==='ARRAKIS') return arrakisSurfaceColor(lon,lat,nx,z);
   if(planet.name==='GIEDI PRIME') return giediPrimeSurfaceColor(lon,lat,nx,z);
+  if(planet.name==='CHASM') return chasmSurfaceColor(lon,lat,nx,z);
   const type=planet.worldType||'TERRESTRIAL';
   const iceLine=clamp(.31+state.temp*.33,.25,.64);
   const cap=polarCapAt(lon,lat,.5-iceLine);
@@ -4765,10 +4808,12 @@ function drawButtons(){
     let tip=target?`LAUNCH PROBE: ${bodyName(target)}`:state.hovered.tip;
     if(state.hovered.id==='temp') tip=`VIEW ${viewModeName()} -> ${viewModeName(nextViewMode())}`;
     if(state.hovered.id==='rocket') tip=canLaunchCivilizationRocket()?'LAUNCH CIVILIZATION ROCKET':noLocalOrbit()?'ROCKET LOCKED: LOCAL ORBIT RESTRICTED':'ROCKET LOCKED: NO ACTIVE SPACEFLIGHT';
-    if(state.hovered.id==='camera') tip='CLICK: PICTURE  HOLD 2S: FULL SCREENSHOT';
-    if(state.cameraHold?.active && state.hovered.id==='camera' && !state.cameraHold.triggered){
-      const left=Math.max(0,2-(performance.now()-state.cameraHold.startAt)/1000);
-      tip=`HOLD FOR FULL SCREENSHOT ${left.toFixed(1)}S`;
+    if(state.hovered.id==='camera') tip='CLICK: PICTURE  HOLD 2S: FULL  HOLD 5S: MONITOR';
+    if(state.cameraHold?.active && state.hovered.id==='camera'){
+      const held=(performance.now()-state.cameraHold.startAt)/1000;
+      if(state.cameraHold.triggered) tip='MONITOR-SIZE SCREENSHOT SAVED';
+      else if(held<2) tip=`HOLD FOR FULL SCREENSHOT ${(2-held).toFixed(1)}S`;
+      else tip=`FULL READY - HOLD FOR MONITOR ${(5-held).toFixed(1)}S`;
     }
     drawText(`${tip}${state.hovered.id==='camera'?'':` [${state.hovered.key}]`}`,472,239,C.white,1,'right');
   }
@@ -4929,11 +4974,13 @@ function drawProbeStatus(){
 }
 function updateCameraHold(t){
   const h=state.cameraHold;
-  if(!h || !h.active || h.triggered) return;
-  if(!state.mouse.down) return;
-  if(t-h.startAt>=2000){
+  if(!h || !h.active || h.triggered || !state.mouse.down) return;
+  // The 2-second tier is intentionally armed rather than fired immediately.
+  // That lets a user continue holding to 5 seconds without receiving both the
+  // normal full screenshot and the monitor-resolution screenshot.
+  if(t-h.startAt>=5000){
     h.triggered=true;
-    takeScreenshot({full:true});
+    takeScreenshot({monitor:true});
   }
 }
 
@@ -5041,23 +5088,60 @@ function doAction(id){
     case 'random': randomVisit(); break;
   }
 }
-function downloadScreenshot(png,full=false){
+function downloadScreenshot(png,mode='clean',size=null){
   try{
     const a=document.createElement('a');
     const safe=planet.name.replace(/[^A-Z0-9_-]+/g,'_').replace(/^_+|_+$/g,'')||'planet';
-    const suffix=full?'-full':'';
+    const suffix=mode==='monitor'&&size?`-monitor-${size.w}x${size.h}`:mode==='full'?'-full':'';
     a.download=`planetarium-${safe.toLowerCase()}${suffix}.png`;
     a.href=png || canvas.toDataURL('image/png');
     a.click();
   }catch{}
 }
+function monitorCaptureSize(){
+  const dpr=Math.max(1,Number(window.devicePixelRatio)||1);
+  const sw=Math.max(W,Math.round((window.screen?.width||W)*dpr));
+  const sh=Math.max(H,Math.round((window.screen?.height||H)*dpr));
+  // 8K is already a very large PNG and covers normal desktop monitors while
+  // preventing pathological browser/virtual-display values from allocating an
+  // enormous temporary canvas.
+  const maxPixels=7680*4320;
+  const pixels=sw*sh;
+  if(pixels<=maxPixels) return {w:sw,h:sh};
+  const scale=Math.sqrt(maxPixels/pixels);
+  return {w:Math.max(W,Math.floor(sw*scale)),h:Math.max(H,Math.floor(sh*scale))};
+}
+function monitorScreenshotData(){
+  const size=monitorCaptureSize();
+  const out=document.createElement('canvas');
+  out.width=size.w; out.height=size.h;
+  const g=out.getContext('2d',{alpha:true});
+  if(!g) return {png:'',size};
+  g.imageSmoothingEnabled=false;
+  // Keep any monitor-aspect-ratio padding transparent instead of adding
+  // black letterbox bars. The Planetarium frame itself remains unchanged.
+  g.clearRect(0,0,size.w,size.h);
+  const scale=Math.min(size.w/W,size.h/H);
+  const dw=Math.max(1,Math.round(W*scale)),dh=Math.max(1,Math.round(H*scale));
+  const dx=Math.floor((size.w-dw)/2),dy=Math.floor((size.h-dh)/2);
+  g.drawImage(canvas,0,0,W,H,dx,dy,dw,dh);
+  let png='';
+  try{ png=out.toDataURL('image/png'); }catch{}
+  return {png,size};
+}
 function takeScreenshot(options={}){
-  const full=!!options.full;
+  const monitor=!!options.monitor,full=!!options.full;
+  if(monitor){
+    const shot=monitorScreenshotData();
+    flash();
+    requestAnimationFrame(()=>downloadScreenshot(shot.png,'monitor',shot.size));
+    return;
+  }
   if(full){
     let png='';
     try{ png=canvas.toDataURL('image/png'); }catch{}
     flash();
-    requestAnimationFrame(()=>downloadScreenshot(png,true));
+    requestAnimationFrame(()=>downloadScreenshot(png,'full'));
     return;
   }
   state.captureMode='clean';
@@ -5067,7 +5151,7 @@ function takeScreenshot(options={}){
       try{ png=canvas.toDataURL('image/png'); }catch{}
       state.captureMode=null;
       flash();
-      requestAnimationFrame(()=>downloadScreenshot(png,false));
+      requestAnimationFrame(()=>downloadScreenshot(png,'clean'));
     });
   });
 }
@@ -5153,8 +5237,13 @@ canvas.addEventListener('pointerdown',ev=>{
 });
 canvas.addEventListener('pointerup',()=>{
   const hold=state.cameraHold;
+  const heldMs=hold?.active?performance.now()-hold.startAt:0;
   state.mouse.down=false;finishSliderDrag();
-  if(hold?.active && !hold.triggered) takeScreenshot({full:false});
+  if(hold?.active && !hold.triggered){
+    if(heldMs>=5000) takeScreenshot({monitor:true});
+    else if(heldMs>=2000) takeScreenshot({full:true});
+    else takeScreenshot({full:false});
+  }
   state.cameraHold=null;
 });
 canvas.addEventListener('pointercancel',()=>{state.mouse.down=false;finishSliderDrag();state.cameraHold=null;});
