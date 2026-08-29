@@ -241,6 +241,73 @@ function moonTextureColors(m,base){
   if(s.includes('BASALT')) return [mixHex(base,C.black,.38),mixHex(base,C.brown,.35),mixHex(base,C.white,.16)];
   return [mixHex(base,C.black,.28),mixHex(base,C.white,.22),mixHex(base,C.brown,.20)];
 }
+function paintSpecialMoonSurface(g,alpha,m,diameter,key){
+  const name=(m?.name||'').toUpperCase();
+  const w=g.canvas.width,h=g.canvas.height, seed=hashString(key)^0x4d4f4f4e;
+  const paintDisc=(fn)=>{
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+      if(alpha[(y*w+x)*4+3]<=24) continue;
+      const nx=(x+.5)/w*2-1, ny=(y+.5)/h*2-1, rr=nx*nx+ny*ny;
+      if(rr>1.06) continue;
+      const z=Math.sqrt(Math.max(0,1-rr));
+      const col=fn(nx,ny,rr,x,y,z);
+      if(!col) continue;
+      g.fillStyle=col; g.fillRect(x,y,1,1);
+    }
+  };
+  const mark=(fx,fy,col,sz=1)=>{
+    const x=Math.round(fx*w), y=Math.round(fy*h);
+    for(let yy=0;yy<sz;yy++) for(let xx=0;xx<sz;xx++){
+      const px=x+xx, py=y+yy;
+      if(px<0||py<0||px>=w||py>=h) continue;
+      if(alpha[(py*w+px)*4+3]<=24) continue;
+      g.fillStyle=col; g.fillRect(px,py,1,1);
+    }
+  };
+  if(name==='ATTLEROCK'){
+    paintDisc((nx,ny,rr,x,y,z)=>{
+      const dust=valueNoise((nx+1)*6.5,(ny+1)*6.5,seed,64), craterA=(nx-.28)**2/.08+ (ny+.10)**2/.06, craterB=(nx+.18)**2/.03 + (ny-.18)**2/.024;
+      let col=rr>.78?mixHex(C.white,C.brown,.34):dust>.58?mixHex(C.white,C.brown,.28):mixHex(C.brown,C.black,.20);
+      if(craterA<1||craterB<1) col=(craterA<.42||craterB<.45)?mixHex(C.black,C.brown,.16):mixHex(C.brown,C.white,.20);
+      return surfaceShade(col,nx,z);
+    });
+    mark(.60,.43,mixHex(C.white,C.yellow,.18),1); mark(.63,.45,mixHex(C.brown,C.white,.18),1);
+    mark(.38,.55,mixHex(C.white,C.cyan,.10),1); mark(.36,.58,mixHex(C.brown,C.white,.22),1);
+    return true;
+  }
+  if(name==='ASH TWIN'){
+    paintDisc((nx,ny,rr,x,y,z)=>{
+      const dunes=valueNoise((nx+1)*7.0,(ny+1)*5.8,seed^0x41534854,64), band=Math.abs(ny-(Math.sin((nx+.14)*3.4)*.10));
+      let col=dunes>.60?mixHex(C.white,C.brown,.28):dunes<.24?mixHex(C.yellow,C.white,.12):mixHex(C.white,C.yellow,.22);
+      if(band<.12) col=band<.05?mixHex(C.brown,C.black,.16):mixHex(C.brown,C.white,.32);
+      return surfaceShade(col,nx,z);
+    });
+    mark(.54,.26,mixHex(C.brown,C.white,.34),1); mark(.58,.28,mixHex(C.brown,C.black,.10),1);
+    return true;
+  }
+  if(name==='EMBER TWIN'){
+    paintDisc((nx,ny,rr,x,y,z)=>{
+      const dunes=valueNoise((nx+1)*6.4,(ny+1)*6.0,seed^0x454d4252,64), scar=Math.abs(ny-(.08*Math.sin((nx-.10)*4.3)-.06));
+      let col=dunes>.66?mixHex(C.red,C.brown,.18):dunes<.28?mixHex(C.yellow,C.brown,.16):mixHex(C.red,C.yellow,.24);
+      if(scar<.13) col=scar<.045?mixHex(C.black,C.red,.12):mixHex(C.brown,C.red,.20);
+      return surfaceShade(col,nx,z);
+    });
+    mark(.34,.60,mixHex(C.black,C.brown,.18),1);
+    return true;
+  }
+  if(name==="HOLLOW'S LANTERN"){
+    paintDisc((nx,ny,rr,x,y,z)=>{
+      const noise=valueNoise((nx+1)*7.2,(ny+1)*6.6,seed^0x484f4c4f,64), seam=Math.abs(ny-(.18*Math.sin((nx+.05)*4.0)-.02)), vent=((nx+.24)/.26)**2+((ny-.08)/.18)**2;
+      let col=noise>.58?mixHex(C.red,C.brown,.18):noise<.26?mixHex(C.black,C.brown,.16):mixHex(C.brown,C.black,.08);
+      if(seam<.10) col=seam<.038?mixHex(C.red,C.yellow,.24):mixHex(C.brown,C.red,.18);
+      if(vent<1) col=vent<.34?mixHex(C.yellow,C.white,.10):mixHex(C.red,C.yellow,.24);
+      return surfaceShade(col,nx,z);
+    });
+    mark(.66,.34,mixHex(C.yellow,C.white,.10),1); mark(.70,.38,mixHex(C.red,C.yellow,.16),1);
+    return true;
+  }
+  return false;
+}
 function texturedMoonSprite(frame,color,m,diameter){
   const base=tintedMoonSprite(frame,color);
   if(!base||!base.width||!moonTextureEnabled(m,diameter)) return base;
@@ -324,6 +391,9 @@ function texturedMoonSprite(frame,color,m,diameter){
         g.globalAlpha=1;
       }
     }
+  } else if(paintSpecialMoonSurface(g,alpha,m,diameter,key)){
+    // Hand-authored lore moons use bespoke tiny pixel maps so they still read
+    // like their full-size planets instead of random tinted generic pebbles.
   } else if(surface.includes('ICE')){
     g.fillStyle=palette[1];
     for(let i=0;i<Math.max(4,Math.floor(detailCount*.55));i++){
@@ -3401,6 +3471,11 @@ function attlerockSurfaceColor(lon,lat,nx,z){
   else if(dust<.18) col=mixHex(col,C.black,.10);
   const crater=((lonDistance(lon,.62)/.11)**2+((lat-.57)/.10)**2);
   if(crater<1) col=crater<.58?mixHex(C.black,C.brown,.16):mixHex(C.brown,C.white,.22);
+  const outpostA=(lonDistance(lon,.58)/.028)**2+((lat-.44)/.024)**2;
+  const outpostB=(lonDistance(lon,.37)/.022)**2+((lat-.56)/.020)**2;
+  const locator=(lonDistance(lon,.35)/.010)**2+((lat-.51)/.058)**2;
+  if(outpostA<1||outpostB<1) col=(outpostA<.32||outpostB<.32)?mixHex(C.white,C.yellow,.14):mixHex(C.brown,C.white,.20);
+  if(locator<1 && q.n>.34) col=locator<.20?mixHex(C.white,C.cyan,.12):mixHex(C.brown,C.white,.20);
   return surfaceShade(col,nx,z);
 }
 function emberTwinSurfaceColor(lon,lat,nx,z){
@@ -3507,30 +3582,43 @@ function interloperSurfaceColor(lon,lat,nx,z){
 }
 function quantumMoonSurfaceColor(lon,lat,nx,z){
   const q=terrainAt(lon,lat);
-  const quantum=periodicNoise01(lon,lat,24,15,planet.terrainSeed^0x51554e54);
-  const biome=periodicNoise01(lon,lat,46,27,planet.terrainSeed^0x4d4f4f4e);
+  const mist=periodicNoise01(lon,lat,22,14,planet.terrainSeed^0x51554e54);
+  const blotch=periodicNoise01(lon,lat,46,27,planet.terrainSeed^0x4d4f4f4e);
+  const seam=Math.abs(lat-(.50+.07*Math.sin((lon+.09)*Math.PI*2.1)+(mist-.5)*.04));
   let col;
-  if(q.n<.34) col=quantum>.52?mixHex(C.cyan,C.blue,.26):mixHex(C.brown,C.black,.18);
-  else if(quantum>.72) col=mixHex(C.green,C.white,.20);
-  else if(quantum<.22) col=mixHex(C.white,C.brown,.34);
-  else col=biome>.58?mixHex(C.purple,C.white,.22):mixHex(C.white,C.black,.36);
+  if(q.ridge>.86) col=mixHex(C.white,C.black,.18);
+  else if(mist>.72) col=mixHex(C.white,C.cyan,.12);
+  else if(blotch<.22) col=mixHex(C.white,C.brown,.20);
+  else if(blotch>.66) col=mixHex(C.white,C.blue,.18);
+  else col=mixHex(C.white,C.black,.24);
+  if(seam<.018) col=seam<.008?mixHex(C.white,C.blue,.14):mixHex(C.white,C.black,.30);
   const shrine=(lonDistance(lon,.57)/.06)**2+((lat-.49)/.07)**2;
-  if(shrine<1 && q.n>.44) col=shrine<.42?mixHex(C.white,C.cyan,.16):mixHex(C.brown,C.white,.22);
+  if(shrine<1 && q.n>.44) col=shrine<.42?mixHex(C.white,C.cyan,.12):mixHex(C.brown,C.white,.22);
   return surfaceShade(col,nx,z);
 }
 function eyeUniverseSurfaceColor(lon,lat,nx,z){
   const q=terrainAt(lon,lat);
   const quantum=periodicNoise01(lon,lat,22,14,planet.terrainSeed^0x45594531);
   const shimmer=periodicNoise01(lon,lat,58,32,planet.terrainSeed^0x45594532);
-  const seam=Math.abs(lat-(.48+.08*Math.sin((lon+.06)*Math.PI*2.4)+(quantum-.5)*.05));
+  const dx=mod(lon-.50+.5,1)-.5, dy=lat-.52;
+  const eye=(dx/.24)**2+(dy/.12)**2;
+  const iris=(dx/.12)**2+(dy/.075)**2;
+  const pupil=(dx/.050)**2+(dy/.050)**2;
+  const lid=Math.abs(dy)-(.016+.070*Math.max(0,1-Math.abs(dx)/.24));
   let col;
-  if(q.ridge>.88) col=mixHex(C.white,C.cyan,.22);
-  else if(quantum>.72) col=mixHex(C.white,C.green,.20);
-  else if(quantum<.24) col=mixHex(C.brown,C.white,.42);
-  else col=mixHex(C.white,C.black,.24);
-  if(seam<.016) col=seam<.007?mixHex(C.black,C.cyan,.12):mixHex(C.cyan,C.white,.16);
-  const iris=((lonDistance(lon,.61)/.10)**2+((lat-.64)/.11)**2);
-  if(iris<1) col=iris<.34?mixHex(C.black,C.purple,.06):iris<.60?mixHex(C.cyan,C.white,.10):mixHex(C.brown,C.white,.28);
+  if(q.ridge>.88) col=mixHex(C.white,C.cyan,.18);
+  else if(quantum>.70) col=mixHex(C.white,C.green,.14);
+  else if(quantum<.24) col=mixHex(C.brown,C.white,.36);
+  else col=mixHex(C.white,C.black,.20);
+  if(eye<1){
+    if(pupil<1) col=mixHex(C.black,C.purple,.06);
+    else if(iris<1) col=mixHex(C.cyan,C.white,.12);
+    else col=mixHex(C.brown,C.white,.22);
+  }
+  if(lid<.010 && Math.abs(dx)<.25) col=mixHex(C.black,C.cyan,.12);
+  const lashA=Math.abs(dy-(.18+.05*Math.sin((lon+.02)*Math.PI*7.0))); 
+  const lashB=Math.abs(dy-(-.18-.04*Math.sin((lon-.03)*Math.PI*6.0)));
+  if((lashA<.010||lashB<.010) && Math.abs(dx)<.23) col=mixHex(C.white,C.cyan,.18);
   if(shimmer>.84) col=mixHex(col,C.white,.10);
   else if(shimmer<.16) col=mixHex(col,C.black,.08);
   return surfaceShade(col,nx,z);
@@ -4411,8 +4499,37 @@ function drawDarkBrambleSilhouette(cx,cy){
     }
   }
 }
+function drawInterloperTail(cx,cy){
+  if(planet?.renderer!=='interloper') return;
+  const axis=-.12+Math.sin(state.simDays*.03)*.06, ux=Math.cos(axis), uy=Math.sin(axis);
+  const baseX=cx-ux*planet.rx*.10, baseY=cy-uy*planet.ry*.02;
+  const layers=[
+    {len:planet.rx*2.9, spread:planet.ry*.88, col:mixHex(C.white,C.cyan,.18), alpha:.16, skip:0},
+    {len:planet.rx*2.3, spread:planet.ry*.58, col:mixHex(C.cyan,C.blue,.22), alpha:.22, skip:1},
+    {len:planet.rx*1.7, spread:planet.ry*.32, col:mixHex(C.white,C.blue,.10), alpha:.28, skip:2}
+  ];
+  for(const layer of layers){
+    ctx.fillStyle=layer.col; ctx.globalAlpha=layer.alpha;
+    const count=Math.max(80,Math.round(layer.len*10));
+    for(let i=0;i<count;i++){
+      if(layer.skip && i%3===layer.skip) continue;
+      const q=i/Math.max(1,count-1), fall=1-q, wobble=(h2(i,17,planet.seed^0x1ce)-.5)*layer.spread*fall;
+      const tailX=baseX+ux*(planet.rx*.34+q*layer.len)-uy*wobble;
+      const tailY=baseY+uy*(planet.ry*.18+q*layer.len*.14)+ux*wobble*.26;
+      const size=q<.24?2:1;
+      ctx.fillRect(Math.round(tailX),Math.round(tailY),size,1);
+    }
+  }
+  ctx.globalAlpha=.36; ctx.fillStyle=mixHex(C.white,C.cyan,.16);
+  for(let i=0;i<20;i++){
+    const a=i/20*Math.PI*2, rr=planet.rx*.58*(.65+h2(i,9,planet.seed)*.35);
+    ctx.fillRect(Math.round(cx+Math.cos(a)*rr*.55),Math.round(cy+Math.sin(a)*rr*.35),1,1);
+  }
+  ctx.globalAlpha=1;
+}
 function drawLoreSetpieces(cx,cy,front){
   if(state.viewMode>1) return;
+  if(!front) drawInterloperTail(cx,cy);
   drawArgusDebris(cx,cy,front);
 }
 const cloudTintCache=new Map();
@@ -4698,6 +4815,30 @@ function drawNormalAtmosphereHaze(cx,cy){
     const x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr*(planet.ry/planet.rx);
     if(!planetContainsPoint(x,y,cx,cy,0)) continue;
     if((i+planet.seed)%3===0)ctx.fillRect(Math.round(x),Math.round(y),2,1);else ctx.fillRect(Math.round(x),Math.round(y),1,1);
+  }
+  ctx.globalAlpha=1;
+}
+function drawQuantumMoonFog(cx,cy){
+  if(planet?.renderer!=='quantummoon' || (state.viewMode!==0 && state.viewMode!==2)) return;
+  const diagnostic=state.viewMode===2, tint=mixHex(C.white,C.cyan,.14);
+  ctx.fillStyle=tint;
+  for(let layer=0;layer<3;layer++){
+    const rx=planet.rx+1+layer*2, ry=planet.ry+1+layer*2, steps=Math.max(96,Math.round((rx+ry)*2.8));
+    ctx.globalAlpha=(diagnostic?.42:.16)-layer*.05;
+    for(let i=0;i<steps;i++){
+      if(layer>0 && i%2) continue;
+      const a=i/steps*Math.PI*2, x=Math.round(cx+Math.cos(a)*rx), y=Math.round(cy+Math.sin(a)*ry);
+      ctx.fillRect(x,y,1,1);
+    }
+  }
+  ctx.fillStyle=mixHex(C.white,C.blue,.08); ctx.globalAlpha=diagnostic?.55:.24;
+  const count=Math.round(74+planet.rx*.8);
+  for(let i=0;i<count;i++){
+    const a=h2(i,37,planet.seed^0x5155)*Math.PI*2;
+    const rr=Math.sqrt(h2(i,73,planet.seed^0x4d4f))*Math.min(planet.rx,planet.ry)*.96;
+    const x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr*(planet.ry/planet.rx);
+    if(!planetContainsPoint(x,y,cx,cy,0)) continue;
+    ctx.fillRect(Math.round(x),Math.round(y),h2(i,11,planet.seed)>.72?2:1,1);
   }
   ctx.globalAlpha=1;
 }
@@ -5060,17 +5201,17 @@ function drawDysonStar(cx,cy){
 }
 function drawDysonSphereWorld(cx,cy,t){
   drawLoreSetpieces(cx,cy,false);
-  const phase=t*.55;
+  const outerPhase=t*.10, middlePhase=-t*.075, innerPhase=t*.055;
   const bronze=mixHex(C.yellow,C.brown,.26), pale=mixHex(C.white,C.yellow,.20), conduit=mixHex(C.cyan,C.white,.18);
-  drawDysonRingLayer(cx,cy,planet.rx+8,planet.ry+6,-.95,phase,false,bronze,pale,13);
-  drawDysonRingLayer(cx,cy,planet.rx+2,planet.ry+10,-.28,-phase*.82,false,mixHex(C.brown,C.white,.42),conduit,11);
-  drawDysonRingLayer(cx,cy,planet.rx-5,planet.ry+14,.58,phase*.63,false,mixHex(C.yellow,C.white,.10),pale,9);
+  drawDysonRingLayer(cx,cy,planet.rx+8,planet.ry+6,-.95,outerPhase,false,bronze,pale,13);
+  drawDysonRingLayer(cx,cy,planet.rx+2,planet.ry+10,-.28,middlePhase,false,mixHex(C.brown,C.white,.42),conduit,11);
+  drawDysonRingLayer(cx,cy,planet.rx-5,planet.ry+14,.58,innerPhase,false,mixHex(C.yellow,C.white,.10),pale,9);
   drawDysonStar(cx,cy);
-  drawDysonRingLayer(cx,cy,planet.rx+8,planet.ry+6,-.95,phase,true,bronze,pale,13);
-  drawDysonRingLayer(cx,cy,planet.rx+2,planet.ry+10,-.28,-phase*.82,true,mixHex(C.brown,C.white,.42),conduit,11);
-  drawDysonRingLayer(cx,cy,planet.rx-5,planet.ry+14,.58,phase*.63,true,mixHex(C.yellow,C.white,.10),pale,9);
+  drawDysonRingLayer(cx,cy,planet.rx+8,planet.ry+6,-.95,outerPhase,true,bronze,pale,13);
+  drawDysonRingLayer(cx,cy,planet.rx+2,planet.ry+10,-.28,middlePhase,true,mixHex(C.brown,C.white,.42),conduit,11);
+  drawDysonRingLayer(cx,cy,planet.rx-5,planet.ry+14,.58,innerPhase,true,mixHex(C.yellow,C.white,.10),pale,9);
   for(let i=0;i<18;i++){
-    const a=phase*.45+i*(Math.PI*2/18), r=planet.rx+6+((i%3)-1)*3;
+    const a=outerPhase*.55+i*(Math.PI*2/18), r=planet.rx+6+((i%3)-1)*3;
     const x=Math.round(cx+Math.cos(a)*r), y=Math.round(cy+Math.sin(a)*r*.34);
     ctx.fillStyle=i%3===0?mixHex(C.cyan,C.white,.12):mixHex(C.white,C.yellow,.18);
     ctx.fillRect(x,y,1,1);
@@ -5093,6 +5234,7 @@ function drawPlanet(cx,cy,t){
   // NORMAL shows the full atmosphere. CLEAN and TEMPERATURE intentionally strip it away.
   if(showEnvironment){
     drawProceduralCloudLayers(cx,cy);
+    if(planet.renderer==='quantummoon') drawQuantumMoonFog(cx,cy);
     if(planet.renderer==='ooo') drawOOOCloudSwirls(cx,cy);
     drawWeatherSystems(cx,cy);
     drawVolcanicPlumes(cx,cy);
