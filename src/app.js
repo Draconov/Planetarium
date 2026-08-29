@@ -803,6 +803,15 @@ const FICTIONAL_ALIASES={
   'WARCRAFT OUTLAND':'OUTLAND','WOW OUTLAND':'OUTLAND','THE OUTLAND':'OUTLAND','THE OUTLANDS':'OUTLAND',
   'WARCRAFT ARGUS':'ARGUS','WOW ARGUS':'ARGUS',
   'OUTER WILDS':'TIMBER HEARTH','TIMBERHEARTH':'TIMBER HEARTH','OUTERWILDS':'TIMBER HEARTH',
+  'ATTLEROCK':'ATTLEROCK','THE ATTLEROCK':'ATTLEROCK',
+  'BRITTLE HOLLOW':'BRITTLE HOLLOW','BRITTLEHOLLOW':'BRITTLE HOLLOW',
+  "HOLLOW'S LANTERN":"HOLLOW'S LANTERN",'HOLLOWS LANTERN':"HOLLOW'S LANTERN",
+  "GIANT'S DEEP":"GIANT'S DEEP",'GIANTS DEEP':"GIANT'S DEEP",
+  'DARK BRAMBLE':'DARK BRAMBLE','DARKBRAMBLE':'DARK BRAMBLE',
+  'EMBER TWIN':'EMBER TWIN','EMBERTWIN':'EMBER TWIN',
+  'ASH TWIN':'ASH TWIN','ASHTWIN':'ASH TWIN','HOURGLASS TWINS':'EMBER TWIN',
+  'INTERLOPER':'INTERLOPER','THE INTERLOPER':'INTERLOPER',
+  'QUANTUM MOON':'QUANTUM MOON','QUANTUMMOON':'QUANTUM MOON',
   'DYSON':'DYSON SPHERE','DYSON SPHERE':'DYSON SPHERE','DYSON SHELL':'DYSON SPHERE',
   'GRAND CANYON PLANET':'CHASM','CANYON PLANET':'CHASM','CRACKED PLANET':'CHASM','MEGA CANYON':'CHASM'
 };
@@ -1303,6 +1312,99 @@ const LORE_PRESETS={
     scan:{ageBy:4.2,pressureAtm:.98,pressureText:'0.98 ATM',magField:'MODERATE',oxygen:21,nitrogen:77,co2:.08,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:1.9,lifeTypePotential:'INTELLIGENT',techPotential:'EARLY SPACEFLIGHT',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'ANCIENT NOMAI RUINS / LOCAL TIME-LOOP SIGNALS',lossRisk:false},
     loreReport:'TIMBER HEARTH IS A COZY, FORESTED WORLD OF LAKES, GULLIES AND WOODEN SETTLEMENTS. HEARTHIAN ASTRONAUTS HAVE REACHED THEIR MOON, ATTLEROCK, WHILE OLDER NOMAI RUINS AND UNUSUAL TEMPORAL SIGNALS LINGER ACROSS THE SYSTEM.',
     lifeLabel:'ABUNDANT',populationLabel:'FEW',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'EARLY SPACEFLIGHT'
+  },
+  ATTLEROCK:{
+    renderer:'attlerock',worldType:'BARREN',worldClass:'LUNAR OUTPOST',visualRadius:28,radiusKm:820,gravity:.06,massEarth:.002,density:.57,
+    water:.01,cloudCover:0,cloudSpeed:0,defaultTempC:-23,tempRange:[-145,32],life:false,populationBase:0,
+    dayHours:120,yearDays:5.1,distanceAU:.82,axialTiltDeg:3,rotationDirection:1,
+    atmosDensity:'NONE',atmosChemistry:'NONE',weather:'NONE',ring:false,moons:[],disableAutoCivilization:true,
+    observation:'TIMBER HEARTH\'S DUSTY LITTLE MOON, KNOWN FOR ITS NOMAI RUINS AND A CLEAR VIEW OF THE ENTIRE SYSTEM.',
+    scan:{ageBy:4.2,pressureAtm:0,pressureText:'VACUUM',magField:'NONE',oxygen:0,nitrogen:0,co2:0,tectonics:'LOW',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'OUTPOST',iron:'COMMON',carbon:'TRACE',uranium:'TRACE',anomaly:'NOMAI RUINS / SIGNAL LOCATOR',lossRisk:false},
+    loreReport:'ATTLEROCK IS A SMALL STONY MOON USED BY HEARTHIAN ASTRONAUTS AS A FIRST STEPPING-STONE INTO SPACE. OLD NOMAI STRUCTURES AND A SIGNAL LOCATOR STILL STAND ON ITS QUIET SURFACE.',
+    lifeLabel:'NONE',populationLabel:'OUTPOST',lifeTypeLabel:'NONE',techLevelLabel:'OUTPOST'
+  },
+  'EMBER TWIN':{
+    renderer:'embertwin',worldType:'DESERT',worldClass:'HOURGLASS TWIN',visualRadius:34,radiusKm:4300,gravity:.62,massEarth:.31,density:1.06,
+    water:0,cloudCover:0,cloudSpeed:0,defaultTempC:68,tempRange:[-18,140],life:false,populationBase:0,
+    dayHours:13.4,yearDays:104,distanceAU:.46,axialTiltDeg:2,rotationDirection:1,
+    atmosDensity:'TRACE',atmosChemistry:'TRACE N2 / DUST',weather:'DRY SAND FALLS',ring:false,
+    moons:[knownMoon('ASH TWIN',11300,.47,4200,52,10,.64,{tempBias:-8,gravity:.58,surface:'ASH / ROCK / DUST',atmosphere:'TRACE',waterIce:'TRACE',activity:'TIDAL SAND TRANSFER',anomaly:'ANCIENT NOMAI TOWERS / HOURGLASS SAND EXCHANGE',lossRisk:false})],
+    observation:'THE HOTTER OF THE HOURGLASS TWINS, A SUNBAKED WORLD OF CANYONS, CAVES AND MIGRATING SAND.',
+    scan:{ageBy:4.1,pressureAtm:.03,pressureText:'TRACE',magField:'WEAK',oxygen:0,nitrogen:22,co2:2,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'ANCIENT RUINS',iron:'COMMON',carbon:'TRACE',uranium:'TRACE',anomaly:'SAND TRANSFER / SUNLESS CITY / NOMAI RUINS',lossRisk:false},
+    loreReport:'EMBER TWIN IS A DRY ORANGE WORLD RIDDLED WITH CAVES AND CHASMS. AS THE LOOP PROGRESSES, ITS PARTNER ASH TWIN DRAINS SAND TOWARD IT, BURYING RUINS AND OPENING NEW PASSAGES.',
+    lifeLabel:'NONE',populationLabel:'NONE',lifeTypeLabel:'NONE',techLevelLabel:'ANCIENT RUINS'
+  },
+  'ASH TWIN':{
+    renderer:'ashtwin',worldType:'DESERT',worldClass:'HOURGLASS TWIN',visualRadius:34,radiusKm:4200,gravity:.58,massEarth:.28,density:.99,
+    water:0,cloudCover:0,cloudSpeed:0,defaultTempC:41,tempRange:[-40,110],life:false,populationBase:0,
+    dayHours:13.4,yearDays:104,distanceAU:.46,axialTiltDeg:2,rotationDirection:1,
+    atmosDensity:'TRACE',atmosChemistry:'TRACE N2 / DUST',weather:'ASH DUST',ring:false,
+    moons:[knownMoon('EMBER TWIN',11300,.47,4300,52,12,.64,{tempBias:12,gravity:.62,surface:'RED SAND / CANYONS',atmosphere:'TRACE',waterIce:'NONE',activity:'TIDAL SAND TRANSFER',anomaly:'SUNLESS CITY / CHERT OBSERVATORY SIGNALS',lossRisk:false})],
+    observation:'THE PALER HOURGLASS TWIN, AN ASHEN DESERT WORLD WITH NOMAI TOWERS AND SAND-STRIPPED PLAINS.',
+    scan:{ageBy:4.1,pressureAtm:.03,pressureText:'TRACE',magField:'WEAK',oxygen:0,nitrogen:24,co2:2,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'ANCIENT RUINS',iron:'COMMON',carbon:'TRACE',uranium:'TRACE',anomaly:'ASH TWIN PROJECT / NOMAI TOWERS / SAND TRANSFER',lossRisk:false},
+    loreReport:'ASH TWIN IS A PALE DESERT WORLD SURROUNDED BY TORNADO-LIKE SAND COLUMNS AND ANCIENT NOMAI STRUCTURES. IT SLOWLY EMPTIES ITSELF INTO EMBER TWIN OVER THE COURSE OF THE LOOP.',
+    lifeLabel:'NONE',populationLabel:'NONE',lifeTypeLabel:'NONE',techLevelLabel:'ANCIENT RUINS'
+  },
+  'BRITTLE HOLLOW':{
+    renderer:'brittlehollow',worldType:'VOLCANIC',worldClass:'FRACTURING HOLLOW WORLD',visualRadius:40,radiusKm:5100,gravity:.82,massEarth:.67,density:1.02,
+    water:.02,cloudCover:.04,cloudSpeed:.06,defaultTempC:7,tempRange:[-60,48],life:false,populationBase:0,
+    dayHours:21.9,yearDays:151,distanceAU:.63,axialTiltDeg:6,rotationDirection:1,
+    atmosDensity:'THIN',atmosChemistry:'N2 / VOLCANIC GASES',weather:'ASH / FALLING CRUST',ring:false,
+    moons:[knownMoon("HOLLOW'S LANTERN",22800,3.6,980,66,1,.48,{tempBias:110,gravity:.07,surface:'MOLTEN ROCK / BASALT',atmosphere:'TRACE VOLCANIC GASES',waterIce:'NONE',activity:'EXTREME VOLCANISM',anomaly:'CONSTANT METEORIC BOMBARDMENT',lossRisk:false})],
+    observation:'A BLUE-GREY FRAGMENTING WORLD WITH A THIN CRUST, GLOWING FISSURES AND A LAVA-SPITTING VOLCANIC MOON.',
+    scan:{ageBy:4.3,pressureAtm:.41,pressureText:'0.41 ATM',magField:'WEAK',oxygen:3,nitrogen:46,co2:6,tectonics:'CATASTROPHIC',volcanism:'HIGH',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'ANCIENT RUINS',iron:'COMMON',carbon:'TRACE',uranium:'TRACE',anomaly:'HOLLOW INTERIOR / NOMAI GRAVITY CRYSTALS / VOLCANIC BOMBARDMENT',lossRisk:false},
+    loreReport:'BRITTLE HOLLOW IS A FRACTURING WORLD WHOSE CRUST BREAKS AWAY INTO SPACE. NOMAI RUINS CLING TO ITS SURFACE AND UNDERBELLY WHILE HOLLOW\'S LANTERN CONTINUES TO BATTER THE PLANET WITH VOLCANIC DEBRIS.',
+    lifeLabel:'NONE',populationLabel:'NONE',lifeTypeLabel:'NONE',techLevelLabel:'ANCIENT RUINS'
+  },
+  "HOLLOW'S LANTERN":{
+    renderer:'embertwin',worldType:'VOLCANIC',worldClass:'VOLCANIC MOON',visualRadius:24,radiusKm:980,gravity:.07,massEarth:.003,density:.47,
+    water:0,cloudCover:.02,cloudSpeed:.04,defaultTempC:184,tempRange:[60,260],life:false,populationBase:0,
+    dayHours:72,yearDays:3.6,distanceAU:.63,axialTiltDeg:0,rotationDirection:1,
+    atmosDensity:'TRACE',atmosChemistry:'SO2 / ASH',weather:'VOLCANIC EJECTA',ring:false,moons:[],disableAutoCivilization:true,
+    observation:'A SMALL MOLTEN MOON THAT HURLS FIERY DEBRIS TOWARD BRITTLE HOLLOW.',
+    scan:{ageBy:4.3,pressureAtm:.02,pressureText:'TRACE',magField:'NONE',oxygen:0,nitrogen:0,co2:3,tectonics:'VIOLENT',volcanism:'EXTREME',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'ABUNDANT',carbon:'TRACE',uranium:'TRACE',anomaly:'METEORIC VOLCANIC EJECTA',lossRisk:false},
+    loreReport:'HOLLOW\'S LANTERN IS A BRUTAL LITTLE VOLCANIC MOON. ITS ERUPTIONS LAUNCH MOLTEN ROCK ACROSS THE SYSTEM AND REPEATEDLY SHATTER THE CRUST OF BRITTLE HOLLOW.',
+    lifeLabel:'NONE',populationLabel:'NONE',lifeTypeLabel:'NONE',techLevelLabel:'NONE'
+  },
+  "GIANT'S DEEP":{
+    renderer:'giantsdeep',worldType:'OCEAN',worldClass:'OCEANIC TITAN',visualRadius:49,radiusKm:9300,gravity:1.18,massEarth:1.62,density:.86,
+    water:.96,cloudCover:.72,cloudSpeed:.20,defaultTempC:19,tempRange:[-5,42],life:true,populationBase:1,
+    dayHours:18.1,yearDays:219,distanceAU:.92,axialTiltDeg:3,rotationDirection:1,
+    atmosDensity:'DENSE',atmosChemistry:'N2 / O2 / H2O',weather:'GLOBAL CYCLONES / ELECTRICAL STORMS',ring:false,moons:[],
+    observation:'A VIOLENT GREEN WATER-WORLD OF ENDLESS CYCLONES, HIGH CLOUD DECKS AND LONELY ISLANDS.',
+    scan:{ageBy:4.0,pressureAtm:2.6,pressureText:'2.6 ATM',magField:'STRONG',oxygen:24,nitrogen:72,co2:.06,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:38,lifeTypePotential:'MICROBIAL',techPotential:'NONE',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'ORBITAL CYCLONES / DEEP CURRENT ANOMALIES / JELLYFISH BIOSIGNATURES',lossRisk:false},
+    loreReport:'GIANT\'S DEEP IS AN OCEANIC TITAN WRAPPED IN THICK GREEN CLOUD BANDS AND PERPETUAL STORMS. SMALL ISLANDS, CYCLONES AND DEEP ELECTRICAL ANOMALIES MAKE THE PLANET BEAUTIFUL AND EXTREMELY DANGEROUS.',
+    lifeLabel:'PRESENT',populationLabel:'NONE',lifeTypeLabel:'MICROBIAL',techLevelLabel:'NONE'
+  },
+  'DARK BRAMBLE':{
+    renderer:'darkbramble',worldType:'ICE',worldClass:'BRAMBLE SEED WORLD',visualRadius:44,radiusKm:6900,gravity:.94,massEarth:.98,density:.95,
+    water:.11,cloudCover:.06,cloudSpeed:.04,defaultTempC:-34,tempRange:[-120,25],life:true,populationBase:0,
+    dayHours:31,yearDays:297,distanceAU:1.26,axialTiltDeg:8,rotationDirection:1,
+    atmosDensity:'THIN',atmosChemistry:'CH4 / N2 / CRYOGENIC FOG',weather:'ICE FOG',ring:false,moons:[],
+    observation:'AN IMPOSSIBLE FROZEN BRAMBLE WORLD FILLED WITH THORNY GROWTH, INTERIOR FOG AND FRAGMENTED ICE.',
+    scan:{ageBy:3.9,pressureAtm:.26,pressureText:'0.26 ATM',magField:'CHAOTIC',oxygen:0,nitrogen:48,co2:1.2,tectonics:'CHAOTIC',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'HOSTILE',techPotential:'NONE',iron:'TRACE',carbon:'RICH',uranium:'TRACE',anomaly:'NON-EUCLIDEAN INTERIOR / ANGLERFISH BIOSIGNATURES / SEED EXPANSION',lossRisk:false},
+    loreReport:'DARK BRAMBLE IS A NIGHTMARISH THORN-CHOKED WORLD MADE OF TANGLED SEED-SPACE, ICY HUSKS AND FOG-FILLED POCKETS LARGER ON THE INSIDE THAN ON THE OUTSIDE. HOSTILE LIFE SIGNATURES HAVE BEEN DETECTED.',
+    lifeLabel:'HOSTILE',populationLabel:'NONE',lifeTypeLabel:'HOSTILE',techLevelLabel:'NONE'
+  },
+  INTERLOPER:{
+    renderer:'interloper',worldType:'ICE',worldClass:'ERRATIC COMET',visualRadius:27,radiusKm:1250,gravity:.09,massEarth:.005,density:.39,
+    water:.34,cloudCover:0,cloudSpeed:0,defaultTempC:-118,tempRange:[-210,20],life:false,populationBase:0,
+    dayHours:61,yearDays:642,distanceAU:2.8,axialTiltDeg:17,rotationDirection:1,
+    atmosDensity:'NONE',atmosChemistry:'NONE',weather:'NONE',ring:false,moons:[],disableAutoCivilization:true,
+    observation:'A BLUE-WHITE COMET OF VOLATILES, ICE AND A DEADLY HIDDEN CORE ON A HIGHLY ECCENTRIC ORBIT.',
+    scan:{ageBy:0.2,pressureAtm:0,pressureText:'VACUUM',magField:'NONE',oxygen:0,nitrogen:0,co2:0,tectonics:'LOW',volcanism:'NONE',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'NONE',iron:'TRACE',carbon:'COMMON',uranium:'TRACE',anomaly:'GHOST MATTER CORE / EXTREME ECCENTRIC ORBIT',lossRisk:false},
+    loreReport:'THE INTERLOPER IS A FAST, ICY COMET WHOSE DECEPTIVELY PRETTY SHELL HIDES A LETHAL INTERIOR GHOST-MATTER CORE. IT SWEEPS CLOSE TO THE SUN AND THEN VANISHES BACK INTO THE OUTER DARK.',
+    lifeLabel:'NONE',populationLabel:'NONE',lifeTypeLabel:'NONE',techLevelLabel:'NONE'
+  },
+  'QUANTUM MOON':{
+    renderer:'quantummoon',worldType:'BARREN',worldClass:'QUANTUM SATELLITE',visualRadius:28,radiusKm:1300,gravity:.11,massEarth:.007,density:.42,
+    water:.12,cloudCover:.04,cloudSpeed:.02,defaultTempC:-38,tempRange:[-150,26],life:false,populationBase:0,
+    dayHours:0,yearDays:0,distanceAU:1.1,axialTiltDeg:0,rotationDirection:1,
+    atmosDensity:'TRACE',atmosChemistry:'TRACE / UNKNOWN',weather:'QUANTUM FOG',ring:false,moons:[],disableAutoCivilization:true,
+    observation:'A SILENT SHIFTING MOON THAT REFUSES TO STAY IN ONE PLACE AND SEEMS TO ECHO THE WORLDS IT VISITS.',
+    scan:{ageBy:4.5,pressureAtm:.01,pressureText:'TRACE',magField:'UNKNOWN',oxygen:0,nitrogen:1,co2:0,tectonics:'UNKNOWN',volcanism:'UNKNOWN',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'ANCIENT PILGRIMAGE SITE',iron:'UNKNOWN',carbon:'UNKNOWN',uranium:'UNKNOWN',anomaly:'MACROSCOPIC QUANTUM BEHAVIOR / SIX LOCATIONS',lossRisk:false},
+    loreReport:'THE QUANTUM MOON ORBITS DIFFERENT PLANETS DEPENDING ON WHO IS OBSERVING IT. ITS SURFACE SEEMS TO BORROW TRAITS FROM NEARBY WORLDS, AND AN ANCIENT PILGRIMAGE TRAIL STILL REMAINS.',
+    lifeLabel:'NONE',populationLabel:'NONE',lifeTypeLabel:'NONE',techLevelLabel:'ANCIENT PILGRIMAGE SITE'
   },
   'DYSON SPHERE':{
     renderer:'dyson',worldType:'BARREN',worldClass:'STELLAR MEGASTRUCTURE',visualRadius:55,radiusKm:94500,gravity:.96,massEarth:22.5,density:.07,
@@ -3119,6 +3221,14 @@ function loreSurfaceColor(lon,lat,normY,nx,z){
   if(planet.renderer==='outland') return outlandSurfaceColor(lon,lat,nx,z);
   if(planet.renderer==='argus') return argusSurfaceColor(lon,lat,nx,z);
   if(planet.renderer==='timberhearth') return timberHearthSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='attlerock') return attlerockSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='embertwin') return emberTwinSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='ashtwin') return ashTwinSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='brittlehollow') return brittleHollowSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='giantsdeep') return giantsDeepSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='darkbramble') return darkBrambleSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='interloper') return interloperSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='quantummoon') return quantumMoonSurfaceColor(lon,lat,nx,z);
   if(planet.renderer==='dyson') return dysonSurfaceColor(lon,lat,nx,z);
   return null;
 }
@@ -3192,19 +3302,137 @@ function argusSurfaceColor(lon,lat,nx,z){
 }
 function timberHearthSurfaceColor(lon,lat,nx,z){
   const q=terrainAt(lon,lat);
-  const forest=periodicNoise01(lon,lat,26,17,planet.terrainSeed^0x54494d42);
-  const river=periodicNoise01(lon,lat,40,23,planet.terrainSeed^0x52495652);
-  const plateau=periodicNoise01(lon,lat,15,10,planet.terrainSeed^0x48454152);
+  const land=periodicNoise01(lon,lat,15,11,planet.terrainSeed^0x54494d42)+periodicNoise01(lon,lat,38,22,planet.terrainSeed^0x48454152)*.34;
+  const forest=periodicNoise01(lon,lat,27,18,planet.terrainSeed^0x574f4f44);
+  const plateau=periodicNoise01(lon,lat,18,10,planet.terrainSeed^0x504c4154);
+  const riverA=Math.abs(lat-(.54+.14*Math.sin((lon+.08)*Math.PI*2.2)+(forest-.5)*.05));
+  const riverB=Math.abs(lat-(.40-.10*Math.sin((lon-.18)*Math.PI*2.8)+(.5-plateau)*.04));
+  const lake=((lonDistance(lon,.28)/.16)**2+((lat-.61)/.13)**2);
   let col;
-  if(q.n<.49) col=q.n<.42?C.blue:C.cyan;
-  else if(q.ridge>.88) col=mixHex(C.brown,C.white,.18);
-  else if(forest>.68) col=C.green;
-  else if(plateau>.62) col=mixHex(C.green,C.yellow,.20);
-  else col=mixHex(C.brown,C.green,.24);
-  const village=(lonDistance(lon,.58)/.030)**2+((lat-.52)/.022)**2;
-  if(village<1 && q.n>.55) col=village<.40?mixHex(C.yellow,C.white,.12):mixHex(C.brown,C.yellow,.18);
-  const riverBand=Math.abs(lat-.56-(river-.5)*.18)<.012 && q.n>.46;
+  if(land<.43 || lake<1){
+    col=(land<.34||lake<.66)?C.blue:C.cyan;
+  }else if(q.ridge>.88){
+    col=mixHex(C.brown,C.white,.18);
+  }else if(forest>.62){
+    col=forest>.78?mixHex(C.green,C.black,.06):C.green;
+  }else if(plateau>.66){
+    col=mixHex(C.green,C.yellow,.22);
+  }else{
+    col=mixHex(C.brown,C.green,.28);
+  }
+  const riverBand=(riverA<.011 || riverB<.010) && land>.42;
   if(riverBand) col=mixHex(C.cyan,C.white,.18);
+  const village=(lonDistance(lon,.58)/.028)**2+((lat-.53)/.022)**2;
+  if(village<1 && land>.48) col=village<.42?mixHex(C.yellow,C.white,.14):mixHex(C.brown,C.yellow,.18);
+  const geyser=(lonDistance(lon,.73)/.04)**2+((lat-.28)/.05)**2;
+  if(geyser<1 && land>.44) col=geyser<.36?mixHex(C.white,C.cyan,.16):mixHex(C.brown,C.white,.16);
+  return surfaceShade(col,nx,z);
+}
+function attlerockSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const dust=periodicNoise01(lon,lat,34,22,planet.terrainSeed^0x4154544c);
+  let col=q.ridge>.84?mixHex(C.white,C.brown,.36):q.n<.38?mixHex(C.brown,C.black,.24):mixHex(C.white,C.brown,.28);
+  if(dust>.72) col=mixHex(col,C.white,.12);
+  else if(dust<.18) col=mixHex(col,C.black,.10);
+  const crater=((lonDistance(lon,.62)/.11)**2+((lat-.57)/.10)**2);
+  if(crater<1) col=crater<.58?mixHex(C.black,C.brown,.16):mixHex(C.brown,C.white,.22);
+  return surfaceShade(col,nx,z);
+}
+function emberTwinSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const dune=periodicNoise01(lon,lat,25,15,planet.terrainSeed^0x454d4252);
+  const scar=Math.abs(lat-(.48+.11*Math.sin(lon*Math.PI*3.2)+(dune-.5)*.05));
+  let col;
+  if(q.ridge>.87) col=mixHex(C.brown,C.black,.22);
+  else if(q.n>.74) col=mixHex(C.red,C.brown,.20);
+  else if(q.n<.34) col=mixHex(C.yellow,C.brown,.16);
+  else col=mixHex(C.red,C.yellow,.26);
+  if(scar<.020) col=scar<.009?mixHex(C.black,C.red,.14):mixHex(C.brown,C.red,.18);
+  const cavern=((lonDistance(lon,.34)/.08)**2+((lat-.60)/.10)**2);
+  if(cavern<1) col=cavern<.50?mixHex(C.black,C.brown,.16):mixHex(C.brown,C.yellow,.12);
+  return surfaceShade(col,nx,z);
+}
+function ashTwinSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const ash=periodicNoise01(lon,lat,29,18,planet.terrainSeed^0x41534854);
+  const band=Math.abs(lat-(.48+.06*Math.sin(lon*Math.PI*2.5)+(ash-.5)*.05));
+  let col;
+  if(q.ridge>.84) col=mixHex(C.white,C.brown,.30);
+  else if(q.n<.32) col=mixHex(C.yellow,C.white,.20);
+  else if(q.n>.72) col=mixHex(C.brown,C.white,.26);
+  else col=mixHex(C.white,C.yellow,.22);
+  if(band<.024) col=band<.010?mixHex(C.brown,C.black,.18):mixHex(C.brown,C.white,.32);
+  if(ash>.78) col=mixHex(col,C.white,.10);
+  else if(ash<.16) col=mixHex(col,C.black,.08);
+  return surfaceShade(col,nx,z);
+}
+function brittleHollowSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const plates=periodicNoise01(lon,lat,26,17,planet.terrainSeed^0x42524954);
+  const seamA=Math.abs(lat-(.46+.14*Math.sin(lon*Math.PI*3.1)+(plates-.5)*.06));
+  const seamB=Math.abs(lat-(.61-.12*Math.sin((lon+.18)*Math.PI*2.4)+(q.n-.5)*.04));
+  let col;
+  if(q.ridge>.86) col=mixHex(C.white,C.purple,.26);
+  else if(q.n<.34) col=mixHex(C.purple,C.black,.30);
+  else if(q.n>.70) col=mixHex(C.white,C.black,.42);
+  else col=mixHex(C.blue,C.purple,.28);
+  if(seamA<.018 || seamB<.015) col=(seamA<.008||seamB<.007)?mixHex(C.red,C.yellow,.18):mixHex(C.brown,C.red,.16);
+  const hollow=((lonDistance(lon,.51)/.16)**2+((lat-.49)/.18)**2);
+  if(hollow<1.0 && q.n>.42) col=hollow<.48?mixHex(C.black,C.purple,.10):mixHex(C.black,C.white,.18);
+  return surfaceShade(col,nx,z);
+}
+function giantsDeepSurfaceColor(lon,lat,nx,z){
+  const coarse=periodicNoise01(lon,lat,18,8,planet.terrainSeed^0x4749414e)-.5;
+  const streak=periodicNoise01(lon,lat,46,21,planet.terrainSeed^0x54534450)-.5;
+  const wave=Math.sin((lat*10+coarse*.9)*Math.PI+lon*Math.PI*1.8)*.028;
+  const band=Math.sin((lat+wave+streak*.03)*Math.PI*8.5);
+  let col=band>.48?mixHex(C.green,C.cyan,.18):band>-.12?mixHex(C.green,C.blue,.12):mixHex(C.blue,C.green,.22);
+  if(streak>.30) col=mixHex(col,C.cyan,.12);
+  else if(streak<-.34) col=mixHex(col,C.black,.08);
+  const cyclone=(lonDistance(lon,.64)/.10)**2+((lat-.28)/.085)**2;
+  if(cyclone<1) col=cyclone<.30?mixHex(C.black,C.blue,.28):mixHex(C.cyan,C.green,.16);
+  return surfaceShade(col,nx,z);
+}
+function darkBrambleSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const bramble=periodicNoise01(lon,lat,20,12,planet.terrainSeed^0x4252414d);
+  const ice=periodicNoise01(lon,lat,52,30,planet.terrainSeed^0x49434521);
+  const tendril=Math.abs(lat-(.50+.20*Math.sin((lon+.03)*Math.PI*3.0)+(bramble-.5)*.08));
+  let col;
+  if(q.n<.28) col=mixHex(C.black,C.purple,.10);
+  else if(ice>.76) col=mixHex(C.white,C.cyan,.22);
+  else if(bramble>.60) col=mixHex(C.purple,C.black,.20);
+  else col=mixHex(C.black,C.blue,.18);
+  if(tendril<.028) col=tendril<.010?mixHex(C.black,C.red,.12):mixHex(C.brown,C.purple,.18);
+  const seedVoid=(lonDistance(lon,.49)/.12)**2+((lat-.52)/.12)**2;
+  if(seedVoid<1) col=seedVoid<.42?mixHex(C.black,C.purple,.02):mixHex(C.purple,C.black,.24);
+  return surfaceShade(col,nx,z);
+}
+function interloperSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const ice=periodicNoise01(lon,lat,37,19,planet.terrainSeed^0x494e5445);
+  const cracks=Math.abs(lat-(.46+.10*Math.sin(lon*Math.PI*2.7)+(ice-.5)*.04));
+  let col;
+  if(q.ridge>.86) col=mixHex(C.white,C.cyan,.22);
+  else if(q.n<.34) col=mixHex(C.blue,C.black,.16);
+  else if(ice>.60) col=mixHex(C.white,C.cyan,.14);
+  else col=mixHex(C.cyan,C.white,.34);
+  if(cracks<.016) col=cracks<.007?mixHex(C.blue,C.black,.34):mixHex(C.cyan,C.blue,.18);
+  const core=(lonDistance(lon,.68)/.11)**2+((lat-.56)/.13)**2;
+  if(core<1 && q.n>.42) col=core<.40?mixHex(C.black,C.brown,.14):mixHex(C.brown,C.white,.18);
+  return surfaceShade(col,nx,z);
+}
+function quantumMoonSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const quantum=periodicNoise01(lon,lat,24,15,planet.terrainSeed^0x51554e54);
+  const biome=periodicNoise01(lon,lat,46,27,planet.terrainSeed^0x4d4f4f4e);
+  let col;
+  if(q.n<.34) col=quantum>.52?mixHex(C.cyan,C.blue,.26):mixHex(C.brown,C.black,.18);
+  else if(quantum>.72) col=mixHex(C.green,C.white,.20);
+  else if(quantum<.22) col=mixHex(C.white,C.brown,.34);
+  else col=biome>.58?mixHex(C.purple,C.white,.22):mixHex(C.white,C.black,.36);
+  const shrine=(lonDistance(lon,.57)/.06)**2+((lat-.49)/.07)**2;
+  if(shrine<1 && q.n>.44) col=shrine<.42?mixHex(C.white,C.cyan,.16):mixHex(C.brown,C.white,.22);
   return surfaceShade(col,nx,z);
 }
 function dysonSurfaceColor(lon,lat,nx,z){
@@ -4601,9 +4829,72 @@ function drawMinecraftCube(cx,cy,t){
   drawMoons(cx,cy,t,true);
   if(normalView){drawCivilizationOrbitObjects(cx,cy,true);drawCivilizationMoonMission(cx,cy);}
 }
+function drawDysonRingLayer(cx,cy,rx,ry,planeAngle,phase,front,tint,moduleTint,moduleEvery=11){
+  const cosA=Math.cos(planeAngle), sinA=Math.sin(planeAngle);
+  const steps=Math.max(80,Math.round((rx+ry)*2.4));
+  for(let i=0;i<steps;i++){
+    const u=(i/steps)*Math.PI*2;
+    const depth=Math.sin(u+phase);
+    if(front ? depth<0 : depth>=0) continue;
+    const ex=Math.cos(u)*rx;
+    const ey=Math.sin(u)*ry*.36;
+    const px=ex*cosA-ey*sinA;
+    const py=ex*sinA+ey*cosA;
+    const x=Math.round(cx+px), y=Math.round(cy+py);
+    const bright=.16+.22*Math.max(0,depth);
+    ctx.fillStyle=mixHex(tint,C.white,front?bright:.05);
+    ctx.fillRect(x,y,front?2:1,1);
+    if(i%moduleEvery===0){
+      const mx=Math.round(cx+px*1.01), my=Math.round(cy+py*1.01);
+      ctx.fillStyle=front?moduleTint:mixHex(moduleTint,C.black,.26);
+      ctx.fillRect(mx-1,my-1,2,2);
+    }
+  }
+}
+function drawDysonStar(cx,cy){
+  const rx=Math.max(10,Math.round(planet.rx*.34)), ry=Math.max(9,Math.round(planet.ry*.34));
+  for(let py=-ry-6;py<=ry+6;py++){
+    for(let px=-rx-6;px<=rx+6;px++){
+      const nx=px/Math.max(1,rx), ny=py/Math.max(1,ry);
+      const rr=nx*nx+ny*ny;
+      if(rr>1.85) continue;
+      let col=null;
+      if(rr<=1){
+        col=rr<.22?mixHex(C.white,C.yellow,.18):rr<.64?mixHex(C.yellow,C.white,.16):mixHex(C.red,C.yellow,.34);
+      }else if(rr<=1.42){
+        col=rr<1.15?mixHex(C.yellow,C.red,.22):mixHex(C.red,C.yellow,.18);
+      }
+      if(!col) continue;
+      ctx.fillStyle=col;
+      ctx.globalAlpha=rr<=1?1:(1.42-rr)/.42*.42;
+      ctx.fillRect(cx+px,cy+py,1,1);
+    }
+  }
+  ctx.globalAlpha=1;
+}
+function drawDysonSphereWorld(cx,cy,t){
+  drawLoreSetpieces(cx,cy,false);
+  const phase=t*.55;
+  const bronze=mixHex(C.yellow,C.brown,.26), pale=mixHex(C.white,C.yellow,.20), conduit=mixHex(C.cyan,C.white,.18);
+  drawDysonRingLayer(cx,cy,planet.rx+8,planet.ry+6,-.95,phase,false,bronze,pale,13);
+  drawDysonRingLayer(cx,cy,planet.rx+2,planet.ry+10,-.28,-phase*.82,false,mixHex(C.brown,C.white,.42),conduit,11);
+  drawDysonRingLayer(cx,cy,planet.rx-5,planet.ry+14,.58,phase*.63,false,mixHex(C.yellow,C.white,.10),pale,9);
+  drawDysonStar(cx,cy);
+  drawDysonRingLayer(cx,cy,planet.rx+8,planet.ry+6,-.95,phase,true,bronze,pale,13);
+  drawDysonRingLayer(cx,cy,planet.rx+2,planet.ry+10,-.28,-phase*.82,true,mixHex(C.brown,C.white,.42),conduit,11);
+  drawDysonRingLayer(cx,cy,planet.rx-5,planet.ry+14,.58,phase*.63,true,mixHex(C.yellow,C.white,.10),pale,9);
+  for(let i=0;i<18;i++){
+    const a=phase*.45+i*(Math.PI*2/18), r=planet.rx+6+((i%3)-1)*3;
+    const x=Math.round(cx+Math.cos(a)*r), y=Math.round(cy+Math.sin(a)*r*.34);
+    ctx.fillStyle=i%3===0?mixHex(C.cyan,C.white,.12):mixHex(C.white,C.yellow,.18);
+    ctx.fillRect(x,y,1,1);
+  }
+  drawLoreSetpieces(cx,cy,true);
+}
 function drawPlanet(cx,cy,t){
   if(isCubePlanet()) { drawMinecraftCube(cx,cy,t); return; }
   if(isHaloRingWorld()) { drawHaloRingWorld(cx,cy,t); return; }
+  if(planet.renderer==='dyson') { drawDysonSphereWorld(cx,cy,t); return; }
   const normalView=state.viewMode===0, atmosphereView=state.viewMode===2, showEnvironment=normalView||atmosphereView;
   if(normalView) drawCivilizationOrbitObjects(cx,cy,false);
   drawLoreSetpieces(cx,cy,false);
