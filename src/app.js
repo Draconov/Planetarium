@@ -2842,6 +2842,54 @@ function loreSurfaceColor(lon,lat,normY,nx,z){
   if(planet.renderer==='ooo') return oooSurfaceColor(lon,lat,nx,z);
   return null;
 }
+function arrakisSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat);
+  const tC=tempC();
+  const tempLocal=tC-Math.abs(lat-.5)*54+(q.n-.5)*10;
+  const oasisNoise=periodicNoise01(lon,lat,18,13,planet.terrainSeed^0x41525241);
+  const greenNoise=periodicNoise01(lon,lat,33,21,planet.terrainSeed^0x4b49534f);
+  const duneNoise=periodicNoise01(lon,lat,54,25,planet.terrainSeed^0x444e4521);
+  const basin=clamp((.52-q.n)*1.95 + (.58-q.ridge)*.45 + (oasisNoise-.54)*1.10,0,1);
+  const dryRidge=q.ridge>.80 || q.n>.74;
+  const desertBase=q.n<.40?mixHex(C.yellow,C.brown,.18):q.n>.64?mixHex(C.red,C.yellow,.24):C.yellow;
+  const coolSand=mixHex(C.white,C.yellow,.44);
+  const sparseVegetation=mixHex(C.green,C.yellow,.34);
+  const lushVegetation=greenNoise>.62?mixHex(C.green,C.yellow,.08):C.green;
+  if(tC<=2){
+    const coldReach=clamp((2-tC)/78,.02,.16);
+    const cap=polarCapAt(lon,lat,coldReach,{forceBoth:tC<-26,seedSalt:0x434f4c44});
+    if(cap.ice && tempLocal<-8) return surfaceShade(polarIceColor(cap),nx,z);
+    if(tempLocal<-10 && basin>.74) return surfaceShade(mixHex(C.cyan,C.white,.62),nx,z);
+    let col=dryRidge?mixHex(C.brown,C.black,.22):mixHex(coolSand,C.brown,.18);
+    if(duneNoise>.76) col=mixHex(col,C.white,.16);
+    else if(greenNoise<.18) col=mixHex(col,C.black,.08);
+    return surfaceShade(col,nx,z);
+  }
+  if(tC<=18){
+    const waterSpot=basin>.82 && greenNoise>.44;
+    const fertile=basin>.52 || (greenNoise>.66 && q.n<.67);
+    let col;
+    if(waterSpot) col=basin>.92?C.blue:C.cyan;
+    else if(fertile) col=lushVegetation;
+    else if(dryRidge || duneNoise>.70) col=q.ridge>.86?C.brown:mixHex(C.yellow,C.brown,.20);
+    else col=greenNoise>.56?mixHex(C.green,C.yellow,.18):sparseVegetation;
+    return surfaceShade(col,nx,z);
+  }
+  if(tC<=34){
+    const waterSpot=basin>.88 && greenNoise>.54;
+    const fringe=basin>.68 || (greenNoise>.76 && q.n<.58);
+    let col;
+    if(waterSpot) col=basin>.95?C.blue:C.cyan;
+    else if(fringe) col=greenNoise>.70?mixHex(C.green,C.yellow,.14):sparseVegetation;
+    else if(dryRidge) col=C.brown;
+    else col=desertBase;
+    return surfaceShade(col,nx,z);
+  }
+  let hot=desertBase;
+  if(dryRidge) hot=C.brown;
+  else if(duneNoise>.72) hot=mixHex(C.red,C.yellow,.30);
+  return surfaceShade(hot,nx,z);
+}
 function surfaceColor(lon,lat,normY,nx,z){
   if(planet.solar) return solarSurfaceColor(lon,lat,normY,nx,z);
   const loreCol=loreSurfaceColor(lon,lat,normY,nx,z);
@@ -2852,6 +2900,7 @@ function surfaceColor(lon,lat,normY,nx,z){
     const heat=clamp(tempLocal,0,1), col=heat<.2?C.blue:heat<.4?C.cyan:heat<.6?C.green:heat<.8?C.yellow:C.red;
     return surfaceShade(col,nx,z);
   }
+  if(planet.name==='ARRAKIS') return arrakisSurfaceColor(lon,lat,nx,z);
   const type=planet.worldType||'TERRESTRIAL';
   const iceLine=clamp(.31+state.temp*.33,.25,.64);
   const cap=polarCapAt(lon,lat,.5-iceLine);
