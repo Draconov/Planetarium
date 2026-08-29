@@ -3094,18 +3094,18 @@ function geometryMissingAt(nx,ny,p=planet){
   if(p.renderer==='wikipedia') return wikipediaMissingPiece(fixed.x,fixed.y);
   if(p.renderer==='brittlehollow'){
     const x=fixed.x,y=fixed.y;
-    const shellNoise=damageNoise(x*1.7,y*1.9,(p.seed^0x4252484f)>>>0);
-    const cavity=((x+.01)/(.30+shellNoise*.025))**2+((y+.02)/(.38+shellNoise*.030))**2;
-    const upper=((x-.10)/(.17+shellNoise*.015))**2+((y+.24)/(.13+shellNoise*.018))**2;
-    const lower=((x+.08)/(.16+shellNoise*.015))**2+((y-.25)/(.12+shellNoise*.018))**2;
-    const side=((x+.18)/(.14+shellNoise*.014))**2+((y-.02)/(.21+shellNoise*.020))**2;
-    let open=cavity<1||upper<1||lower<1||side<1;
+    const shellNoise=damageNoise(x*1.8,y*1.9,(p.seed^0x4252484f)>>>0);
+    const cavity=((x-.02)/(.27+shellNoise*.025))**2+((y+.00)/(.31+shellNoise*.028))**2;
+    const notchUpper=((x-.03)/(.18+shellNoise*.016))**2+((y+.21)/(.10+shellNoise*.014))**2;
+    const notchLower=((x+.04)/(.16+shellNoise*.014))**2+((y-.23)/(.12+shellNoise*.014))**2;
+    const notchRight=((x+.16)/(.11+shellNoise*.014))**2+((y-.01)/(.16+shellNoise*.016))**2;
+    let open=cavity<1||notchUpper<1||notchLower<1||notchRight<1;
     if(open){
-      const bridgeA=Math.abs(y+.03)<.042 && x>-.28 && x<.12;
-      const bridgeB=Math.abs(y-.19)<.034 && x>-.10 && x<.24;
-      const bridgeC=Math.abs(x+.10)<.034 && y>-.25 && y<.09;
-      const bridgeNoise=damageNoise(x*5.1,y*5.3,(p.seed^0x42524944)>>>0);
-      if((bridgeA||bridgeB||bridgeC) && bridgeNoise>.08) open=false;
+      const bridgeA=Math.abs(y+.02)<.030 && x>-.24 && x<.09;
+      const bridgeB=Math.abs(y-.16)<.028 && x>-.09 && x<.19;
+      const bridgeC=Math.abs(x+.08)<.026 && y>-.20 && y<.07;
+      const bridgeNoise=damageNoise(x*5.4,y*5.7,(p.seed^0x42524944)>>>0);
+      if((bridgeA||bridgeB||bridgeC) && bridgeNoise>.02) open=false;
     }
     return open;
   }
@@ -3433,17 +3433,35 @@ function ashTwinSurfaceColor(lon,lat,nx,z){
 }
 function brittleHollowSurfaceColor(lon,lat,nx,z){
   const q=terrainAt(lon,lat);
-  const plates=periodicNoise01(lon,lat,26,17,planet.terrainSeed^0x42524954);
-  const seamA=Math.abs(lat-(.46+.14*Math.sin(lon*Math.PI*3.1)+(plates-.5)*.06));
-  const seamB=Math.abs(lat-(.61-.12*Math.sin((lon+.18)*Math.PI*2.4)+(q.n-.5)*.04));
+  const plates=periodicNoise01(lon,lat,18,12,planet.terrainSeed^0x42524954);
+  const ash=periodicNoise01(lon,lat,48,26,planet.terrainSeed^0x484f4c4c);
+  const coreLon=.53, coreLat=.52;
+  const dx=(mod(lon-coreLon+.5,1)-.5), dy=lat-coreLat;
+  const hollow=Math.sqrt((dx/.19)**2+(dy/.22)**2);
+  const ring=Math.abs(hollow-1.0);
+  const crackA=Math.abs(lat-(.50+.18*Math.sin((lon-.03)*Math.PI*2.0)+(plates-.5)*.045));
+  const crackB=Math.abs(lat-(.45-.15*Math.sin((lon+.11)*Math.PI*2.9)+(ash-.5)*.055));
+  const ray=Math.abs(Math.atan2(dy,dx)-(.8+.35*Math.sin(lon*Math.PI*2.0)))<(.08+(1-clamp(hollow,0,1))*0.06);
+  const nearCore=hollow<1.55;
   let col;
-  if(q.ridge>.86) col=mixHex(C.white,C.purple,.26);
-  else if(q.n<.34) col=mixHex(C.purple,C.black,.30);
-  else if(q.n>.70) col=mixHex(C.white,C.black,.42);
-  else col=mixHex(C.blue,C.purple,.28);
-  if(seamA<.018 || seamB<.015) col=(seamA<.008||seamB<.007)?mixHex(C.red,C.yellow,.18):mixHex(C.brown,C.red,.16);
-  const hollow=((lonDistance(lon,.51)/.16)**2+((lat-.49)/.18)**2);
-  if(hollow<1.0 && q.n>.42) col=hollow<.48?mixHex(C.black,C.purple,.10):mixHex(C.black,C.white,.18);
+  if(lat<.18+.05*(ash-.5)) col=ash>.58?mixHex(C.white,C.brown,.20):mixHex(C.white,C.blue,.18);
+  else if(q.ridge>.84) col=mixHex(C.white,C.black,.48);
+  else if(q.n<.28) col=mixHex(C.black,C.blue,.16);
+  else if(q.n>.72) col=mixHex(C.white,C.black,.56);
+  else col=mixHex(C.blue,C.purple,.20);
+  if(ash>.78) col=mixHex(col,C.brown,.10);
+  else if(ash<.18) col=mixHex(col,C.black,.08);
+  if((crackA<.014||crackB<.012||(ray&&nearCore&&hollow>.90&&hollow<1.75)) && lat>.16){
+    const hot=(crackA<.006||crackB<.005)||(ray&&hollow<1.30);
+    col=hot?mixHex(C.red,C.yellow,.22):mixHex(C.brown,C.red,.18);
+  }
+  if(ring<.09){
+    col=ring<.04?mixHex(C.red,C.yellow,.18):mixHex(C.brown,C.white,.20);
+  }
+  if(hollow<.98){
+    if(hollow<.55) col=mixHex(C.black,C.red,.06);
+    else col=mixHex(C.brown,C.black,.26);
+  }
   return surfaceShade(col,nx,z);
 }
 function giantsDeepSurfaceColor(lon,lat,nx,z){
