@@ -1815,15 +1815,33 @@ function normalizeViewModeForPlanet(){
   state.tempView=state.viewMode===3;
 }
 function configureWeatherSystems(p,r){
-  const strength=atmosphereStrength(p); p.weatherSystems=[];
+  const strength=atmosphereStrength(p); p.weatherSystems=[]; p.hurricaneActiveCount=0;
   if(strength<=.08) return;
   const typeBoost=p.worldType==='OCEAN'?2:p.worldType==='TOXIC'?2:p.worldType==='VOLCANIC'?1:p.worldType==='DESERT'?1:0;
   const count=clamp(Math.round(1+strength*5+(p.cloudCover||0)*3+typeBoost),1,10);
-  const hurricaneChance=p.worldType==='OCEAN'?.72:p.worldType==='VERDANT'?.56:.42;
-  p.hurricanePotential=!!(p.solar?.hurricanePotential ?? (strength>=.58 && p.water>.38 && r()<hurricaneChance));
+
+  // A world can be hurricane-capable without always having an active hurricane.
+  // The old setup made Earth effectively hurricane-active whenever temperature,
+  // water and atmosphere conditions were valid, and the first two storm centers
+  // were then drawn as hurricanes at the same time.
+  const potentialChance=p.worldType==='OCEAN'?.38:p.worldType==='VERDANT'?.24:.14;
+  const explicitPotential=p.solar?.hurricanePotential ?? p.lorePreset?.hurricanePotential;
+  p.hurricanePotential=!!(explicitPotential ?? (!p.lorePreset && strength>=.58 && p.water>.38 && r()<potentialChance));
+
+  const spawnChance=p.name==='EARTH'?.18:p.worldType==='OCEAN'?.26:p.worldType==='VERDANT'?.16:.10;
+  let activeHurricanes=(p.hurricanePotential && r()<spawnChance)?1:0;
+  // A second hurricane stays possible only for very wet ocean worlds, and is rare.
+  if(activeHurricanes && p.worldType==='OCEAN' && r()<.08) activeHurricanes=2;
+  if(p.name==='EARTH') activeHurricanes=Math.min(activeHurricanes,1);
+  p.hurricaneActiveCount=activeHurricanes;
+
   for(let i=0;i<count;i++){
     const sizeBoost=(p.worldType==='OCEAN'||p.worldType==='TOXIC')?2:0;
-    p.weatherSystems.push({lon:r(),lat:.18+r()*.64,size:3+sizeBoost+Math.floor(r()*7),spin:r()<.5?-1:1,speed:(.003+r()*.010)*(r()<.5?-1:1),phase:r()*Math.PI*2,intensity:.35+r()*.65});
+    p.weatherSystems.push({
+      lon:r(),lat:.18+r()*.64,size:3+sizeBoost+Math.floor(r()*7),spin:r()<.5?-1:1,
+      speed:(.003+r()*.010)*(r()<.5?-1:1),phase:r()*Math.PI*2,intensity:.35+r()*.65,
+      hurricane:i<activeHurricanes
+    });
   }
 }
 function applyLorePreset(p,preset,r){
@@ -2291,7 +2309,7 @@ function atmosphereAccentColor(p=planet){
 function hurricaneConditions(p=planet){
   const t=tempC(), water=surfaceWaterPercent(), strength=atmosphereStrength(p), c=(p?.atmosChemistry||'').toUpperCase();
   const compatible=!c.includes('H2')&&!c.includes('HE')&&!c.includes('SULF')&&!c.includes('SO2')&&!c.includes('EXOTIC')&&!c.includes('CHLORINE')&&!c.includes('H2S')&&!c.includes('METALLIC')&&!c.includes('AMMONIA');
-  return !!p?.hurricanePotential && compatible && strength>=.55 && water>=35 && t>=10 && t<=42;
+  return !!p?.hurricanePotential && (p?.hurricaneActiveCount||0)>0 && compatible && strength>=.55 && water>=35 && t>=10 && t<=42;
 }
 function weatherLabel(){
   const strength=atmosphereStrength(planet), c=(planet.atmosChemistry||'').toUpperCase(), t=tempC(), water=surfaceWaterPercent();
@@ -4015,7 +4033,7 @@ function drawWeatherSystems(cx,cy){
     const electrical=label.includes('STORM')||label.includes('HURRICANE')||label.includes('MONSOON')||label.includes('ELECTRIC');
     const flashTick=Math.floor(performance.now()/150)+(planet.seed%97)+i*11;
     if(electrical && flashTick%31===0) drawLightningBolt(pos.x+(i%3-1)*2,pos.y-2,(planet.seed^i)>>>0,atmosphereMode?.95:.72);
-    if(label.includes('HURRICANE')&&i<2){drawSpiralWeather(pos.x,pos.y,size+3,w.spin,C.white,atmosphereMode?.95:.70);continue;}
+    if(label.includes('HURRICANE')&&w.hurricane){drawSpiralWeather(pos.x,pos.y,size+3,w.spin,C.white,atmosphereMode?.95:.70);continue;}
     if(label.includes('SUPERSTORM')&&i<3){drawSpiralWeather(pos.x,pos.y,size+4,w.spin,base,Math.min(1,alpha+.20));continue;}
     if(label.includes('DUST')){ctx.fillStyle=mixHex(C.brown,C.red,.22);ctx.globalAlpha=alpha;for(let k=0;k<14;k++){const a=w.phase+k*2.17,rr=(k%5)*size*.28;ctx.fillRect(Math.round(pos.x+Math.cos(a)*rr),Math.round(pos.y+Math.sin(a)*rr*.38),k%4===0?2:1,1);}ctx.globalAlpha=1;continue;}
     if(label.includes('BLIZZARD')||label.includes('SNOW')){ctx.fillStyle=C.white;ctx.globalAlpha=alpha;for(let k=0;k<14;k++){const a=w.phase+k*1.31,rr=(k%6)*size*.22;ctx.fillRect(Math.round(pos.x+Math.cos(a)*rr+k*.12),Math.round(pos.y+Math.sin(a)*rr*.35),1,1);}ctx.globalAlpha=1;continue;}
@@ -4809,7 +4827,10 @@ function cloudLayerSpec(layer,p=planet){
     base=mixHex(base,C.black,layer===0?.22:.16);
     accent=mixHex(accent,C.black,layer===0?.14:.10);
   }
-  const stormCenters=(p.weatherSystems||[]).slice(0,3).map(w=>({
+  const stormSource=weather.includes('HURRICANE')
+    ? (p.weatherSystems||[]).filter(w=>w.hurricane).slice(0,2)
+    : (p.weatherSystems||[]).slice(0,3);
+  const stormCenters=stormSource.map(w=>({
     lon:mod(w.lon+state.simDays*w.speed,1),lat:w.lat,intensity:w.intensity,spin:w.spin
   }));
   return {
