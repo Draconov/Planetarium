@@ -3548,8 +3548,18 @@ function giantsDeepSurfaceColor(lon,lat,nx,z){
   let col=band>.48?mixHex(C.green,C.cyan,.18):band>-.12?mixHex(C.green,C.blue,.12):mixHex(C.blue,C.green,.22);
   if(streak>.30) col=mixHex(col,C.cyan,.12);
   else if(streak<-.34) col=mixHex(col,C.black,.08);
-  const cyclone=(lonDistance(lon,.64)/.10)**2+((lat-.28)/.085)**2;
-  if(cyclone<1) col=cyclone<.30?mixHex(C.black,C.blue,.28):mixHex(C.cyan,C.green,.16);
+  // Giant's Deep should read as bands and violent storms, not as having an impact crater.
+  // Keep a Great-Spot-like cyclone, but make it a soft swirling cloud feature rather than a dark hole.
+  const dx=mod(lon-.64+.5,1)-.5, dy=lat-.28;
+  const cyclone=(dx/.105)**2+(dy/.090)**2;
+  const swirlA=Math.abs(dy-(.024*Math.sin(dx*22)+(streak)*.020));
+  const swirlB=Math.abs(dy-(-.018+.020*Math.sin(dx*17+1.7)+(coarse)*.018));
+  if(cyclone<1.25){
+    col=mixHex(col,mixHex(C.green,C.cyan,.30),.22);
+    if(swirlA<.016 || swirlB<.014) col=mixHex(C.cyan,C.green,.22);
+    if(cyclone<.42) col=mixHex(col,mixHex(C.white,C.cyan,.10),.22);
+    if(cyclone<.18) col=mixHex(col,C.white,.10);
+  }
   return surfaceShade(col,nx,z);
 }
 function darkBrambleSurfaceColor(lon,lat,nx,z){
@@ -3570,15 +3580,35 @@ function darkBrambleSurfaceColor(lon,lat,nx,z){
 function interloperSurfaceColor(lon,lat,nx,z){
   const q=terrainAt(lon,lat);
   const ice=periodicNoise01(lon,lat,37,19,planet.terrainSeed^0x494e5445);
-  const cracks=Math.abs(lat-(.46+.10*Math.sin(lon*Math.PI*2.7)+(ice-.5)*.04));
+  const micro=periodicNoise01(lon,lat,78,41,planet.terrainSeed^0x434f4d54);
   let col;
   if(q.ridge>.86) col=mixHex(C.white,C.cyan,.22);
   else if(q.n<.34) col=mixHex(C.blue,C.black,.16);
   else if(ice>.60) col=mixHex(C.white,C.cyan,.14);
   else col=mixHex(C.cyan,C.white,.34);
-  if(cracks<.016) col=cracks<.007?mixHex(C.blue,C.black,.34):mixHex(C.cyan,C.blue,.18);
-  const core=(lonDistance(lon,.68)/.11)**2+((lat-.56)/.13)**2;
-  if(core<1 && q.n>.42) col=core<.40?mixHex(C.black,C.brown,.14):mixHex(C.brown,C.white,.18);
+
+  // Replace the old crater-like vent with a fractured icy shell.
+  const crackA=Math.abs(lat-(.46+.10*Math.sin(lon*Math.PI*2.7)+(ice-.5)*.04));
+  const crackB=Math.abs(lat-(.58-.08*Math.sin((lon+.08)*Math.PI*3.4)+(q.n-.5)*.05));
+  const crackC=Math.abs(lat-(.36+.06*Math.sin((lon-.12)*Math.PI*4.2)+(micro-.5)*.03));
+  if(crackA<.016 || crackB<.013 || crackC<.012){
+    const deep=(crackA<.006)||(crackB<.005)||(crackC<.0045);
+    col=deep?mixHex(C.blue,C.black,.36):mixHex(C.cyan,C.blue,.18);
+  }
+
+  // Narrow fractured vent zone near the tail origin: broken edge, not a neat circular cavity.
+  const ventCenter=.70 + .012*Math.sin((lat-.52)*28);
+  const ventBand=Math.abs(lonDistance(lon,ventCenter));
+  const ventLat=Math.abs(lat-(.54+.07*Math.sin((lon-.66)*Math.PI*7.0)));
+  const ventMask=(ventBand/.030)**2 + (ventLat/.095)**2;
+  if(ventMask<1.0 && q.n>.30){
+    col=ventMask<.24?mixHex(C.black,C.blue,.28):mixHex(C.brown,C.white,.18);
+    if(((Math.floor(lon*220)+Math.floor(lat*170))&2)===0) col=mixHex(col,C.black,.10);
+  }
+
+  // Uneven broken ice patches around the vent make the shell look fractured rather than cratered.
+  const shard=(lonDistance(lon,.66)/.075)**2+((lat-.53)/.11)**2;
+  if(shard<1.0 && micro>.58) col=mixHex(col,C.white,.08);
   return surfaceShade(col,nx,z);
 }
 function quantumMoonSurfaceColor(lon,lat,nx,z){
