@@ -1674,6 +1674,38 @@ function moonAnomalyFor(p,m,r){
   return pick(r,pool);
 }
 function hasAnomaly(d){ return !!d?.anomaly && d.anomaly!=='NONE'; }
+function proceduralOceanDepthKm(p,r){
+  const water=clamp(p?.water||0,0,1);
+  if(water<=.03) return 0;
+
+  // Keep ordinary wet terrestrial worlds close to the old behavior. Ocean-class
+  // worlds get a separate basin model so a 90%+ water super-Earth can genuinely
+  // have tens-of-kilometres-deep global oceans instead of always topping out near 9 km.
+  if(p?.worldType!=='OCEAN'){
+    const modestSizeScale=clamp(.92+(p?.radiusEarth||1)*.08,.88,1.12);
+    return Math.round((.15+water*7.4+r()*2.1)*modestSizeScale*10)/10;
+  }
+
+  const radiusEarth=Math.max(.2,p?.radiusEarth||1);
+  const gravity=Math.max(.2,p?.gravity||1);
+  // Larger worlds can sustain larger ocean basins, while stronger surface gravity
+  // slightly suppresses relief/depth. Clamp the factor so procedural extremes stay sane.
+  const sizeGravityScale=clamp((.82+.30*radiusEarth)/(.90+.10*gravity),.68,1.50);
+
+  let baseDepth;
+  if(water>=.82){
+    // DEEP OCEAN WORLD: roughly 15-34 km before size/gravity and natural variation.
+    const t=clamp((water-.82)/.12,0,1);
+    baseDepth=lerp(15,34,t);
+  }else{
+    // Regular OCEAN WORLD: roughly 6-15 km before planetary scaling.
+    const t=clamp((water-.60)/.22,0,1);
+    baseDepth=lerp(6,15,t);
+  }
+
+  const naturalVariation=.88+r()*.24;
+  return Math.round(baseDepth*sizeGravityScale*naturalVariation*10)/10;
+}
 function makePlanetScan(p){
   const r=mulberry32((p.seed^0x74c2e317)>>>0);
   p.populationBase=2+Math.floor(r()*7);
@@ -1698,7 +1730,7 @@ function makePlanetScan(p){
     oxygen,nitrogen,co2,
     tectonics:pick(r,['DORMANT','LOW','ACTIVE','ACTIVE','VIOLENT']),
     volcanism:pick(r,['NONE','LOW','LOW','MODERATE','HIGH']),
-    oceanDepthKm:Math.round((.15+p.water*7.4+r()*2.1)*10)/10,
+    oceanDepthKm:proceduralOceanDepthKm(p,r),
     lifeTypePotential:complexity,
     techPotential:tech,
     iron:pick(r,RESOURCE_LEVELS), carbon:pick(r,RESOURCE_LEVELS), uranium:pick(r,RESOURCE_LEVELS),
