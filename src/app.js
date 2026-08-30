@@ -1708,13 +1708,29 @@ function makePlanetScan(p){
 }
 const PROCEDURAL_MAJOR_DAMAGE_TYPES=['SHATTERED_EDGE','MISSING_HEMISPHERE','EXPLOSION_DAMAGE','BITE'];
 const PROCEDURAL_SURFACE_DAMAGE_TYPES=['CRATER','CRATER_FIELD','SURFACE_RIFT'];
+function atmosphereImpactExposure(p){
+  return ({NONE:1,TRACE:.9,THIN:.72,NORMAL:.42,DENSE:.2,SUPERDENSE:.08})[p?.atmosDensity] ?? .45;
+}
+function tectonicDamageBias(p){
+  return ({DORMANT:0,LOW:.004,ACTIVE:.009,HIGH:.013,EXTREME:.018,CATASTROPHIC:.024})[p?.scan?.tectonics] ?? 0;
+}
 function configureRarePlanetDamage(p,r){
   if(!p || p.solar || p.special || p.lorePreset || p.shape==='cube' || p.shape==='haloRing') return;
-  // The old logic was ultra-rare: only a 0.25% roll, so many sessions would never
-  // surface a damaged procedural world at all. Keep catastrophic losses uncommon,
-  // but make surface scars and major fractures discoverable during normal play.
-  if(r()<.11){
-    const type=pick(r,PROCEDURAL_SURFACE_DAMAGE_TYPES);
+  // Surface damage should stay discoverable, but direct impact scarring should depend
+  // strongly on atmospheric shielding. Thin or absent atmospheres are hit much more
+  // often, while dense atmospheres mostly burn up incoming debris. Rift networks are
+  // handled separately so tectonic planets can still show fractures.
+  const impactExposure=atmosphereImpactExposure(p);
+  const impactChance=.01+impactExposure*.055;
+  const riftChance=.015+tectonicDamageBias(p);
+  const surfaceRoll=r();
+  let type=null;
+  if(surfaceRoll<impactChance){
+    type=r()<(.34+impactExposure*.18)?'CRATER_FIELD':'CRATER';
+  }else if(surfaceRoll<impactChance+riftChance){
+    type='SURFACE_RIFT';
+  }
+  if(type){
     p.damageProfile={type,angle:r()*Math.PI*2,severity:.42+r()*.34,seed:((p.seed^0x44535452)>>>0)};
     if(p.scan){
       p.scan.anomaly=type==='SURFACE_RIFT'?'PLANETARY RIFT NETWORK':'IMPACT-SCARRED SURFACE';
@@ -1722,16 +1738,16 @@ function configureRarePlanetDamage(p,r){
     }
   }
   if(r()>=.015) return;
-  const type=pick(r,PROCEDURAL_MAJOR_DAMAGE_TYPES);
-  p.damageProfile={type,angle:r()*Math.PI*2,severity:.62+r()*.32,seed:((p.seed^0x44535452)>>>0)};
+  const majorType=pick(r,PROCEDURAL_MAJOR_DAMAGE_TYPES);
+  p.damageProfile={type:majorType,angle:r()*Math.PI*2,severity:.62+r()*.32,seed:((p.seed^0x44535452)>>>0)};
   p.destroyedProcedural=true;
   p.populationBase=0;
   p.lifeText='NO SURVIVING BIOSPHERE IS DETECTED. THE PLANET HAS SUFFERED CATASTROPHIC STRUCTURAL DAMAGE.';
   p.noLifeText=p.lifeText;
   if(p.scan){
     p.scan.lifeTypePotential='NONE'; p.scan.techPotential='NONE';
-    p.scan.anomaly=`CATASTROPHIC PLANETARY DAMAGE / ${type.replaceAll('_',' ')}`;
-    p.scan.tectonics='CATASTROPHIC'; p.scan.volcanism=type==='EXPLOSION_DAMAGE'?'EXTREME':'HIGH';
+    p.scan.anomaly=`CATASTROPHIC PLANETARY DAMAGE / ${majorType.replaceAll('_',' ')}`;
+    p.scan.tectonics='CATASTROPHIC'; p.scan.volcanism=majorType==='EXPLOSION_DAMAGE'?'EXTREME':'HIGH';
   }
   p.civilization=null;
 }
@@ -3258,17 +3274,45 @@ function damageSurfaceColor(base,nx,ny,p=planet){
   if(profile?.type==='CRATER_FIELD'){
     const fixed=planetFixedDamageCoords(nx,ny);
     const q=damageSpace(fixed.x,fixed.y,profile),sev=clamp(profile.severity??.62,.2,1);
-    const basins=[[-.18,-.16,.11,.09],[.14,.05,.09,.08],[.28,-.21,.13,.10],[-.02,.22,.08,.07]];
-    for(const [cx,cy,rx,ry] of basins){
-      const d=Math.sqrt(((q.x-cx)/(rx+sev*.05))**2+((q.y-cy)/(ry+sev*.05))**2);
+    const exposure=atmosphereImpactExposure(p);
+    const basins=[[-.18,-.16,.10,.085],[.16,.04,.085,.075],[.27,-.20,.115,.090],[-.03,.22,.075,.065]];
+    const basinCount=Math.max(1,Math.min(basins.length,1+Math.floor(exposure*3)));
+    for(let i=0;i<basinCount;i++){
+      const [cx,cy,rx,ry]=basins[i];
+      const d=Math.sqrt(((q.x-cx)/(rx+sev*.045))**2+((q.y-cy)/(ry+sev*.045))**2);
       if(d<1){
-        if(d<.62) return mixHex(base,C.black,.46);
-        return mixHex(base,p.worldType==='ICE'?C.cyan:C.brown,.34);
+        if(d<.60) return mixHex(base,C.black,.44);
+        return mixHex(base,p.worldType==='ICE'?C.cyan:C.brown,.30);
       }
     }
-    const pepper=damageNoise(q.x*3.1,q.y*3.1,(profile.seed||p.seed)^0x43524154);
-    const pepperShape=((mod(q.x*2.7+pepper,1)-.5)**2+(mod(q.y*2.1-pepper,1)-.5)**2)<(.035+sev*.010);
-    if(pepperShape) return mixHex(base,C.black,.24);
+    // Replace the old high-density pepper pattern with sparse, individually-shaped
+    // micro-impacts and short ejecta scars. This reads as tiny crater pits instead
+    // of dark dithering, and density falls off when atmosphere is thicker.
+    const seed=(profile.seed||p.seed)>>>0;
+    const microCount=1+Math.floor(exposure*4);
+    const rimColor=p.worldType==='ICE'?mixHex(C.white,C.cyan,.16):mixHex(C.brown,C.white,.10);
+    for(let i=0;i<microCount;i++){
+      const cx=valueNoise(i*1.73,.31,seed^0x50495458,64)*.74-.37;
+      const cy=valueNoise(i*2.11,1.27,seed^0x50495459,64)*.82-.41;
+      const radius=.018+valueNoise(i*2.71,2.37,seed^0x50495452,64)*(.012+exposure*.014+sev*.006);
+      const skew=.72+valueNoise(i*3.19,3.91,seed^0x50495453,64)*.52;
+      const dx=q.x-cx, dy=q.y-cy;
+      const d=Math.sqrt((dx/(radius*skew))**2 + (dy/radius)**2);
+      if(d<1){
+        if(d<.56) return mixHex(base,C.black,.30+.08*exposure);
+        return mixHex(base,rimColor,.20);
+      }
+      const ang=valueNoise(i*4.01,4.83,seed^0x454a4543,64)*Math.PI*2;
+      const ax=Math.cos(ang), ay=Math.sin(ang);
+      const along=dx*ax+dy*ay;
+      const across=Math.abs(-dx*ay+dy*ax);
+      const ejectaLen=radius*(1.8+exposure*1.4);
+      const ejectaWidth=radius*(.18+exposure*.18);
+      if(along>radius*.55 && along<ejectaLen){
+        const taper=1-along/ejectaLen;
+        if(across<ejectaWidth*Math.max(.18,taper)) return mixHex(base,rimColor,.08+.06*exposure);
+      }
+    }
   }
   if(profile?.type==='SURFACE_RIFT'){
     const fixed=planetFixedDamageCoords(nx,ny);
