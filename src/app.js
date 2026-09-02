@@ -710,7 +710,7 @@ function deepScanModelForPlanet(){
   return {
     rows:[
       ['AGE',`${d.ageBy.toFixed(1)} BY`,C.white],['PRESS',`${d.pressureAtm.toFixed(2)} ATM`,C.white],['MAG',d.magField,C.cyan],['O2',`${d.oxygen.toFixed(1)}%`,C.green],['N2',`${d.nitrogen.toFixed(1)}%`,C.blue],['CO2',`${d.co2.toFixed(1)}%`,C.yellow],
-      ['WEATHER',compactWeatherLabel(),atmosphereAccentColor()],['CLOUDS',`${Math.round(dynamicCloudCover()*100)}% ${cloudTypeLabel()}`,C.white],['PRECIP',precipitationLabel(),C.cyan],['TECTONIC',d.tectonics,C.white],['VOLCANIC',d.volcanism,C.red],
+      ...(planet.sporeTScore?[['T-SCORE',planet.sporeTScore,C.green]]:[]),['WEATHER',compactWeatherLabel(),atmosphereAccentColor()],['CLOUDS',`${Math.round(dynamicCloudCover()*100)}% ${cloudTypeLabel()}`,C.white],['PRECIP',precipitationLabel(),C.cyan],['TECTONIC',d.tectonics,C.white],['VOLCANIC',d.volcanism,C.red],
       ['OCEAN',`${d.oceanDepthKm.toFixed(1)} KM`,C.cyan],['ICE',`${iceCoverPercent()}%`,C.white],['LIFE',lifeTypeLabel(),isAlive()?C.green:C.brown],['TECH',techLevelLabel(),C.purple],['FE',`${d.iron}  C ${d.carbon}`,C.brown],['U',d.uranium,C.brown]
     ],anomaly:hasAnomaly(d)?d.anomaly:'',anomalyLines:4
   };
@@ -885,6 +885,17 @@ const FICTIONAL_ALIASES={
   'QUANTUM MOON':'QUANTUM MOON','QUANTUMMOON':'QUANTUM MOON',
   'EYE OF THE UNIVERSE':'EYE OF THE UNIVERSE','THE EYE':'EYE OF THE UNIVERSE','EYE':'EYE OF THE UNIVERSE',
   'THE STRANGER':'THE STRANGER','STRANGER':'THE STRANGER','OUTER WILDS DLC':'THE STRANGER','ECHOES OF THE EYE':'THE STRANGER','DLC WORLD':'THE STRANGER',
+  'WENKWORT':'WENKWORT ARTEM','WENKWORT ARTEM':'WENKWORT ARTEM','STELLARIS WENKWORT':'WENKWORT ARTEM',
+  'ZANAAM':'ZANAAM','STELLARIS ZANAAM':'ZANAAM','PARIDAYDA':'PARIDAYDA','STELLARIS PARIDAYDA':'PARIDAYDA',
+  'THE VEIL':'THE VEIL','VEIL':'THE VEIL','STELLARIS VEIL':'THE VEIL',
+  "PROPHET'S RETREAT":"PROPHET'S RETREAT",'PROPHETS RETREAT':"PROPHET'S RETREAT",'HOLY WORLD':"PROPHET'S RETREAT",
+  'WALLED GARDEN':'WALLED GARDEN','EMERALD MAUSOLEUM':'EMERALD MAUSOLEUM','PRISTINE JEWEL':'PRISTINE JEWEL',
+  'KIRA':'KIRA','STELLARIS KIRA':'KIRA','SANCTUARY':'SANCTUARY','SANCTUARY RINGWORLD':'SANCTUARY','STELLARIS SANCTUARY':'SANCTUARY',
+  'SPORE':'SPORE EARTH','SPORE EARTH':'SPORE EARTH','EARTH SPORE':'SPORE EARTH',
+  'GROX':'GROX HOMEWORLD','GROX HOME':'GROX HOMEWORLD','GROX CAPITAL':'GROX HOMEWORLD','GROX HOMEWORLD':'GROX HOMEWORLD',
+  'MYLIFF':'MYLIFF','OINKER-7':'OINKER-7','OINKER 7':'OINKER-7','ADVENTURE TOWN':'ADVENTURE TOWN',
+  'RUINS OF DOOM':'RUINS OF DOOM','INFESTATION':'INFESTATION','IT CAME FROM THE SKY':'IT CAME FROM THE SKY',
+  'TX-5000':'TX-5000','TX5000':'TX-5000','DANCETOPIA':'DANCETOPIA',
   'DYSON':'DYSON SPHERE','DYSON SPHERE':'DYSON SPHERE','DYSON SHELL':'DYSON SPHERE',
   'GRAND CANYON PLANET':'CHASM','CANYON PLANET':'CHASM','CRACKED PLANET':'CHASM','MEGA CANYON':'CHASM'
 };
@@ -1099,6 +1110,30 @@ const HALO_INSTALLATIONS={
     anomaly:'SUNDERED RING / BANISHED CONTROL / ANCIENT FORERUNNER SECRETS',observation:'INSTALLATION 07 — ZETA HALO. A DAMAGED, PARTLY SUNDERED RINGWORLD OF MOUNTAINS, FORESTS, FORERUNNER RUINS AND ACTIVE CONFLICT.',
     loreReport:'ZETA HALO IS DAMAGED AND PARTLY SUNDERED, WITH SURVIVING LANDSCAPE FRAGMENTS SEPARATED BY BROKEN SECTIONS OF RING. BANISHED OCCUPATION, UNSC ACTIVITY AND ANCIENT FORERUNNER STRUCTURES ARE ALL DETECTABLE ACROSS THE INSTALLATION.'})
 };
+
+function stellarisGaiaPreset({worldClass='GAIA WORLD',style='garden',radiusKm=6800,gravity=1.02,water=.56,cloud=.40,temp=21,population=4,tech='PRE-FTL',anomaly='ANCIENT CURATED BIOSPHERE',observation='',loreReport=''}={}){
+  return {
+    renderer:'stellarisgaia',stellarisStyle:style,worldType:'VERDANT',worldClass,visualRadius:43,radiusKm,gravity,
+    massEarth:Math.max(.55,gravity*Math.pow(radiusKm/6371,2)),density:1.02,water,cloudCover:cloud,cloudSpeed:.13,
+    defaultTempC:temp,tempRange:[-22,48],life:true,populationBase:population,dayHours:24.8,yearDays:410,distanceAU:1.1,axialTiltDeg:20,rotationDirection:1,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'MILD RAIN / CLEAR SKIES',ring:false,moons:[],disableAutoCivilization:true,
+    observation,
+    scan:{ageBy:4.7,pressureAtm:1.04,pressureText:'1.04 ATM',magField:'STRONG',oxygen:22.2,nitrogen:76.6,co2:.05,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:water>.6?8.4:4.8,lifeTypePotential:'COMPLEX',techPotential:tech,iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly,lossRisk:false},
+    loreReport,lifeLabel:'ABUNDANT',populationLabel:population>=6?'MANY':population>=3?'FEW':'TRACE',lifeTypeLabel:'COMPLEX',techLevelLabel:tech
+  };
+}
+function sporeHiddenPreset({renderer='sporecity',worldType='VERDANT',worldClass='SPORE WORLD',tScore='T3',theme='bright',radiusKm=6100,gravity=.94,water=.42,cloud=.32,temp=22,life=true,population=5,atmos='NORMAL',chem='N2 / O2',weather='SHOWERS',tech='SPACE AGE',anomaly='MAXIS ADVENTURE SIGNATURE',observation='',loreReport=''}={}){
+  const pressure=atmos==='NONE'?0:atmos==='TRACE'?.03:atmos==='THIN'?.38:atmos==='DENSE'?1.8:1.02;
+  return {
+    renderer,sporeTheme:theme,sporeTScore:tScore,worldType,worldClass,visualRadius:42,radiusKm,gravity,
+    massEarth:Math.max(.2,gravity*Math.pow(radiusKm/6371,2)),density:1.01,water,cloudCover:cloud,cloudSpeed:.14,defaultTempC:temp,tempRange:[-60,72],life,populationBase:population,
+    dayHours:22.7,yearDays:356,distanceAU:1.0,axialTiltDeg:17,rotationDirection:1,atmosDensity:atmos,atmosChemistry:chem,weather,ring:false,moons:[],disableAutoCivilization:true,
+    observation,
+    scan:{ageBy:4.1,pressureAtm:pressure,pressureText:pressure===0?'VACUUM':`${pressure.toFixed(2)} ATM`,magField:'MODERATE',oxygen:life?20.4:0,nitrogen:life?77.8:chem.includes('N2')?60:0,co2:worldType==='TOXIC'?25:.2,tectonics:'LOW',volcanism:worldType==='VOLCANIC'?'HIGH':'LOW',oceanDepthKm:water>.72?14.0:water>.35?4.2:0,lifeTypePotential:life?'COMPLEX':'NONE',techPotential:tech,iron:'COMMON',carbon:life?'ABUNDANT':'COMMON',uranium:'TRACE',anomaly,lossRisk:false},
+    loreReport,lifeLabel:life?'ABUNDANT':'NONE',populationLabel:population>=7?'MASSIVE':population>=4?'MANY':population>0?'FEW':'NONE',lifeTypeLabel:life?'COMPLEX':'NONE',techLevelLabel:tech
+  };
+}
+
 const LORE_PRESETS={
   ...HALO_INSTALLATIONS,
   ...AVATAR_SISTER_PRESETS,
@@ -1500,6 +1535,56 @@ const LORE_PRESETS={
     loreReport:'THE STRANGER IS NOT A NATURAL WORLD BUT A COLOSSAL RING HABITAT HIDDEN INSIDE AN INTERSTELLAR VESSEL. ITS INNER SURFACE CARRIES GREEN LOWLANDS, ARTIFICIAL WATERWAYS, DAMMED RESERVOIRS AND MASSIVE ENGINEERED WALLS BUILT TO SUSTAIN AN ENTIRE CIVILIZATION.',
     lifeLabel:'NONE',populationLabel:'ABANDONED',lifeTypeLabel:'NONE',techLevelLabel:'INTERSTELLAR ARK'
   },
+
+  'WENKWORT ARTEM':stellarisGaiaPreset({style:'wenkwort',worldClass:'CURATED GAIA WORLD',radiusKm:7200,gravity:1.08,water:.61,cloud:.46,temp:20,population:1,tech:'NONE',anomaly:'ANCIENT GARDENER DRONES / CURATED ECOSYSTEM',observation:'AN UNNATURALLY PERFECT GAIA WORLD WHOSE FORESTS, FLOWER FIELDS AND WATERWAYS SHOW SIGNS OF ANCIENT MACHINE CURATION.',loreReport:'WENKWORT ARTEM IS A PLANET-SCALE GARDEN. CARETAKER MACHINES QUIETLY MAINTAIN ITS ECOLOGICAL BALANCE, PRUNING FORESTS AND PROTECTING A BIOSPHERE THAT LOOKS TOO PERFECT TO BE NATURAL.'}),
+  ZANAAM:stellarisGaiaPreset({style:'zanaam',worldClass:'GUARDED GAIA WORLD',radiusKm:7600,gravity:1.12,water:.49,cloud:.35,temp:23,population:0,tech:'ANCIENT',anomaly:'ANCIENT OBELISK / GUARDIAN SIGNATURES',observation:'A LARGE GAIA WORLD DOMINATED BY A GREEN VALLEY SYSTEM AND A MONUMENTAL ALIEN OBELISK VISIBLE FROM ORBIT.',loreReport:'ZANAAM IS A PRISTINE GAIA WORLD WHOSE CENTRAL VALLEYS SURROUND AN ENORMOUS ANCIENT STRUCTURE. THE PLANET FEELS LESS ABANDONED THAN WATCHED.'}),
+  PARIDAYDA:stellarisGaiaPreset({style:'paridayda',worldClass:'ISOLATED GAIA WORLD',radiusKm:7900,gravity:1.09,water:.58,cloud:.42,temp:24,population:3,tech:'PRE-FTL',anomaly:'ISOLATED PRIMITIVE CIVILIZATION / ANCIENT TRAUMA',observation:'A VAST, BEAUTIFUL GAIA WORLD HIDING A SMALL PRE-FTL CIVILIZATION BENEATH OTHERWISE UNTOUCHED CONTINENTS.',loreReport:'PARIDAYDA LOOKS LIKE A PARADISE FROM ORBIT, BUT ITS SMALL SOCIETY LIVES AMONG THE SHADOWS OF A VIOLENT ANCIENT HISTORY. MOST OF THE PLANET REMAINS WILDERNESS.'}),
+  'THE VEIL':{
+    renderer:'veil',worldType:'VERDANT',worldClass:'PHASE-SHIFTING GAIA WORLD',visualRadius:44,radiusKm:7000,gravity:1.03,massEarth:1.22,density:1.0,
+    water:.46,cloudCover:.54,cloudSpeed:.17,defaultTempC:18,tempRange:[-35,50],life:true,populationBase:0,dayHours:25,yearDays:390,distanceAU:1.2,axialTiltDeg:9,rotationDirection:1,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2 / SHROUD PARTICULATES',weather:'PHASE FOG / QUIET RAIN',ring:false,moons:[],disableAutoCivilization:true,
+    observation:'A GAIA WORLD THAT PERIODICALLY SLIPS INTO A DARK SHROUDED STATE, ITS GREEN CONTINENTS DISSOLVING BENEATH VIOLET QUANTUM HAZE.',
+    scan:{ageBy:5.0,pressureAtm:1.0,pressureText:'1.00 ATM / UNSTABLE',magField:'FLUCTUATING',oxygen:20.8,nitrogen:77.4,co2:.08,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:5.2,lifeTypePotential:'COMPLEX',techPotential:'NONE',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'PERIODIC GAIA / SHROUDED PHASE TRANSITION',lossRisk:false},
+    loreReport:'THE VEIL REFUSES TO REMAIN IN ONE PHYSICAL STATE. AT TIMES IT IS A LUSH GAIA WORLD; AT OTHERS ITS SURFACE IS SWALLOWED BY A DARK PURPLE SHROUD, LEAVING ONLY GHOSTLY GEOGRAPHY VISIBLE.',lifeLabel:'ABUNDANT',populationLabel:'NONE',lifeTypeLabel:'COMPLEX',techLevelLabel:'NONE'
+  },
+  "PROPHET'S RETREAT":stellarisGaiaPreset({style:'holy',worldClass:'SACRED GAIA WORLD',radiusKm:7350,gravity:1.08,water:.52,cloud:.38,temp:22,population:0,tech:'FALLEN EMPIRE',anomaly:'HOLY WORLD / FALLEN EMPIRE CLAIM',observation:'A LUMINOUS SACRED GAIA WORLD OF DEEP FORESTS, CRYSTAL SEAS AND ANCIENT TEMPLE-LIKE COMPLEXES.',loreReport:'PROPHET\'S RETREAT IS TREATED AS SACRED GROUND BY AN ANCIENT SPIRITUALIST POWER. ITS SURFACE IS LEFT ALMOST UNTOUCHED EXCEPT FOR OLD SHRINES AND MONUMENTS.'}),
+  'WALLED GARDEN':stellarisGaiaPreset({style:'walled',worldClass:'SACRED GAIA WORLD',radiusKm:6900,gravity:1.01,water:.44,cloud:.34,temp:20,population:0,tech:'FALLEN EMPIRE',anomaly:'HOLY WORLD / ORDERED PLANETARY GARDEN',observation:'A SACRED GAIA WORLD WHOSE CONTINENTS APPEAR STRANGELY ORDERED, DIVIDED BY LONG NATURAL-LOOKING GREEN BELTS AND ANCIENT BOUNDARIES.',loreReport:'WALLED GARDEN IS A PRESERVED HOLY WORLD. ITS ECOLOGY IS LUSH BUT CURIOUSLY ORDERED, AS IF AN ENTIRE PLANET WERE LANDSCAPED AND THEN SEALED AWAY.'}),
+  'EMERALD MAUSOLEUM':stellarisGaiaPreset({style:'mausoleum',worldClass:'SACRED MEMORIAL WORLD',radiusKm:7050,gravity:1.05,water:.48,cloud:.41,temp:19,population:0,tech:'FALLEN EMPIRE',anomaly:'PLANETARY MAUSOLEUM / HOLY WORLD',observation:'A DARKER EMERALD GAIA WORLD WHERE HUGE MONUMENTAL COMPLEXES BREAK THROUGH THE FORESTS LIKE TOMBS.',loreReport:'EMERALD MAUSOLEUM IS BOTH PARADISE AND MEMORIAL. ANCIENT STRUCTURES SIT AMONG DEEP GREEN FORESTS, THEIR PURPOSE MORE FUNERARY THAN HABITABLE.'}),
+  'PRISTINE JEWEL':stellarisGaiaPreset({style:'jewel',worldClass:'PRISTINE GAIA WORLD',radiusKm:6100,gravity:.94,water:.66,cloud:.29,temp:24,population:0,tech:'FALLEN EMPIRE',anomaly:'IMMUTABLE HOLY BIOSPHERE',observation:'A SMALL BRILLIANT GAIA WORLD WITH TURQUOISE OCEANS, BRIGHT FORESTS AND ALMOST NO VISIBLE GEOLOGICAL SCARRING.',loreReport:'PRISTINE JEWEL LIVES UP TO ITS NAME: A COMPACT, IMMACULATE GAIA WORLD PRESERVED WITH RELIGIOUS FERVOR BY AN ANCIENT POWER.'}),
+  KIRA:{
+    renderer:'kira',worldType:'VOLCANIC',worldClass:'INFERNAL OASIS WORLD',visualRadius:42,radiusKm:6500,gravity:1.04,massEarth:1.08,density:1.05,
+    water:.08,cloudCover:.28,cloudSpeed:.11,defaultTempC:72,tempRange:[15,160],life:true,populationBase:1,dayHours:31,yearDays:470,distanceAU:.73,axialTiltDeg:12,rotationDirection:1,
+    atmosDensity:'DENSE',atmosChemistry:'CO2 / SO2 / N2',weather:'ASH STORMS / HOT RAIN',ring:false,moons:[],disableAutoCivilization:true,
+    observation:'A HOSTILE VOLCANIC WORLD OF BASALT AND LAVA BROKEN BY ONE IMPOSSIBLE GREEN OASIS REGION.',
+    scan:{ageBy:4.3,pressureAtm:2.2,pressureText:'2.20 ATM',magField:'STRONG',oxygen:4,nitrogen:35,co2:52,tectonics:'ACTIVE',volcanism:'HIGH',oceanDepthKm:.4,lifeTypePotential:'LOCALIZED',techPotential:'NONE',iron:'RICH',carbon:'COMMON',uranium:'COMMON',anomaly:'INFERNAL OASIS / LOCAL HABITABLE MICROCLIMATE',lossRisk:false},
+    loreReport:'KIRA IS ALMOST ENTIRELY INFERNAL: BLACK ROCK, LAVA PLAINS AND VOLCANIC HAZE. ONE GREEN REGION DEFIES THE REST OF THE PLANET, SUPPORTING WATER AND LIFE IN AN OTHERWISE HOSTILE WORLD.',lifeLabel:'LOCALIZED',populationLabel:'TRACE',lifeTypeLabel:'LOCALIZED',techLevelLabel:'NONE'
+  },
+  SANCTUARY:{
+    shape:'haloRing',renderer:'halo',worldType:'VERDANT',worldClass:'ANCIENT PRESERVE RINGWORLD',visualRadius:64,radiusKm:6200,gravity:1.0,massEarth:.04,density:.02,
+    water:.48,cloudCover:.30,cloudSpeed:.10,defaultTempC:19,tempRange:[-18,38],life:true,populationBase:6,dayHours:18,yearDays:410,distanceAU:1.0,axialTiltDeg:0,rotationDirection:1,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'CONTROLLED WEATHER',ring:false,moons:[],disableAutoCivilization:true,
+    haloBandWidth:17,haloFlatten:.27,haloScreenAngle:-.12,haloStyle:'sanctuary',haloStatus:'ANCIENT PRESERVE ACTIVE',
+    observation:'AN ANCIENT RINGWORLD BUILT AS A NATURE PRESERVE, ITS HABITABLE SECTIONS HOLDING SEVERAL ISOLATED DEVELOPING CIVILIZATIONS.',
+    scan:{ageBy:2.0,pressureAtm:1.0,pressureText:'CONTROLLED',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.04,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:3.4,lifeTypePotential:'INTELLIGENT',techPotential:'MULTIPLE PRE-FTL',iron:'ABUNDANT',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'ANCIENT PRESERVE / MULTIPLE ISOLATED CIVILIZATIONS',lossRisk:false},
+    loreReport:'SANCTUARY IS A HABITABLE RINGWORLD DIVIDED INTO PRESERVE SECTORS. EACH SECTION SUPPORTS ITS OWN BIOSPHERE AND DEVELOPING SOCIETY WHILE ANCIENT AUTOMATION WATCHES FROM BELOW.',lifeLabel:'ABUNDANT',populationLabel:'MANY',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'MULTIPLE PRE-FTL'
+  },
+  'SPORE EARTH':sporeHiddenPreset({renderer:'sporeearth',worldClass:'SPORE T1 HOMEWORLD',tScore:'T1',theme:'earth',radiusKm:6371,gravity:1,water:.64,cloud:.31,temp:15,life:true,population:3,weather:'SHOWERS / THIN ECOSYSTEM',tech:'SPACE AGE',anomaly:'SPORE TERRAFORMING INDEX / T1 ECOSYSTEM',observation:'A FAMILIAR EARTH RECAST THROUGH THE SPORE TERRAFORMING SYSTEM: BLUE WATER, GREEN LAND AND A LIMITED T1 ECOSYSTEM.',loreReport:'THIS VERSION OF EARTH BELONGS TO SPORE\'S GALAXY. ITS CONTINENTS ARE FAMILIAR, BUT THE WORLD IS READ THROUGH A T-SCORE ECOSYSTEM MODEL RATHER THAN THE SOLAR-SYSTEM PROFILE.'}),
+  'GROX HOMEWORLD':{
+    renderer:'grox',sporeTScore:'T0',sporeTheme:'grox',worldType:'TOXIC',worldClass:'GROX MACHINE HOMEWORLD',visualRadius:43,radiusKm:6100,gravity:1.06,massEarth:1.05,density:1.09,
+    water:0,cloudCover:.46,cloudSpeed:.08,defaultTempC:64,tempRange:[-20,130],life:false,populationBase:8,dayHours:19.4,yearDays:221,distanceAU:.18,axialTiltDeg:5,rotationDirection:1,
+    atmosDensity:'DENSE',atmosChemistry:'CO2 / INDUSTRIAL TOXINS',weather:'TOXIC SMOG / ASH',ring:false,moons:[],disableAutoCivilization:true,
+    observation:'THE HARD-CODED GROX CAPITAL WORLD: A T0 INDUSTRIAL MACHINE PLANET OF BLACK CRUST, RED CITY LIGHTS AND CYBERNETIC FORTRESSES NEAR THE GALACTIC CORE.',
+    scan:{ageBy:4.6,pressureAtm:2.8,pressureText:'2.80 ATM',magField:'ARTIFICIAL / STRONG',oxygen:0,nitrogen:8,co2:67,tectonics:'CONTAINED',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'NONE',techPotential:'GALACTIC EMPIRE',iron:'ABUNDANT',carbon:'COMMON',uranium:'ABUNDANT',anomaly:'GROX CORE WORLD / CYBERNETIC PLANETARY FORTRESS',lossRisk:false},
+    loreReport:'THE GROX HOMEWORLD IS DELIBERATELY HOSTILE TO ORGANIC LIFE. CITIES, FACTORIES AND DEFENSE NODES COVER A T0 SURFACE BENEATH TOXIC SKIES, WHILE MACHINE INFRASTRUCTURE EXTENDS DEEP BELOW THE CRUST.',lifeLabel:'NONE',populationLabel:'MASSIVE',lifeTypeLabel:'NONE',techLevelLabel:'GALACTIC EMPIRE'
+  },
+  MYLIFF:sporeHiddenPreset({renderer:'myliff',worldClass:'LIVING SPORE WORLD',tScore:'T3',theme:'organic',radiusKm:5900,gravity:.88,water:.47,cloud:.44,temp:26,life:true,population:4,weather:'WARM RAIN / BIOLOGICAL MISTS',tech:'TRIBAL / MYSTIC',anomaly:'PLANETARY PATRIARCH BIOSIGNATURE',observation:'A STRANGE T3 LIVING WORLD WHOSE ORGANIC PATTERNS APPEAR TIED TO A SINGULAR PLANETARY PATRIARCH.',loreReport:'MYLIFF IS LESS A NORMAL PLANET THAN A LIVING STORYBOOK WORLD. ITS BIOSPHERE FORMS LARGE ORGANIC PATTERNS AND RESPONDS TO THE FATE OF ITS PATRIARCH.'}),
+  'OINKER-7':sporeHiddenPreset({renderer:'sporecity',worldClass:'COLORFUL CIVILIZATION WORLD',tScore:'T3',theme:'oinker',radiusKm:6000,gravity:.92,water:.35,cloud:.27,temp:28,life:true,population:7,weather:'WARM SHOWERS',tech:'SPACE AGE',anomaly:'CEREMONIAL MEGACITY / FESTIVAL TRAFFIC',observation:'A BRIGHTLY COLORED T3 CIVILIZATION WORLD PACKED WITH WHIMSICAL CITIES, CEREMONIAL STRUCTURES AND HEAVY LOCAL TRAFFIC.',loreReport:'OINKER-7 IS LOUD, COLORFUL AND VERY MUCH INHABITED. URBAN CENTERS SPREAD ACROSS ITS CONTINENTS IN THE EXAGGERATED ARCHITECTURAL STYLE OF A SPORE SPACE CIVILIZATION.'}),
+  'ADVENTURE TOWN':sporeHiddenPreset({renderer:'sporecity',worldClass:'ADVENTURE RESORT WORLD',tScore:'T3',theme:'adventure',radiusKm:5600,gravity:.82,water:.28,cloud:.23,temp:25,life:true,population:6,weather:'CLEAR / LIGHT SHOWERS',tech:'SPACE AGE',anomaly:'DENSE ADVENTURE PROP / CITY SIGNATURES',observation:'A WHIMSICAL T3 WORLD WHERE A DENSE, COLORFUL SETTLEMENT COVERS THE MAIN CONTINENT LIKE A PLANET-SIZED THEME PARK.',loreReport:'ADVENTURE TOWN IS A SHOWCASE WORLD OF BRIGHT BUILDINGS, ROADS, DECORATIONS AND PECULIAR CIVILIANS. FROM ORBIT IT LOOKS MORE DESIGNED THAN GEOLOGICAL.'}),
+  'RUINS OF DOOM':sporeHiddenPreset({renderer:'sporeruins',worldClass:'JUNGLE RUIN WORLD',tScore:'T2',theme:'ruins',radiusKm:6200,gravity:.96,water:.38,cloud:.58,temp:31,life:true,population:1,weather:'JUNGLE STORMS / MIST',tech:'ANCIENT RUINS',anomaly:'GOLDEN LLAMA / ANCIENT TEMPLE COMPLEX',observation:'A HUMID T2 JUNGLE WORLD WHERE MASSIVE TEMPLE RUINS EMERGE FROM THE FOREST CANOPY.',loreReport:'RUINS OF DOOM IS A DANGEROUS JUNGLE PLANET FILLED WITH OLD STONE COMPLEXES, HOSTILE CREATURES AND A LEGENDARY GOLDEN ARTIFACT.'}),
+  INFESTATION:sporeHiddenPreset({renderer:'infestation',worldClass:'BIO-INFESTED WORLD',tScore:'T2',theme:'infested',radiusKm:6400,gravity:.98,water:.42,cloud:.52,temp:33,life:true,population:2,weather:'TOXIC SPORES / RAIN',tech:'COLLAPSING COLONY',anomaly:'PLANET-WIDE AGGRESSIVE INFESTATION',observation:'A ONCE-PEACEFUL T2 WORLD BEING CONSUMED BY A RAPIDLY SPREADING ALIEN BIOLOGICAL INFESTATION.',loreReport:'THE INFESTATION HAS TURNED WHOLE REGIONS INTO PURPLE-RED ORGANIC TERRAIN. SURVIVING GREEN LAND SHRINKS AROUND COLONIES WHILE THE INVASIVE BIOSPHERE ADVANCES.'}),
+  'IT CAME FROM THE SKY':sporeHiddenPreset({renderer:'sporeice',worldType:'ICE',worldClass:'FROZEN RESEARCH WORLD',tScore:'T1',theme:'crash',radiusKm:5700,gravity:.84,water:.31,cloud:.36,temp:-42,life:true,population:2,atmos:'THIN',chem:'N2 / O2',weather:'SNOW / ICE FOG',tech:'RESEARCH OUTPOST',anomaly:'CRASHED ALIEN VESSEL / SECRET RESEARCH BASE',observation:'A FROZEN T1 WORLD WITH A DARK CRASH SCAR AND A SMALL RESEARCH COMPLEX VISIBLE AGAINST THE ICE.',loreReport:'BENEATH THE SNOW OF THIS REMOTE WORLD SITS A SECRET RESEARCH FACILITY BUILT AROUND A CRASHED ALIEN OBJECT. THE REST OF THE PLANET IS QUIET ICE.'}),
+  'TX-5000':sporeHiddenPreset({renderer:'tx5000',worldType:'BARREN',worldClass:'SUPERWEAPON RESEARCH WORLD',tScore:'T0',theme:'industrial',radiusKm:6300,gravity:1.03,water:.01,cloud:.22,temp:46,life:false,population:6,atmos:'THIN',chem:'CO2 / INDUSTRIAL GAS',weather:'SMOG / STATIC',tech:'SPACE AGE',anomaly:'PLANETARY SUPERWEAPON COMPLEX / REACTOR GRID',observation:'A T0 INDUSTRIAL RESEARCH WORLD DOMINATED BY A GIGANTIC SUPERWEAPON COMPLEX, REACTORS AND POWER CONDUITS.',loreReport:'TX-5000 IS ALMOST ENTIRELY MACHINE TERRAIN. RESEARCH DOMES, REACTORS AND A HUGE WEAPON INSTALLATION ARE CONNECTED BY BRIGHT POWER LINES ACROSS A DEAD SURFACE.'}),
+  DANCETOPIA:sporeHiddenPreset({renderer:'sporecity',worldClass:'GALACTIC RESORT WORLD',tScore:'T3',theme:'dance',radiusKm:6000,gravity:.90,water:.41,cloud:.20,temp:29,life:true,population:8,weather:'CLEAR / PARTY HAZE',tech:'SPACE AGE',anomaly:'PLANET-WIDE ENTERTAINMENT GRID / NIGHT LIGHTS',observation:'AN ABSURDLY COLORFUL T3 RESORT WORLD WHOSE CITIES, LIGHTS AND ENTERTAINMENT DISTRICTS ARE VISIBLE FROM ORBIT.',loreReport:'DANCETOPIA IS A GALACTIC PARTY PLANET. COLORED CITY GRIDS, RESORT DISTRICTS AND CONSTANT ARTIFICIAL LIGHT TURN THE NIGHT SIDE INTO A NEON PATCHWORK.'}),
   'DYSON SPHERE':{
     renderer:'dyson',worldType:'BARREN',worldClass:'STELLAR MEGASTRUCTURE',visualRadius:55,radiusKm:94500,gravity:.96,massEarth:22.5,density:.07,
     water:0,cloudCover:0,cloudSpeed:0,defaultTempC:230,tempRange:[120,420],life:false,populationBase:0,
@@ -3459,6 +3544,17 @@ function loreSurfaceColor(lon,lat,normY,nx,z){
   if(planet.renderer==='interloper') return interloperSurfaceColor(lon,lat,nx,z);
   if(planet.renderer==='quantummoon') return quantumMoonSurfaceColor(lon,lat,nx,z);
   if(planet.renderer==='eyeuniverse') return eyeUniverseSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='stellarisgaia') return stellarisGaiaSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='veil') return veilSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='kira') return kiraSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='sporeearth') return sporeEarthSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='grox') return groxSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='myliff') return myliffSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='sporecity') return sporeCitySurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='sporeruins') return sporeRuinsSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='infestation') return infestationSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='sporeice') return sporeIceSurfaceColor(lon,lat,nx,z);
+  if(planet.renderer==='tx5000') return tx5000SurfaceColor(lon,lat,nx,z);
   if(planet.renderer==='dyson') return dysonSurfaceColor(lon,lat,nx,z);
   return null;
 }
@@ -3750,6 +3846,109 @@ function eyeUniverseSurfaceColor(lon,lat,nx,z){
   else if(shimmer<.16) col=mixHex(col,C.black,.08);
   return surfaceShade(col,nx,z);
 }
+
+function stellarisGaiaSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat), macro=periodicNoise01(lon,lat,16,10,planet.terrainSeed^0x47414941), detail=periodicNoise01(lon,lat,47,26,planet.terrainSeed^0x5354454c);
+  const land=macro>.43, style=planet.stellarisStyle||'garden';
+  let col;
+  if(!land) col=macro>.36?C.cyan:mixHex(C.blue,C.cyan,.18);
+  else if(q.ridge>.87) col=mixHex(C.brown,C.white,.24);
+  else if(detail>.74) col=mixHex(C.green,C.black,.10);
+  else if(detail<.20) col=mixHex(C.green,C.yellow,.18);
+  else col=C.green;
+  if(style==='jewel') col=!land?mixHex(C.cyan,C.white,.10):mixHex(col,C.cyan,.08);
+  if(style==='mausoleum' && land && detail>.63) col=mixHex(col,C.black,.16);
+  if(style==='holy' && land && detail>.82) col=mixHex(C.white,C.yellow,.20);
+  if(style==='walled' && land && (mod(lon*18,1)<.035||mod(lat*13,1)<.032)) col=mixHex(C.white,C.brown,.26);
+  if(style==='wenkwort' && land && detail>.80) col=mixHex(C.green,C.white,.18);
+  if(style==='zanaam'){
+    const monument=(lonDistance(lon,.61)/.025)**2+((lat-.48)/.10)**2;
+    if(monument<1) col=monument<.24?mixHex(C.black,C.cyan,.10):mixHex(C.white,C.brown,.28);
+  }
+  if(style==='paridayda' && land && detail>.85) col=mixHex(C.brown,C.white,.16);
+  return surfaceShade(col,nx,z);
+}
+function veilSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat), phase=periodicNoise01(lon,lat,24,16,planet.terrainSeed^0x5645494c), shroud=periodicNoise01(lon,lat,51,29,planet.terrainSeed^0x53485244);
+  const land=q.n>.43;
+  let col=land?(phase>.55?C.green:mixHex(C.green,C.blue,.16)):(q.n>.34?C.cyan:C.blue);
+  const veil=shroud>.57 || Math.abs(lat-(.51+.12*Math.sin(lon*Math.PI*2.8)))<.055;
+  if(veil) col=mixHex(col,shroud>.74?C.purple:C.black,shroud>.74?.42:.24);
+  if(shroud>.86) col=mixHex(C.purple,C.cyan,.18);
+  return surfaceShade(col,nx,z);
+}
+function kiraSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat), lava=periodicNoise01(lon,lat,38,23,planet.terrainSeed^0x4b495241), ash=periodicNoise01(lon,lat,69,37,planet.terrainSeed^0x494e4645);
+  let col=q.ridge>.85?mixHex(C.brown,C.black,.28):lava>.70?mixHex(C.red,C.yellow,.20):lava<.20?mixHex(C.black,C.brown,.16):mixHex(C.brown,C.red,.18);
+  const oasis=(lonDistance(lon,.63)/.12)**2+((lat-.47)/.16)**2;
+  if(oasis<1){
+    if(oasis<.30) col=ash>.50?C.blue:C.cyan;
+    else col=ash>.58?C.green:mixHex(C.green,C.yellow,.16);
+  }
+  return surfaceShade(col,nx,z);
+}
+function sporeEarthSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat), land=periodicNoise01(lon,lat,14,9,planet.terrainSeed^0x53504541), biome=periodicNoise01(lon,lat,36,21,planet.terrainSeed^0x52544821);
+  let col=land>.53?(q.ridge>.86?C.brown:biome>.64?C.green:mixHex(C.green,C.yellow,.22)):(land>.46?C.cyan:C.blue);
+  if(Math.abs(lat-.5)>.39 && land>.50) col=C.white;
+  return surfaceShade(col,nx,z);
+}
+function groxSurfaceColor(lon,lat,nx,z){
+  const plates=periodicNoise01(lon,lat,50,27,planet.terrainSeed^0x47524f58), grit=periodicNoise01(lon,lat,91,47,planet.terrainSeed^0x4d414348);
+  let col=plates>.70?mixHex(C.brown,C.black,.35):plates<.22?mixHex(C.red,C.black,.36):mixHex(C.black,C.brown,.16);
+  const grid=mod(lon*42,1)<.045||mod(lat*25,1)<.055;
+  if(grid && grit>.32) col=mixHex(C.red,C.yellow,.18);
+  if(grit>.91) col=C.red;
+  return surfaceShade(col,nx,z);
+}
+function myliffSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat), org=periodicNoise01(lon,lat,31,20,planet.terrainSeed^0x4d594c49), vein=Math.abs(lat-(.50+.14*Math.sin(lon*Math.PI*4.0)+(org-.5)*.06));
+  let col=q.n<.33?mixHex(C.blue,C.green,.25):org>.68?mixHex(C.green,C.purple,.18):org<.25?mixHex(C.brown,C.green,.26):C.green;
+  if(vein<.018) col=vein<.007?mixHex(C.purple,C.white,.12):mixHex(C.cyan,C.green,.16);
+  return surfaceShade(col,nx,z);
+}
+function sporeCitySurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat), city=periodicNoise01(lon,lat,58,33,planet.terrainSeed^0x53504354), land=periodicNoise01(lon,lat,15,10,planet.terrainSeed^0x43495459);
+  let ground=planet.sporeTheme==='dance'?mixHex(C.purple,C.green,.18):planet.sporeTheme==='oinker'?mixHex(C.yellow,C.red,.14):mixHex(C.green,C.yellow,.16);
+  let col=land>.43?(q.ridge>.86?C.brown:ground):(land>.36?C.cyan:C.blue);
+  if(land>.43 && city>.72){
+    const neon=planet.sporeTheme==='dance'?(city>.86?C.cyan:C.purple):planet.sporeTheme==='oinker'?(city>.86?C.red:C.yellow):(city>.86?C.white:C.yellow);
+    col=mixHex(col,neon,.50);
+  }
+  if(land>.48 && (mod(lon*35,1)<.026||mod(lat*22,1)<.028) && city>.50) col=mixHex(C.white,C.brown,.18);
+  return surfaceShade(col,nx,z);
+}
+function sporeRuinsSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat), jungle=periodicNoise01(lon,lat,35,22,planet.terrainSeed^0x5255494e), temple=(mod(lon*17,1)<.035||mod(lat*13,1)<.040);
+  let col=q.n<.28?C.blue:jungle>.62?mixHex(C.green,C.black,.18):C.green;
+  if(q.ridge>.87) col=C.brown;
+  if(temple && q.n>.37 && jungle>.42) col=jungle>.72?mixHex(C.yellow,C.brown,.26):mixHex(C.brown,C.white,.16);
+  return surfaceShade(col,nx,z);
+}
+function infestationSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat), inf=periodicNoise01(lon,lat,27,17,planet.terrainSeed^0x494e4645), veins=Math.abs(lat-(.49+.16*Math.sin(lon*Math.PI*3.2)+(inf-.5)*.08));
+  let col=q.n<.31?C.blue:(q.ridge>.86?C.brown:C.green);
+  if(inf>.58 && q.n>.30) col=mixHex(C.purple,C.red,.20);
+  if(veins<.028 && q.n>.28) col=veins<.010?C.red:mixHex(C.purple,C.green,.16);
+  return surfaceShade(col,nx,z);
+}
+function sporeIceSurfaceColor(lon,lat,nx,z){
+  const q=terrainAt(lon,lat), ice=periodicNoise01(lon,lat,42,25,planet.terrainSeed^0x49434521);
+  let col=q.ridge>.86?C.white:ice>.58?mixHex(C.white,C.cyan,.16):mixHex(C.cyan,C.blue,.18);
+  const crash=Math.abs(lat-(.54+.035*Math.sin((lon-.60)*Math.PI*8)));
+  if(lonDistance(lon,.62)<.10 && crash<.030) col=crash<.012?mixHex(C.black,C.blue,.24):mixHex(C.brown,C.white,.12);
+  return surfaceShade(col,nx,z);
+}
+function tx5000SurfaceColor(lon,lat,nx,z){
+  const panel=periodicNoise01(lon,lat,75,41,planet.terrainSeed^0x54583530), seam=mod(lon*31,1)<.035||mod(lat*19,1)<.040;
+  let col=panel>.64?mixHex(C.white,C.black,.56):mixHex(C.brown,C.black,.30);
+  if(seam) col=mixHex(C.black,C.cyan,.14);
+  const weapon=(lonDistance(lon,.56)/.10)**2+((lat-.48)/.12)**2;
+  if(weapon<1) col=weapon<.30?mixHex(C.red,C.yellow,.18):mixHex(C.white,C.black,.34);
+  if(panel>.92) col=C.red;
+  return surfaceShade(col,nx,z);
+}
+
 function dysonSurfaceColor(lon,lat,nx,z){
   const band=Math.floor(mod(lon*24,24));
   const latBand=Math.floor(lat*18);
@@ -5204,6 +5403,15 @@ function haloSurfaceColor(theta,cross,metric,p=planet){
   if(style==='desert'){
     col=terrain<.18?mixHex(C.blue,C.cyan,.24):terrain>.82?mixHex(C.brown,C.white,.08):(macro>.68?mixHex(C.yellow,C.white,.10):C.yellow);
     if(ridge>.84) col=mixHex(C.brown,C.white,.16);
+  }else if(style==='sanctuary'){
+    const habitat=Math.floor(theta*8)%4;
+    if(terrain<.24) col=terrain<.12?C.blue:C.cyan;
+    else if(habitat===0) col=detail>.66?mixHex(C.green,C.black,.12):C.green;
+    else if(habitat===1) col=macro>.58?mixHex(C.yellow,C.green,.14):mixHex(C.green,C.yellow,.22);
+    else if(habitat===2) col=ridge>.72?C.brown:mixHex(C.green,C.blue,.10);
+    else col=detail>.70?mixHex(C.white,C.green,.20):C.green;
+    if(mod(theta*8,1)<.025) col=mixHex(C.white,C.black,.42);
+    if(detail>.93) col=mixHex(C.white,C.cyan,.14);
   }else if(style==='stranger'){
     const river=Math.abs(cross-(.49+.10*Math.sin(theta*Math.PI*2.2)+(detail-.5)*.035));
     const reservoir=((lonDistance(theta,.14)/.09)**2+((cross-.43)/.10)**2)<1 || ((lonDistance(theta,.81)/.11)**2+((cross-.56)/.12)**2)<1;

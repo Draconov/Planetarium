@@ -175,6 +175,85 @@ THE STRANGER
   note: hidden ringworld vessel / artificial habitat with forests, rivers and engineered interior terrain
 
 ----------------------------------------------------------------
+STELLARIS CLUSTER
+----------------------------------------------------------------
+
+WENKWORT ARTEM
+  aliases: WENKWORT, STELLARIS WENKWORT
+  note: curated Gaia garden world maintained by ancient caretaker drones
+
+ZANAAM
+  alias: STELLARIS ZANAAM
+  note: guarded Gaia world with a monumental ancient obelisk
+
+PARIDAYDA
+  alias: STELLARIS PARIDAYDA
+  note: large Gaia world with an isolated pre-FTL civilization and ancient trauma
+
+THE VEIL
+  aliases: VEIL, STELLARIS VEIL
+  note: phase-shifting world that alternates visually between Gaia and shrouded states
+
+PROPHET'S RETREAT
+  aliases: PROPHETS RETREAT, HOLY WORLD
+  note: sacred Gaia world claimed by an ancient spiritualist power
+
+WALLED GARDEN
+  note: ordered sacred Gaia preserve with planet-scale landscaped boundaries
+
+EMERALD MAUSOLEUM
+  note: dark emerald Gaia memorial world filled with ancient monumental structures
+
+PRISTINE JEWEL
+  note: small immaculate Gaia holy world with brilliant seas and untouched ecology
+
+KIRA
+  alias: STELLARIS KIRA
+  note: hostile volcanic planet containing a localized green Infernal Oasis
+
+SANCTUARY
+  aliases: SANCTUARY RINGWORLD, STELLARIS SANCTUARY
+  note: ancient nature-preserve ringworld containing isolated developing civilizations
+
+----------------------------------------------------------------
+SPORE CLUSTER
+----------------------------------------------------------------
+
+SPORE EARTH
+  aliases: SPORE, EARTH SPORE
+  note: Spore's Earth interpreted through the T-score terraforming system
+
+GROX HOMEWORLD
+  aliases: GROX, GROX HOME, GROX CAPITAL
+  note: hardcoded T0 Grox machine capital near the Galactic Core; not a procedural planet name
+
+MYLIFF
+  note: living T3 world with planet-scale organic patterns and patriarch biosignatures
+
+OINKER-7
+  alias: OINKER 7
+  note: colorful T3 civilization world packed with whimsical urban districts
+
+ADVENTURE TOWN
+  note: bright inhabited adventure world whose main continent resembles a giant designed settlement
+
+RUINS OF DOOM
+  note: humid jungle ruin world with enormous temple complexes and the Golden Llama signature
+
+INFESTATION
+  note: once-peaceful world being consumed by an aggressive purple-red alien biosphere
+
+IT CAME FROM THE SKY
+  note: frozen research world with a visible crash scar and secret alien-vessel research complex
+
+TX-5000
+  alias: TX5000
+  note: T0 machine world dominated by reactors, power conduits and a planetary superweapon research complex
+
+DANCETOPIA
+  note: highly populated T3 galactic resort world with intense colored city lights and entertainment districts
+
+----------------------------------------------------------------
 MEGASTRUCTURE ANOMALIES
 ----------------------------------------------------------------
 
