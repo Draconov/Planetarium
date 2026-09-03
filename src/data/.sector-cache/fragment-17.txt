@@ -259,29 +259,34 @@ MEGASTRUCTURE ANOMALIES
 
 BERNAL SPHERE
   aliases: BERNAL, ISLAND ONE
-  note: spherical habitat with an equatorial living band, polar window zones and sealed interior biosphere
+  note: metal sphere habitat with a giant cutaway opening that reveals its interior biosphere
+
+RINGWORLD PRIME
+  aliases: RINGWORLD, RING WORLD, ARTIFICIAL RINGWORLD
+  note: terrestrial world wrapped by a bright artificial ringworld, with a mini ring-habitat satellite
+
+DOMEWORLD
+  aliases: DOME WORLD, MEGADOME WORLD, GLASS DOME WORLD
+  note: rocky colony world covered in huge glass domes that protect green oasis cities
 
 VON BRAUN WHEEL
   aliases: ROTATING WHEEL SPACE STATION, ROTATING WHEEL, WHEEL STATION
-  note: classic spoked wheel station whose spinning rim provides artificial gravity
+  note: classic toroidal station with a rotating habitat rim and central hub
 
 STANFORD TORUS
   aliases: STANFORD
-  note: large torus habitat with a sunlit inner surface and central hub-spoke structure
+  note: long-wheel orbital habitat with a main torus, service spine and attached support structures
 
 O'NEILL CYLINDER
   aliases: ONEILL CYLINDER
-  note: immense cylindrical colony with long interior land strips and mirror-regulated daylight
+  note: long spinning cylinder habitat with a giant viewing window into its interior world
 
 BISHOP RING
-  note: enormous open ring habitat, vastly larger than a torus colony
-
-TOPOPOLIS
-  note: looping tube habitat — effectively a world-cylinder stretched into giant orbital loops
+  note: enormous open ringworld habitat focused around a tiny artificial sun at the center
 
 SHELLWORLD
   aliases: SHELL WORLD, NESTED SHELLWORLD, ARTIFICIAL PLANET
-  note: artificial planet made of three nested inhabited shells, each visible through cutaway openings
+  note: artificial planet of three independently rotating nested shells with hexagonal cutouts and an orbiting mini-sun
 
 DYSON SPHERE
   aliases: DYSON, DYSON SHELL

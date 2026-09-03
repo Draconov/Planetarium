@@ -898,11 +898,12 @@ const FICTIONAL_ALIASES={
   'TX-5000':'TX-5000','TX5000':'TX-5000','DANCETOPIA':'DANCETOPIA',
   'DYSON':'DYSON SPHERE','DYSON SPHERE':'DYSON SPHERE','DYSON SHELL':'DYSON SPHERE',
   'BERNAL':'BERNAL SPHERE','BERNAL SPHERE':'BERNAL SPHERE','ISLAND ONE':'BERNAL SPHERE',
+  'RINGWORLD':'RINGWORLD PRIME','RING WORLD':'RINGWORLD PRIME','ARTIFICIAL RINGWORLD':'RINGWORLD PRIME','RINGWORLD PRIME':'RINGWORLD PRIME',
+  'DOMEWORLD':'DOMEWORLD','DOME WORLD':'DOMEWORLD','MEGADOME WORLD':'DOMEWORLD','GLASS DOME WORLD':'DOMEWORLD',
   'ROTATING WHEEL SPACE STATION':'VON BRAUN WHEEL','ROTATING WHEEL':'VON BRAUN WHEEL','WHEEL STATION':'VON BRAUN WHEEL','VON BRAUN WHEEL':'VON BRAUN WHEEL',
   'STANFORD TORUS':'STANFORD TORUS','STANFORD':'STANFORD TORUS',
   "O'NEILL CYLINDER":"O'NEILL CYLINDER",'ONEILL CYLINDER':"O'NEILL CYLINDER",
   'BISHOP RING':'BISHOP RING',
-  'TOPOPOLIS':'TOPOPOLIS',
   'SHELLWORLD':'SHELLWORLD','SHELL WORLD':'SHELLWORLD','NESTED SHELLWORLD':'SHELLWORLD','ARTIFICIAL PLANET':'SHELLWORLD',
   'GRAND CANYON PLANET':'CHASM','CANYON PLANET':'CHASM','CRACKED PLANET':'CHASM','MEGA CANYON':'CHASM'
 };
@@ -1593,66 +1594,75 @@ const LORE_PRESETS={
   'TX-5000':sporeHiddenPreset({renderer:'tx5000',worldType:'BARREN',worldClass:'SUPERWEAPON RESEARCH WORLD',tScore:'T0',theme:'industrial',radiusKm:6300,gravity:1.03,water:.01,cloud:.22,temp:46,life:false,population:6,atmos:'THIN',chem:'CO2 / INDUSTRIAL GAS',weather:'SMOG / STATIC',tech:'SPACE AGE',anomaly:'PLANETARY SUPERWEAPON COMPLEX / REACTOR GRID',observation:'A T0 INDUSTRIAL RESEARCH WORLD DOMINATED BY A GIGANTIC SUPERWEAPON COMPLEX, REACTORS AND POWER CONDUITS.',loreReport:'TX-5000 IS ALMOST ENTIRELY MACHINE TERRAIN. RESEARCH DOMES, REACTORS AND A HUGE WEAPON INSTALLATION ARE CONNECTED BY BRIGHT POWER LINES ACROSS A DEAD SURFACE.'}),
   DANCETOPIA:sporeHiddenPreset({renderer:'sporecity',worldClass:'GALACTIC RESORT WORLD',tScore:'T3',theme:'dance',radiusKm:6000,gravity:.90,water:.41,cloud:.20,temp:29,life:true,population:8,weather:'CLEAR / PARTY HAZE',tech:'SPACE AGE',anomaly:'PLANET-WIDE ENTERTAINMENT GRID / NIGHT LIGHTS',observation:'AN ABSURDLY COLORFUL T3 RESORT WORLD WHOSE CITIES, LIGHTS AND ENTERTAINMENT DISTRICTS ARE VISIBLE FROM ORBIT.',loreReport:'DANCETOPIA IS A GALACTIC PARTY PLANET. COLORED CITY GRIDS, RESORT DISTRICTS AND CONSTANT ARTIFICIAL LIGHT TURN THE NIGHT SIDE INTO A NEON PATCHWORK.'}),
   'BERNAL SPHERE':{
-    renderer:'bernalsphere',worldType:'ARTIFICIAL',worldClass:'BERNAL SPHERE HABITAT',visualRadius:38,radiusKm:900,gravity:.98,massEarth:.0012,density:.01,
-    water:.18,cloudCover:0,cloudSpeed:0,defaultTempC:21,tempRange:[18,27],life:true,populationBase:6,dayHours:24,yearDays:365,distanceAU:1.0,axialTiltDeg:0,rotationDirection:1,
+    renderer:'bernalsphere',worldType:'ARTIFICIAL',worldClass:'CUTAWAY BERNAL SPHERE',visualRadius:42,radiusKm:900,gravity:.98,massEarth:.0012,density:.01,
+    water:.32,cloudCover:0,cloudSpeed:0,defaultTempC:21,tempRange:[18,27],life:true,populationBase:7,dayHours:24,yearDays:365,distanceAU:1.0,axialTiltDeg:0,rotationDirection:1,
     atmosDensity:'SEALED',atmosChemistry:'N2 / O2',weather:'CONTROLLED INTERIOR WEATHER',ring:false,moons:[],disableAutoCivilization:true,
-    observation:'A CLASSIC SPHERICAL HABITAT WHOSE HULL ENCLOSES AN EQUATORIAL LIVING BAND, WINDOW PORTALS AND MIRROR-FED INTERIOR FARMLANDS.',
-    scan:{ageBy:.03,pressureAtm:1.0,pressureText:'SEALED 1.00 ATM',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.04,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:.8,lifeTypePotential:'INTELLIGENT',techPotential:'INTERSTELLAR',iron:'ABUNDANT',carbon:'COMMON',uranium:'COMMON',anomaly:'SPHERICAL HABITAT / EQUATORIAL BIOSPHERE',lossRisk:false},
-    loreReport:'THE OBJECT IS A SELF-CONTAINED SPHERICAL SETTLEMENT. METAL SUPPORTS, WINDOW BANDS AND AGRICULTURAL SECTORS WRAP A PRESSURIZED INTERIOR DESIGNED FOR LONG-TERM CIVILIAN LIFE.',
+    observation:'A METALLIC BERNAL SPHERE WITH A MASSIVE CUTAWAY APERTURE THAT EXPOSES ITS ARTIFICIAL INTERIOR LANDSCAPE.',
+    scan:{ageBy:.03,pressureAtm:1.0,pressureText:'SEALED 1.00 ATM',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.04,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:1.4,lifeTypePotential:'INTELLIGENT',techPotential:'INTERSTELLAR',iron:'ABUNDANT',carbon:'COMMON',uranium:'COMMON',anomaly:'CUTAWAY SPHERE / INTERIOR BIOSPHERE',lossRisk:false},
+    loreReport:'THIS BERNAL SPHERE PRESENTS AS A SMALL METAL PLANET UNTIL ITS ENORMOUS OPENING REVEALS FARMLANDS, WATERWAYS AND STRUCTURAL TERRACES INSIDE THE HULL.',
     lifeLabel:'ABUNDANT',populationLabel:'MANY',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'INTERSTELLAR'
   },
+  'RINGWORLD PRIME':{
+    renderer:'ringworldprime',worldType:'VERDANT',worldClass:'PLANET WITH ORBITAL RINGWORLD',visualRadius:44,radiusKm:7200,gravity:1.01,massEarth:1.08,density:1.0,
+    water:.52,cloudCover:.18,cloudSpeed:.05,defaultTempC:17,tempRange:[-10,34],life:true,populationBase:7,dayHours:26,yearDays:402,distanceAU:1.1,axialTiltDeg:9,rotationDirection:1,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'MILD / MANAGED',ring:false,moons:[],disableAutoCivilization:true,
+    observation:'A TERRAFORMED WORLD ENCASED BY A SPINNING ARTIFICIAL RINGWORLD, WITH A SMALLER RING-HABITAT SATELLITE ORBITING NEARBY.',
+    scan:{ageBy:1.8,pressureAtm:1.06,pressureText:'1.06 ATM',magField:'MODERATE',oxygen:22,nitrogen:76,co2:.04,tectonics:'LOW',volcanism:'NONE',oceanDepthKm:5.9,lifeTypePotential:'INTELLIGENT',techPotential:'INTERSTELLAR',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'ORBITAL RINGWORLD / MINI-RING SATELLITE',lossRisk:false},
+    loreReport:"THE PRIMARY PLANET IS NATURAL, BUT THE CIVILIZATION AROUND IT ISN'T. A HABITABLE RINGWORLD WRAPS THE WORLD IN A BRIGHT ARTIFICIAL BAND, AND A SMALLER RING-HABITAT HAS REPLACED THE ROLE OF A CONVENTIONAL MOON.",
+    lifeLabel:'ABUNDANT',populationLabel:'HIGH',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'INTERSTELLAR'
+  },
+  'DOMEWORLD':{
+    renderer:'domeworld',worldType:'BARREN',worldClass:'MEGADOME COLONY WORLD',visualRadius:43,radiusKm:6700,gravity:.91,massEarth:.84,density:.95,
+    water:.04,cloudCover:.05,cloudSpeed:.02,defaultTempC:8,tempRange:[-25,42],life:true,populationBase:6,dayHours:29,yearDays:388,distanceAU:1.6,axialTiltDeg:7,rotationDirection:1,
+    atmosDensity:'THIN',atmosChemistry:'CO2 / TRACE N2',weather:'DUST / LOCAL CLIMATE CONTROL',ring:false,moons:[],disableAutoCivilization:true,
+    observation:'A ROCKY COLONY WORLD WHERE ENORMOUS GLASS DOMES PROTECT GREEN OASES AND DENSE MEGACITY COMPLEXES.',
+    scan:{ageBy:3.1,pressureAtm:.34,pressureText:'0.34 ATM',magField:'WEAK',oxygen:5,nitrogen:12,co2:73,tectonics:'LOW',volcanism:'LOW',oceanDepthKm:0,lifeTypePotential:'ENGINEERED BIOSPHERES',techPotential:'INTERPLANETARY',iron:'ABUNDANT',carbon:'COMMON',uranium:'COMMON',anomaly:'GLASS MEGADOMES / OASIS CITIES',lossRisk:false},
+    loreReport:'MOST OF THIS WORLD REMAINS BARE ROCK, BUT ITS INHABITANTS HAVE COVERED THE BEST BASINS WITH TRANSPARENT ARCLOGIES WHERE GREENERY, RESERVOIRS AND TOWERING CITIES SURVIVE BENEATH CLIMATE-CONTROLLED DOMES.',
+    lifeLabel:'LOCALIZED',populationLabel:'HIGH',lifeTypeLabel:'ENGINEERED',techLevelLabel:'INTERPLANETARY'
+  },
   'VON BRAUN WHEEL':{
-    renderer:'wheelstation',worldType:'ARTIFICIAL',worldClass:'ROTATING WHEEL STATION',visualRadius:41,radiusKm:140,gravity:.42,massEarth:.0003,density:.01,
+    renderer:'wheelstation',worldType:'ARTIFICIAL',worldClass:'VON BRAUN WHEEL STATION',visualRadius:41,radiusKm:140,gravity:.42,massEarth:.0003,density:.01,
     water:.04,cloudCover:0,cloudSpeed:0,defaultTempC:20,tempRange:[16,29],life:true,populationBase:5,dayHours:24,yearDays:365,distanceAU:1.0,axialTiltDeg:0,rotationDirection:1,
     atmosDensity:'SEALED',atmosChemistry:'N2 / O2',weather:'CONTROLLED',ring:false,moons:[],disableAutoCivilization:true,
-    observation:'A SPOKED ROTATING WHEEL STATION WITH A CENTRAL HUB, HABITAT RIM AND SERVICE DOCKS HIDDEN INSIDE THE SPINNING RING.',
-    scan:{ageBy:.01,pressureAtm:1.0,pressureText:'SEALED 1.00 ATM',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.05,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:.2,lifeTypePotential:'INTELLIGENT',techPotential:'INTERPLANETARY',iron:'ABUNDANT',carbon:'COMMON',uranium:'COMMON',anomaly:'ROTATING HABITAT RIM / AXIAL HUB',lossRisk:false},
-    loreReport:'THE WHEEL SPINS TO PRODUCE ARTIFICIAL GRAVITY ALONG ITS OUTER RIM. SPOKES CONNECT THE CENTRAL HUB TO A TORUS OF PRESSURIZED HABITAT SEGMENTS.',
+    observation:'A CLASSIC TOROIDAL SPACE STATION WITH A CENTRAL HUB, SPOKES AND A SPINNING HABITAT RIM.',
+    scan:{ageBy:.01,pressureAtm:1.0,pressureText:'SEALED 1.00 ATM',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.05,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:.1,lifeTypePotential:'INTELLIGENT',techPotential:'INTERPLANETARY',iron:'ABUNDANT',carbon:'COMMON',uranium:'COMMON',anomaly:'ROTATING TORUS STATION / AXIAL HUB',lossRisk:false},
+    loreReport:'THE VON BRAUN WHEEL IS A STRAIGHT-UP CLASSIC: A ROTATING WHEEL WITH PRESSURIZED RIM HABITATS AND A COMPACT CENTRAL HUB.',
     lifeLabel:'COMMON',populationLabel:'MODERATE',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'INTERPLANETARY'
   },
   'STANFORD TORUS':{
-    renderer:'torushab',worldType:'ARTIFICIAL',worldClass:'STANFORD TORUS HABITAT',visualRadius:42,radiusKm:1000,gravity:.98,massEarth:.0007,density:.01,
-    water:.12,cloudCover:0,cloudSpeed:0,defaultTempC:20,tempRange:[17,28],life:true,populationBase:6,dayHours:24,yearDays:365,distanceAU:1.0,axialTiltDeg:0,rotationDirection:1,
+    renderer:'torushab',worldType:'ARTIFICIAL',worldClass:'STANFORD TORUS COMPLEX',visualRadius:43,radiusKm:1100,gravity:.98,massEarth:.0007,density:.01,
+    water:.14,cloudCover:0,cloudSpeed:0,defaultTempC:20,tempRange:[17,28],life:true,populationBase:6,dayHours:24,yearDays:365,distanceAU:1.0,axialTiltDeg:0,rotationDirection:1,
     atmosDensity:'SEALED',atmosChemistry:'N2 / O2',weather:'CONTROLLED',ring:false,moons:[],disableAutoCivilization:true,
-    observation:'A LARGE TORUS HABITAT WITH SUNLIT INTERIOR LANDSCAPES, A CENTRAL VOID AND STRUCTURAL TRUSSES RADIATING FROM THE HUB.',
-    scan:{ageBy:.02,pressureAtm:1.0,pressureText:'SEALED 1.00 ATM',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.04,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:.5,lifeTypePotential:'INTELLIGENT',techPotential:'INTERSTELLAR',iron:'ABUNDANT',carbon:'COMMON',uranium:'COMMON',anomaly:'TOROIDAL COLONY / SUNLIT INTERIOR',lossRisk:false},
-    loreReport:'THIS TORUS COLONY HOLDS ITS BIOME ON THE INNER CIRCUMFERENCE. SPOKES, SHADOWING STRUCTURES AND MIRROR SYSTEMS FEED LIGHT INTO THE HABITABLE RING.',
+    observation:'A LONG-WHEEL HABITAT: A HUGE ROTATING TORUS CONNECTED BY A LONG AXIAL SPINE TO SUPPORT MODULES AND A SECONDARY RING.',
+    scan:{ageBy:.02,pressureAtm:1.0,pressureText:'SEALED 1.00 ATM',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.04,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:.4,lifeTypePotential:'INTELLIGENT',techPotential:'INTERSTELLAR',iron:'ABUNDANT',carbon:'COMMON',uranium:'COMMON',anomaly:'LONG-AXIS TORUS COMPLEX / SERVICE SPINE',lossRisk:false},
+    loreReport:'THIS STANFORD TORUS DESIGN HAS GROWN INTO A LONGER, MORE INDUSTRIAL COMPLEX, WITH THE MAIN WHEEL ATTACHED TO A LONG SERVICE BOOM AND OUTBOARD STRUCTURES.',
     lifeLabel:'ABUNDANT',populationLabel:'MANY',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'INTERSTELLAR'
   },
   "O'NEILL CYLINDER":{
-    renderer:'cylinderhab',worldType:'ARTIFICIAL',worldClass:"O'NEILL CYLINDER HABITAT",visualRadius:41,radiusKm:3200,gravity:.96,massEarth:.002,density:.01,
+    renderer:'cylinderhab',worldType:'ARTIFICIAL',worldClass:"O'NEILL CYLINDER HABITAT",visualRadius:42,radiusKm:3200,gravity:.96,massEarth:.002,density:.01,
     water:.16,cloudCover:0,cloudSpeed:0,defaultTempC:20,tempRange:[18,28],life:true,populationBase:7,dayHours:24,yearDays:365,distanceAU:1.0,axialTiltDeg:0,rotationDirection:1,
     atmosDensity:'SEALED',atmosChemistry:'N2 / O2',weather:'CONTROLLED',ring:false,moons:[],disableAutoCivilization:true,
-    observation:'A TITANIC COUNTER-ROTATING CYLINDER HABITAT WITH LONG INTERIOR LAND STRIPS AND MIRROR-LIT AGRICULTURAL ZONES.',
-    scan:{ageBy:.04,pressureAtm:1.0,pressureText:'SEALED 1.00 ATM',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.04,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:.7,lifeTypePotential:'INTELLIGENT',techPotential:'INTERSTELLAR',iron:'ABUNDANT',carbon:'ABUNDANT',uranium:'COMMON',anomaly:'CYLINDRICAL HABITAT / LONGITUDINAL BIOSPHERE',lossRisk:false},
-    loreReport:"THE CYLINDER'S INTERIOR CARRIES LONG CONTINENT-SIZED STRIPS OF LAND AND WATER. ROTATION PROVIDES GRAVITY WHILE MIRRORS AND SHUTTERS REGULATE ARTIFICIAL DAYLIGHT.",
+    observation:'A LONG CYLINDRICAL STATION SPINNING ON ITS LONG AXIS, WITH A GIANT WINDOW EXPOSING INTERIOR CONTINENTS AND WATER BANDS.',
+    scan:{ageBy:.04,pressureAtm:1.0,pressureText:'SEALED 1.00 ATM',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.04,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:.7,lifeTypePotential:'INTELLIGENT',techPotential:'INTERSTELLAR',iron:'ABUNDANT',carbon:'ABUNDANT',uranium:'COMMON',anomaly:'WINDOWED CYLINDER HABITAT / INTERIOR BIOSPHERE',lossRisk:false},
+    loreReport:"THE CYLINDER'S INTERIOR CARRIES LONG LAND STRIPS, RIVERS AND SETTLEMENT BANDS, VISIBLE THROUGH A HUGE LONGITUDINAL VIEWING WINDOW.",
     lifeLabel:'ABUNDANT',populationLabel:'HIGH',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'INTERSTELLAR'
   },
   'BISHOP RING':{
     renderer:'bishopring',worldType:'ARTIFICIAL',worldClass:'BISHOP RING HABITAT',visualRadius:47,radiusKm:18000,gravity:.99,massEarth:.004,density:.003,
     water:.24,cloudCover:0,cloudSpeed:0,defaultTempC:22,tempRange:[17,31],life:true,populationBase:8,dayHours:28,yearDays:410,distanceAU:1.2,axialTiltDeg:0,rotationDirection:1,
     atmosDensity:'SEALED',atmosChemistry:'N2 / O2',weather:'CONTROLLED',ring:false,moons:[],disableAutoCivilization:true,
-    observation:'AN IMMENSE OPEN RING HABITAT BROADER THAN MOST PLANETS, ITS INNER BAND LINED WITH OCEANS, GREENBELTS AND SILVER STRUCTURAL RIMS.',
-    scan:{ageBy:.06,pressureAtm:1.0,pressureText:'SEALED 1.00 ATM',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.04,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:1.1,lifeTypePotential:'INTELLIGENT',techPotential:'KARDASHEV I+',iron:'ABUNDANT',carbon:'ABUNDANT',uranium:'COMMON',anomaly:'MEGA-RING BIOSPHERE / STRUCTURAL RADIATORS',lossRisk:false},
-    loreReport:'THE BISHOP RING IS A MONSTROUS EXPANSION OF THE TORUS-HABITAT IDEA: A BROAD, OPEN RING WITH VAST HABITABLE INNER SURFACES AND THOUSANDS OF KILOMETERS OF LIVING SPACE.',
-    lifeLabel:'ABUNDANT',populationLabel:'ENORMOUS',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'KARDASHEV I+'
-  },
-  'TOPOPOLIS':{
-    renderer:'topopolis',worldType:'ARTIFICIAL',worldClass:'TOPOPOLIS LOOP HABITAT',visualRadius:48,radiusKm:42000,gravity:.98,massEarth:.005,density:.002,
-    water:.18,cloudCover:0,cloudSpeed:0,defaultTempC:20,tempRange:[16,29],life:true,populationBase:8,dayHours:30,yearDays:540,distanceAU:1.7,axialTiltDeg:0,rotationDirection:1,
-    atmosDensity:'SEALED',atmosChemistry:'N2 / O2',weather:'CONTROLLED',ring:false,moons:[],disableAutoCivilization:true,
-    observation:'A TUBE-LIKE MEGAHABITAT EXTENDED INTO ENORMOUS LOOPS, LIKE A CYLINDER STRETCHED INTO A KNOTTED ORBITAL RIBBON.',
-    scan:{ageBy:.05,pressureAtm:1.0,pressureText:'SEALED 1.00 ATM',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.04,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:.6,lifeTypePotential:'INTELLIGENT',techPotential:'KARDASHEV I+',iron:'ABUNDANT',carbon:'ABUNDANT',uranium:'COMMON',anomaly:'LOOPED TUBE HABITAT / CONTINUOUS BIOSPHERE',lossRisk:false},
-    loreReport:'THIS HABITAT IS SO LONG IT NO LONGER READS AS A SIMPLE CYLINDER. INSTEAD IT LOOPS BACK ON ITSELF AGAIN AND AGAIN, CREATING A CONTINUOUS WORLD-TUBE OF CIVILIZATION.',
+    observation:'A TITANIC OPEN RINGWORLD ENCIRCLING A TINY ARTIFICIAL SUN AT ITS CENTER.',
+    scan:{ageBy:.06,pressureAtm:1.0,pressureText:'SEALED 1.00 ATM',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.04,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:1.1,lifeTypePotential:'INTELLIGENT',techPotential:'KARDASHEV I+',iron:'ABUNDANT',carbon:'ABUNDANT',uranium:'COMMON',anomaly:'OPEN RING BIOSPHERE / CENTRAL ARTIFICIAL SUN',lossRisk:false},
+    loreReport:'THE BISHOP RING IS A MONSTROUS HABITAT WHOSE LIVING SURFACE FACES INWARD TOWARD A SMALL ENGINEERED SUN HELD AT THE CENTER OF THE STRUCTURE.',
     lifeLabel:'ABUNDANT',populationLabel:'ENORMOUS',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'KARDASHEV I+'
   },
   'SHELLWORLD':{
-    renderer:'shellworld',worldType:'ARTIFICIAL',worldClass:'NESTED SHELLWORLD',visualRadius:53,radiusKm:14000,gravity:.92,massEarth:2.1,density:.34,
+    renderer:'shellworld',worldType:'ARTIFICIAL',worldClass:'NESTED SHELLWORLD',visualRadius:54,radiusKm:14000,gravity:.92,massEarth:2.1,density:.34,
     water:.20,cloudCover:0,cloudSpeed:0,defaultTempC:18,tempRange:[10,30],life:true,populationBase:7,dayHours:34,yearDays:590,distanceAU:2.1,axialTiltDeg:4,rotationDirection:1,
     atmosDensity:'SEALED LAYERS',atmosChemistry:'N2 / O2',weather:'LAYERED INTERIOR CLIMATES',ring:false,moons:[],disableAutoCivilization:true,
-    observation:'AN ARTIFICIAL PLANET COMPOSED OF THREE CONCENTRIC HABITAT SHELLS, EACH OPENING INTO A LARGER CAVITY THAT REVEALS ANOTHER WORLD INSIDE.',
-    scan:{ageBy:.09,pressureAtm:1.0,pressureText:'MULTI-LAYER SEALED BIOSPHERES',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.04,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:1.3,lifeTypePotential:'INTELLIGENT',techPotential:'KARDASHEV I+',iron:'ABUNDANT',carbon:'ABUNDANT',uranium:'ABUNDANT',anomaly:'NESTED WORLD-SHELLS / MULTI-LAYER BIOSPHERES',lossRisk:false},
-    loreReport:'THE SO-CALLED SHELLWORLD IS A PLANET-SIZED CONSTRUCTION OF NESTED SPHERES. EACH LAYER HOLDS ITS OWN LANDSCAPE, WATER SYSTEMS AND INHABITED INTERIOR, ALL STACKED INSIDE A SINGLE TITANIC OUTER HULL.',
+    observation:'AN ARTIFICIAL PLANET OF THREE INDEPENDENTLY ROTATING NESTED SHELLS, EACH VISIBLE THROUGH HEXAGONAL CUTOUTS, WITH A SMALL SUN ORBITING THE STRUCTURE.',
+    scan:{ageBy:.09,pressureAtm:1.0,pressureText:'MULTI-LAYER SEALED BIOSPHERES',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.04,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:1.3,lifeTypePotential:'INTELLIGENT',techPotential:'KARDASHEV I+',iron:'ABUNDANT',carbon:'ABUNDANT',uranium:'ABUNDANT',anomaly:'THREE NESTED WORLD-SHELLS / ORBITING MINI-SUN',lossRisk:false},
+    loreReport:'THE SHELLWORLD STACKS THREE INHABITED SHELLS INSIDE ONE ANOTHER. HEXAGONAL APERTURES CUT THROUGH EACH LAYER, EXPOSING THE NEXT ROTATING BIOSPHERE AND THE TINY SUN THAT SERVICES THE SYSTEM.',
     lifeLabel:'ABUNDANT',populationLabel:'ENORMOUS',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'KARDASHEV I+'
   },
   'DYSON SPHERE':{
@@ -5831,130 +5841,246 @@ function drawMegastructureLine(x0,y0,x1,y1,color,width=1,alpha=1){
   ctx.stroke();
   ctx.restore();
 }
-function drawBernalSphereWorld(cx,cy,t){
-  const rx=Math.max(12,planet.rx), ry=Math.max(12,planet.ry);
-  const hull=mixHex(C.white,C.blue,.10), truss=mixHex(C.white,C.black,.38), glass=mixHex(C.cyan,C.white,.10);
-  drawMegastructureEllipse(cx,cy,rx,ry,hull,1);
-  drawMegastructureEllipse(cx,cy,rx,ry,mixHex(C.black,C.white,.25),1,0,0,Math.PI*2,true,1);
+function drawMegastructureHex(x,y,r,color,alpha=1,stroke=false,lineWidth=1,rot=0){
   ctx.save();
-  ctx.beginPath(); ctx.ellipse(cx,cy,rx-1,ry-1,0,0,Math.PI*2); ctx.clip();
-  drawMegastructureEllipse(cx,cy+1,rx*.88,ry*.30,mixHex(C.green,C.yellow,.12),.95);
-  drawMegastructureEllipse(cx,cy-ry*.50,rx*.30,ry*.10,glass,.82);
-  drawMegastructureEllipse(cx,cy+ry*.50,rx*.30,ry*.10,glass,.82);
-  for(let i=-3;i<=3;i++){
-    drawMegastructureEllipse(cx,cy,rx*.78-Math.abs(i)*2,Math.max(4,ry*(.12+Math.abs(i)*.03)),truss,.28,0,0,Math.PI*2,true,1);
+  ctx.globalAlpha*=alpha;
+  if(stroke){ ctx.strokeStyle=color; ctx.lineWidth=lineWidth; } else ctx.fillStyle=color;
+  ctx.beginPath();
+  for(let i=0;i<6;i++){
+    const a=rot+Math.PI/6+i*Math.PI/3, px=x+Math.cos(a)*r, py=y+Math.sin(a)*r;
+    i?ctx.lineTo(px,py):ctx.moveTo(px,py);
   }
-  for(let i=0;i<10;i++){
-    const px=cx-rx*.64+i*rx*.14;
-    drawMegastructureLine(px,cy-ry*.16,px,cy+ry*.16,truss,1,.45);
+  ctx.closePath();
+  stroke?ctx.stroke():ctx.fill();
+  ctx.restore();
+}
+function clipMegastructureSphere(cx,cy,rx,ry,fn){
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);
+  ctx.clip();
+  fn();
+  ctx.restore();
+}
+function drawTinyArtificialSun(x,y,r=4){
+  drawMegastructureEllipse(x,y,r+3,r+3,mixHex(C.yellow,C.white,.10),.22);
+  drawMegastructureEllipse(x,y,r+1,r+1,mixHex(C.yellow,C.white,.32),.42);
+  drawMegastructureEllipse(x,y,r,r,mixHex(C.yellow,C.white,.58),1);
+  drawMegastructureEllipse(x,y,Math.max(1,r-1),Math.max(1,r-1),C.white,.95);
+}
+function drawMetalPanelSphere(cx,cy,rx,ry,baseColor,seedShift=0){
+  const seed=(planet.seed||0)^seedShift;
+  drawMegastructureEllipse(cx,cy,rx,ry,baseColor,1);
+  clipMegastructureSphere(cx,cy,rx,ry,()=>{
+    for(let i=0;i<20;i++){
+      const px=cx-rx*.82+h2(i,11,seed)*rx*1.58;
+      const py=cy-ry*.82+h2(i,23,seed)*ry*1.58;
+      const pw=2+Math.floor(h2(i,31,seed)*6), ph=1+Math.floor(h2(i,37,seed)*4);
+      ctx.fillStyle=i%3===0?mixHex(baseColor,C.black,.24):mixHex(baseColor,C.white,.08);
+      ctx.fillRect(Math.round(px),Math.round(py),pw,ph);
+    }
+    for(let i=-4;i<=4;i++) drawMegastructureLine(cx-rx*.78,cy+i*ry*.18,cx+rx*.78,cy+i*ry*.18,mixHex(C.white,C.black,.60),1,.22);
+    for(let i=-4;i<=4;i++) drawMegastructureLine(cx+i*rx*.18,cy-ry*.78,cx+i*rx*.18,cy+ry*.78,mixHex(C.white,C.black,.60),1,.16);
+  });
+  drawMegastructureEllipse(cx,cy,rx,ry,mixHex(C.white,C.black,.36),1,0,0,Math.PI*2,true,1);
+}
+function drawSimpleHabitablePlanet(cx,cy,rx,ry,mode='terra'){
+  const ocean=mode==='rocky'?mixHex(C.brown,C.black,.12):mixHex(C.blue,C.cyan,.16);
+  const landA=mode==='rocky'?mixHex(C.brown,C.yellow,.16):mixHex(C.green,C.yellow,.14);
+  const landB=mode==='rocky'?mixHex(C.brown,C.white,.20):mixHex(C.green,C.brown,.22);
+  drawMegastructureEllipse(cx,cy,rx,ry,ocean,1);
+  clipMegastructureSphere(cx,cy,rx,ry,()=>{
+    for(let i=0;i<10;i++){
+      const px=cx-rx*.7+h2(i,5,planet.seed)*rx*1.25;
+      const py=cy-ry*.68+h2(i,17,planet.seed)*ry*1.20;
+      const ex=rx*(.16+h2(i,29,planet.seed)*.26), ey=ry*(.10+h2(i,41,planet.seed)*.20);
+      drawMegastructureEllipse(px,py,ex,ey,i%2?landA:landB,.94);
+    }
+    if(mode!=='rocky'){
+      for(let i=0;i<8;i++){
+        const px=cx-rx*.72+h2(i,61,planet.seed)*rx*1.32;
+        const py=cy-ry*.72+h2(i,79,planet.seed)*ry*1.32;
+        drawMegastructureEllipse(px,py,rx*(.09+h2(i,83,planet.seed)*.14),ry*(.05+h2(i,89,planet.seed)*.10),mixHex(C.white,C.blue,.12),.56);
+      }
+    }
+  });
+  drawMegastructureEllipse(cx,cy,rx,ry,mixHex(C.white,C.black,.34),1,0,0,Math.PI*2,true,1);
+}
+function drawMiniRingMoon(mx,my,scale=1){
+  const rx=5*scale, ry=2*scale;
+  drawMegastructureEllipse(mx,my,rx+1,ry+1,mixHex(C.white,C.black,.36),1,0,0,Math.PI*2,true,2);
+  drawMegastructureEllipse(mx,my,rx,ry,mixHex(C.green,C.yellow,.12),1,0,0,Math.PI*2,true,1);
+}
+function drawBernalSphereWorld(cx,cy,t){
+  const rx=Math.max(18,planet.rx+1), ry=Math.max(18,planet.ry+1);
+  drawMetalPanelSphere(cx,cy,rx,ry,mixHex(C.white,C.blue,.12),0x2222);
+  const cut={x:cx+rx*.18,y:cy-ry*.05,rx:rx*.56,ry:ry*.48};
+  drawMegastructureEllipse(cut.x,cut.y,cut.rx+1,cut.ry+1,mixHex(C.white,C.black,.62),1);
+  drawMegastructureEllipse(cut.x,cut.y,cut.rx,cut.ry,C.black,1);
+  clipMegastructureSphere(cut.x,cut.y,cut.rx,cut.ry,()=>{
+    drawMegastructureEllipse(cut.x+cut.rx*.12,cut.y+cut.ry*.10,cut.rx*.95,cut.ry*.92,mixHex(C.green,C.yellow,.12),1);
+    drawMegastructureEllipse(cut.x+cut.rx*.08,cut.y+cut.ry*.12,cut.rx*.88,cut.ry*.32,mixHex(C.yellow,C.green,.18),.92);
+    drawMegastructureLine(cut.x-cut.rx*.20,cut.y-cut.ry*.10,cut.x+cut.rx*.36,cut.y+cut.ry*.26,mixHex(C.blue,C.cyan,.08),2,.86);
+    for(let i=0;i<12;i++){
+      const px=cut.x-cut.rx*.75+h2(i,13,planet.seed)*cut.rx*1.45;
+      const py=cut.y-cut.ry*.55+h2(i,27,planet.seed)*cut.ry*1.05;
+      ctx.fillStyle=i%3===0?mixHex(C.green,C.yellow,.08):mixHex(C.brown,C.green,.18);
+      ctx.fillRect(Math.round(px),Math.round(py),1+((i+1)%3===0),1);
+    }
+  });
+  drawMegastructureEllipse(cut.x,cut.y,cut.rx,cut.ry,mixHex(C.white,C.black,.22),1,0,0,Math.PI*2,true,2);
+  drawMegastructureLine(cx-rx*.18,cy+ry*.04,cx+rx*.52,cy+ry*.09,mixHex(C.white,C.black,.26),1,.78);
+}
+function drawRingworldPrimeWorld(cx,cy,t){
+  const rx=Math.max(18,planet.rx), ry=Math.max(18,planet.ry);
+  drawSimpleHabitablePlanet(cx,cy,rx,ry,'terra');
+  const spin=state.simDays*.012;
+  drawMegastructureEllipse(cx,cy,rx*1.48,ry*.46,mixHex(C.white,C.black,.26),1,-.16,0,Math.PI*2,true,6);
+  drawMegastructureEllipse(cx,cy,rx*1.44,ry*.42,mixHex(C.green,C.yellow,.12),1,-.16,0,Math.PI*2,true,2);
+  drawMegastructureEllipse(cx,cy,rx*1.35,ry*.38,mixHex(C.white,C.cyan,.14),1,-.16,0,Math.PI*2,true,1);
+  const moonA=spin+1.1, mx=cx+Math.cos(moonA)*rx*1.95, my=cy+Math.sin(moonA)*ry*.95;
+  for(let i=0;i<28;i++){
+    const a=i/28*Math.PI*2;
+    const ox=cx+Math.cos(a)*rx*1.95, oy=cy+Math.sin(a)*ry*.95;
+    if(i%2===0) ctx.fillRect(Math.round(ox),Math.round(oy),1,1);
   }
-  ctx.fillStyle=mixHex(C.blue,C.white,.34);
-  for(let i=0;i<22;i++){
-    const a=i/22*Math.PI*2+state.phase*.3;
-    const px=cx+Math.cos(a)*rx*.66, py=cy+Math.sin(a)*ry*.06;
+  drawMiniRingMoon(mx,my,1.1);
+}
+function drawDomeworld(cx,cy,t){
+  const rx=Math.max(18,planet.rx), ry=Math.max(18,planet.ry);
+  drawSimpleHabitablePlanet(cx,cy,rx,ry,'rocky');
+  clipMegastructureSphere(cx,cy,rx,ry,()=>{
+    for(let i=0;i<6;i++){
+      const px=cx-rx*.60+h2(i,101,planet.seed)*rx*1.18;
+      const py=cy-ry*.48+h2(i,119,planet.seed)*ry*1.06;
+      const dr=3+Math.floor(h2(i,137,planet.seed)*4);
+      drawMegastructureEllipse(px,py+1,dr*1.05,Math.max(2,dr*.42),mixHex(C.green,C.yellow,.10),.95);
+      for(let b=0;b<5;b++){
+        ctx.fillStyle=mixHex(C.white,C.black,.44);
+        ctx.fillRect(Math.round(px-dr*.55+h2(i,b+149,planet.seed)*dr*1.05),Math.round(py-.3+h2(b,i+163,planet.seed)*dr*.45),1,1+Math.floor(h2(b,i+179,planet.seed)*2));
+      }
+      drawMegastructureEllipse(px,py,dr,Math.max(2,dr*.65),mixHex(C.cyan,C.white,.14),.42);
+      drawMegastructureEllipse(px,py,dr,Math.max(2,dr*.65),mixHex(C.white,C.cyan,.36),.75,0,Math.PI,Math.PI*2,true,1);
+    }
+  });
+}
+function drawVonBraunWheelWorld(cx,cy){
+  const rx=Math.max(20,planet.rx+3), ry=Math.max(12,planet.ry*.54);
+  ctx.save();
+  ctx.translate(cx,cy); ctx.rotate(-.32);
+  drawMegastructureEllipse(0,0,rx,ry,mixHex(C.white,C.black,.14),1);
+  drawMegastructureEllipse(0,0,rx*.62,ry*.62,C.black,1);
+  drawMegastructureEllipse(0,0,rx*.16,ry*.16,mixHex(C.white,C.black,.30),1);
+  drawMegastructureEllipse(0,0,rx*.06,ry*.06,C.black,1);
+  for(let i=0;i<3;i++){
+    const a=i*Math.PI*2/3+state.simDays*.02;
+    drawMegastructureLine(Math.cos(a)*rx*.12,Math.sin(a)*ry*.12,Math.cos(a)*rx*.72,Math.sin(a)*ry*.72,mixHex(C.white,C.black,.42),1,.85);
+  }
+  for(let i=0;i<20;i++){
+    const a=i/20*Math.PI*2;
+    ctx.fillStyle=i%2?mixHex(C.white,C.black,.50):mixHex(C.white,C.blue,.14);
+    const px=Math.cos(a)*rx*.82, py=Math.sin(a)*ry*.82;
     ctx.fillRect(Math.round(px),Math.round(py),1,1);
   }
   ctx.restore();
 }
-function drawWheelHabitatWorld(cx,cy,variant='wheelstation'){
-  const rx=Math.max(16,planet.rx+2), ry=Math.max(14,planet.ry-1);
-  const outerCol=variant==='torushab'?mixHex(C.white,C.blue,.16):mixHex(C.white,C.black,.20);
-  const habitat=variant==='torushab'?mixHex(C.green,C.yellow,.10):mixHex(C.cyan,C.white,.18);
-  drawMegastructureEllipse(cx,cy,rx,ry*.74,outerCol,1);
-  drawMegastructureEllipse(cx,cy,rx*.54,ry*.38,C.black,1);
-  drawMegastructureEllipse(cx,cy,rx*.78,ry*.56,habitat,.88,0,0,Math.PI*2,true,2);
-  if(variant!=='bishopring'){
-    drawMegastructureEllipse(cx,cy,rx*.15,ry*.14,mixHex(C.white,C.black,.30),1);
-    drawMegastructureEllipse(cx,cy,rx*.05,ry*.05,C.black,.95);
-    const spokes=variant==='wheelstation'?8:6;
-    const spin=state.phase*Math.PI*2;
-    for(let i=0;i<spokes;i++){
-      const a=spin+i*Math.PI*2/spokes;
-      drawMegastructureLine(cx+Math.cos(a)*rx*.18,cy+Math.sin(a)*ry*.10,cx+Math.cos(a)*rx*.74,cy+Math.sin(a)*ry*.42,mixHex(C.white,C.black,.42),1,.82);
-    }
+function drawStanfordTorusWorld(cx,cy){
+  const rx=Math.max(21,planet.rx+3), ry=Math.max(13,planet.ry*.56);
+  ctx.save();
+  ctx.translate(cx,cy); ctx.rotate(-.12);
+  drawMegastructureEllipse(-8,0,rx,ry,mixHex(C.white,C.black,.16),1);
+  drawMegastructureEllipse(-8,0,rx*.62,ry*.62,C.black,1);
+  drawMegastructureEllipse(-8,0,rx*.14,ry*.14,mixHex(C.white,C.black,.30),1);
+  for(let i=0;i<4;i++){
+    const a=i*Math.PI/2+state.simDays*.015;
+    drawMegastructureLine(-8+Math.cos(a)*rx*.14,Math.sin(a)*ry*.14,-8+Math.cos(a)*rx*.70,Math.sin(a)*ry*.70,mixHex(C.white,C.black,.44),1,.82);
   }
-  const rimDots=variant==='bishopring'?36:24;
-  ctx.fillStyle=mixHex(C.white,C.cyan,.18);
-  for(let i=0;i<rimDots;i++){
-    const a=i/rimDots*Math.PI*2+state.phase*.7*(variant==='bishopring'?.18:.35);
-    const px=cx+Math.cos(a)*rx*.90, py=cy+Math.sin(a)*ry*.64;
-    ctx.fillRect(Math.round(px),Math.round(py),1,1);
-  }
-  if(variant==='bishopring'){
-    drawMegastructureEllipse(cx,cy,rx*.62,ry*.44,mixHex(C.green,C.blue,.12),.70,0,0,Math.PI*2,true,2);
-    drawMegastructureEllipse(cx,cy,rx*.36,ry*.24,C.black,1);
-  }
+  drawMegastructureLine(8,0,46,0,mixHex(C.white,C.black,.40),1,.92);
+  drawMegastructureEllipse(17,0,7,4,mixHex(C.white,C.black,.20),1);
+  drawMegastructureEllipse(17,0,4,2,C.black,1);
+  for(let i=0;i<6;i++) drawMegastructureLine(8+i*6,-1,11+i*6,1,mixHex(C.white,C.black,.56),1,.62);
+  ctx.fillStyle=mixHex(C.white,C.blue,.18);
+  ctx.fillRect(47,-2,6,4);
+  ctx.restore();
 }
 function drawCylinderHabitatWorld(cx,cy){
-  const len=Math.max(42,planet.rx*2.1), r=Math.max(10,planet.ry*.72), angle=-.38;
+  const len=Math.max(48,planet.rx*2.25), r=Math.max(11,planet.ry*.74), angle=-.34;
   ctx.save();
   ctx.translate(cx,cy); ctx.rotate(angle);
   ctx.fillStyle=mixHex(C.white,C.black,.18);
-  ctx.fillRect(-len*.34,-r,len*.68,r*2);
-  drawMegastructureEllipse(-len*.34,0,r*.55,r,mixHex(C.white,C.black,.16));
-  drawMegastructureEllipse(len*.34,0,r*.55,r,mixHex(C.white,C.black,.26));
-  ctx.beginPath(); ctx.rect(-len*.34,-r,len*.68,r*2); ctx.clip();
-  drawMegastructureLine(-len*.34,-r*.32,len*.34,-r*.32,mixHex(C.green,C.yellow,.12),3,.95);
-  drawMegastructureLine(-len*.34,r*.26,len*.34,r*.26,mixHex(C.blue,C.cyan,.14),3,.92);
-  for(let i=0;i<12;i++){
-    const x=-len*.30+i*(len*.60/11);
-    drawMegastructureLine(x,-r*.88,x,r*.88,mixHex(C.white,C.black,.44),1,.52);
+  ctx.fillRect(-len*.36,-r,len*.72,r*2);
+  drawMegastructureEllipse(-len*.36,0,r*.58,r,mixHex(C.white,C.black,.14));
+  drawMegastructureEllipse(len*.36,0,r*.58,r,mixHex(C.white,C.black,.26));
+  ctx.beginPath();
+  ctx.moveTo(-len*.36,-r); ctx.lineTo(len*.36,-r); ctx.lineTo(len*.36,r); ctx.lineTo(-len*.36,r); ctx.closePath(); ctx.clip();
+  const winX=-len*.18, winW=len*.38;
+  ctx.fillStyle=mixHex(C.cyan,C.white,.14);
+  ctx.fillRect(winX,-r*.44,winW,r*.88);
+  ctx.fillStyle=mixHex(C.green,C.yellow,.12);
+  ctx.fillRect(winX+1,-r*.16,winW-2,r*.20);
+  ctx.fillStyle=mixHex(C.blue,C.cyan,.12);
+  ctx.fillRect(winX+1,r*.05,winW-2,r*.14);
+  for(let i=0;i<7;i++){
+    const lx=winX+2+i*(winW-4)/6;
+    drawMegastructureLine(lx,-r*.42,lx,r*.42,mixHex(C.white,C.black,.40),1,.58);
+  }
+  for(let i=0;i<10;i++){
+    const x=-len*.31+i*(len*.62/9);
+    drawMegastructureLine(x,-r*.88,x,r*.88,mixHex(C.white,C.black,.46),1,.34);
   }
   ctx.restore();
 }
-function drawTopopolisWorld(cx,cy){
-  const rx=Math.max(18,planet.rx+4), ry=Math.max(11,planet.ry*.52);
-  for(const rot of [0,Math.PI/3,-Math.PI/3]){
-    drawMegastructureEllipse(cx,cy,rx,ry,mixHex(C.white,C.black,.20),1,rot,0,Math.PI*2,true,6);
-    drawMegastructureEllipse(cx,cy,rx,ry,mixHex(C.green,C.yellow,.12),.82,rot,0,Math.PI*2,true,2);
-    drawMegastructureEllipse(cx,cy,rx*.63,ry*.63,C.black,1,rot);
-  }
-  ctx.fillStyle=mixHex(C.cyan,C.white,.22);
-  for(let i=0;i<28;i++){
-    const a=i/28*Math.PI*2+state.phase*.12;
-    const px=cx+Math.cos(a)*rx*.96, py=cy+Math.sin(a*.97)*ry*.92;
-    ctx.fillRect(Math.round(px),Math.round(py),1,1);
-  }
+function drawBishopRingWorld(cx,cy){
+  const rx=Math.max(30,planet.rx*1.10), ry=Math.max(12,planet.ry*.36);
+  ctx.save();
+  ctx.translate(cx,cy); ctx.rotate(-.18);
+  drawMegastructureEllipse(0,0,rx,ry,mixHex(C.white,C.black,.20),1,0,0,Math.PI*2,true,7);
+  drawMegastructureEllipse(0,0,rx,ry,mixHex(C.green,C.yellow,.14),1,0,0,Math.PI*2,true,3);
+  drawMegastructureEllipse(0,0,rx*.72,ry*.56,C.black,1);
+  drawTinyArtificialSun(0,0,5);
+  ctx.restore();
 }
 function drawShellworldWorld(cx,cy){
   const rx=Math.max(20,planet.rx), ry=Math.max(20,planet.ry);
-  const truss=mixHex(C.white,C.black,.42);
-  drawMegastructureEllipse(cx,cy,rx,ry,mixHex(C.white,C.brown,.18),1);
-  drawMegastructureEllipse(cx,cy,rx,ry,truss,1,0,0,Math.PI*2,true,1);
-  ctx.save();
-  ctx.beginPath(); ctx.ellipse(cx,cy,rx-1,ry-1,0,0,Math.PI*2); ctx.clip();
-  for(let i=0;i<8;i++){
-    const px=cx-rx*.62+h2(i,41,planet.seed)*rx*1.18;
-    const py=cy-ry*.62+h2(i,63,planet.seed^0x51)*ry*1.14;
-    const col=i%3===0?C.green:i%3===1?C.brown:C.blue;
-    drawMegastructureEllipse(px,py,rx*(.16+h2(i,19,planet.seed)*.16),ry*(.10+h2(i,27,planet.seed)*.16),col,.75);
+  const outer=mixHex(C.white,C.brown,.18), mid=mixHex(C.white,C.blue,.18), inner=mixHex(C.white,C.yellow,.14);
+  drawMetalPanelSphere(cx,cy,rx,ry,outer,0x113);
+  clipMegastructureSphere(cx,cy,rx,ry,()=>{
+    for(let i=0;i<10;i++){
+      const a=i/10*Math.PI*2+state.simDays*.006;
+      drawMegastructureLine(cx+Math.cos(a)*rx*.18,cy+Math.sin(a)*ry*.18,cx+Math.cos(a)*rx*.76,cy+Math.sin(a)*ry*.76,mixHex(C.white,C.black,.56),1,.12);
+    }
+  });
+  const cut1={x:cx+rx*.14,y:cy-ry*.04,r:Math.min(rx,ry)*.34};
+  drawMegastructureHex(cut1.x,cut1.y,cut1.r+1,mixHex(C.white,C.black,.62),1,false,1,state.simDays*.008);
+  drawMegastructureHex(cut1.x,cut1.y,cut1.r,C.black,1,false,1,state.simDays*.008);
+  drawMegastructureEllipse(cut1.x,cut1.y,cut1.r*.88,cut1.r*.88,mid,1);
+  clipMegastructureSphere(cut1.x,cut1.y,cut1.r*.88,cut1.r*.88,()=>{
+    for(let i=0;i<7;i++){
+      const a=i/7*Math.PI*2-state.simDays*.010;
+      drawMegastructureLine(cut1.x+Math.cos(a)*cut1.r*.18,cut1.y+Math.sin(a)*cut1.r*.18,cut1.x+Math.cos(a)*cut1.r*.78,cut1.y+Math.sin(a)*cut1.r*.78,mixHex(C.white,C.black,.46),1,.18);
+    }
+  });
+  const cut2={x:cut1.x+cut1.r*.10,y:cut1.y+cut1.r*.02,r:cut1.r*.56};
+  drawMegastructureHex(cut2.x,cut2.y,cut2.r+1,mixHex(C.white,C.black,.62),1,false,1,-state.simDays*.010);
+  drawMegastructureHex(cut2.x,cut2.y,cut2.r,C.black,1,false,1,-state.simDays*.010);
+  drawMegastructureEllipse(cut2.x,cut2.y,cut2.r*.88,cut2.r*.88,inner,1);
+  drawMegastructureHex(cut2.x+cut2.r*.08,cut2.y,cut2.r*.34,C.black,1,false,1,state.simDays*.014);
+  drawMegastructureEllipse(cut2.x+cut2.r*.08,cut2.y,cut2.r*.30,cut2.r*.30,mixHex(C.green,C.blue,.12),.96);
+  const orbitR=rx*1.42, sunA=state.simDays*.018;
+  for(let i=0;i<28;i++) if(i%2===0){
+    const a=i/28*Math.PI*2;
+    ctx.fillRect(Math.round(cx+Math.cos(a)*orbitR),Math.round(cy+Math.sin(a)*orbitR*.52),1,1);
   }
-  for(let i=0;i<5;i++){
-    drawMegastructureEllipse(cx,cy,rx*(.38+i*.10),ry*(.18+i*.07),truss,.18,0,0,Math.PI*2,true,1);
-  }
-  const hole1={x:cx+rx*.18,y:cy-ry*.10,rx:rx*.36,ry:ry*.32};
-  drawMegastructureEllipse(hole1.x,hole1.y,hole1.rx,hole1.ry,C.black,1);
-  drawMegastructureEllipse(hole1.x,hole1.y,hole1.rx,hole1.ry,mixHex(C.white,C.black,.32),1,0,0,Math.PI*2,true,2);
-  drawMegastructureEllipse(hole1.x-2,hole1.y+1,hole1.rx*.74,hole1.ry*.74,mixHex(C.white,C.blue,.18),1);
-  drawMegastructureEllipse(hole1.x-4,hole1.y+4,hole1.rx*.52,hole1.ry*.18,mixHex(C.green,C.yellow,.14),.88);
-  const hole2={x:hole1.x+hole1.rx*.16,y:hole1.y+hole1.ry*.08,rx:hole1.rx*.42,ry:hole1.ry*.42};
-  drawMegastructureEllipse(hole2.x,hole2.y,hole2.rx,hole2.ry,C.black,1);
-  drawMegastructureEllipse(hole2.x,hole2.y,hole2.rx,hole2.ry,mixHex(C.white,C.black,.36),1,0,0,Math.PI*2,true,1);
-  drawMegastructureEllipse(hole2.x-1,hole2.y+1,hole2.rx*.72,hole2.ry*.72,mixHex(C.white,C.cyan,.18),1);
-  drawMegastructureEllipse(hole2.x-2,hole2.y+2,hole2.rx*.44,hole2.ry*.16,mixHex(C.blue,C.cyan,.12),.94);
-  const hole3={x:hole2.x+hole2.rx*.18,y:hole2.y+hole2.ry*.06,rx:hole2.rx*.36,ry:hole2.ry*.36};
-  drawMegastructureEllipse(hole3.x,hole3.y,hole3.rx,hole3.ry,C.black,1);
-  drawMegastructureEllipse(hole3.x,hole3.y,hole3.rx*.70,hole3.ry*.70,mixHex(C.white,C.yellow,.12),1);
-  drawMegastructureEllipse(hole3.x,hole3.y+1,hole3.rx*.42,hole3.ry*.14,mixHex(C.green,C.blue,.10),.92);
-  ctx.restore();
+  drawTinyArtificialSun(cx+Math.cos(sunA)*orbitR,cy+Math.sin(sunA)*orbitR*.52,4);
 }
 function drawSpecialMegastructure(cx,cy,t){
   if(planet.renderer==='bernalsphere'){ drawBernalSphereWorld(cx,cy,t); return true; }
-  if(planet.renderer==='wheelstation'){ drawWheelHabitatWorld(cx,cy,'wheelstation'); return true; }
-  if(planet.renderer==='torushab'){ drawWheelHabitatWorld(cx,cy,'torushab'); return true; }
+  if(planet.renderer==='ringworldprime'){ drawRingworldPrimeWorld(cx,cy,t); return true; }
+  if(planet.renderer==='domeworld'){ drawDomeworld(cx,cy,t); return true; }
+  if(planet.renderer==='wheelstation'){ drawVonBraunWheelWorld(cx,cy); return true; }
+  if(planet.renderer==='torushab'){ drawStanfordTorusWorld(cx,cy); return true; }
   if(planet.renderer==='cylinderhab'){ drawCylinderHabitatWorld(cx,cy); return true; }
-  if(planet.renderer==='bishopring'){ drawWheelHabitatWorld(cx,cy,'bishopring'); return true; }
-  if(planet.renderer==='topopolis'){ drawTopopolisWorld(cx,cy); return true; }
+  if(planet.renderer==='bishopring'){ drawBishopRingWorld(cx,cy); return true; }
   if(planet.renderer==='shellworld'){ drawShellworldWorld(cx,cy); return true; }
   return false;
 }
