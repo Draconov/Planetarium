@@ -257,6 +257,32 @@ DANCETOPIA
 MEGASTRUCTURE ANOMALIES
 ----------------------------------------------------------------
 
+BERNAL SPHERE
+  aliases: BERNAL, ISLAND ONE
+  note: spherical habitat with an equatorial living band, polar window zones and sealed interior biosphere
+
+VON BRAUN WHEEL
+  aliases: ROTATING WHEEL SPACE STATION, ROTATING WHEEL, WHEEL STATION
+  note: classic spoked wheel station whose spinning rim provides artificial gravity
+
+STANFORD TORUS
+  aliases: STANFORD
+  note: large torus habitat with a sunlit inner surface and central hub-spoke structure
+
+O'NEILL CYLINDER
+  aliases: ONEILL CYLINDER
+  note: immense cylindrical colony with long interior land strips and mirror-regulated daylight
+
+BISHOP RING
+  note: enormous open ring habitat, vastly larger than a torus colony
+
+TOPOPOLIS
+  note: looping tube habitat — effectively a world-cylinder stretched into giant orbital loops
+
+SHELLWORLD
+  aliases: SHELL WORLD, NESTED SHELLWORLD, ARTIFICIAL PLANET
+  note: artificial planet made of three nested inhabited shells, each visible through cutaway openings
+
 DYSON SPHERE
   aliases: DYSON, DYSON SHELL
   note: artificial energy-harvesting shell of rotating ring layers around a small star
