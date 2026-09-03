@@ -1605,7 +1605,8 @@ const LORE_PRESETS={
   'RINGWORLD PRIME':{
     renderer:'ringworldprime',worldType:'VERDANT',worldClass:'PLANET WITH ORBITAL RINGWORLD',visualRadius:44,radiusKm:7200,gravity:1.01,massEarth:1.08,density:1.0,
     water:.52,cloudCover:.18,cloudSpeed:.05,defaultTempC:17,tempRange:[-10,34],life:true,populationBase:7,dayHours:26,yearDays:402,distanceAU:1.1,axialTiltDeg:9,rotationDirection:1,
-    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'MILD / MANAGED',ring:false,moons:[],disableAutoCivilization:true,
+    atmosDensity:'NORMAL',atmosChemistry:'N2 / O2',weather:'MILD / MANAGED',ring:false,
+    moons:[knownMoon('RINGLET',186000,16.2,920,98,16,.60,{surface:'ARTIFICIAL RING HABITAT',atmosphere:'SEALED N2 / O2',waterIce:'CONTROLLED RESERVES',activity:'ARTIFICIAL ROTATION / HABITAT LIGHTS',anomaly:'MINI RINGWORLD SATELLITE',lossRisk:false,visualRenderer:'mini_ring',objectClass:'RING HABITAT SATELLITE',hoverLabel:'MINI RINGWORLD SATELLITE'})],disableAutoCivilization:true,
     observation:'A TERRAFORMED WORLD ENCASED BY A SPINNING ARTIFICIAL RINGWORLD, WITH A SMALLER RING-HABITAT SATELLITE ORBITING NEARBY.',
     scan:{ageBy:1.8,pressureAtm:1.06,pressureText:'1.06 ATM',magField:'MODERATE',oxygen:22,nitrogen:76,co2:.04,tectonics:'LOW',volcanism:'NONE',oceanDepthKm:5.9,lifeTypePotential:'INTELLIGENT',techPotential:'INTERSTELLAR',iron:'COMMON',carbon:'ABUNDANT',uranium:'TRACE',anomaly:'ORBITAL RINGWORLD / MINI-RING SATELLITE',lossRisk:false},
     loreReport:"THE PRIMARY PLANET IS NATURAL, BUT THE CIVILIZATION AROUND IT ISN'T. A HABITABLE RINGWORLD WRAPS THE WORLD IN A BRIGHT ARTIFICIAL BAND, AND A SMALLER RING-HABITAT HAS REPLACED THE ROLE OF A CONVENTIONAL MOON.",
@@ -4663,6 +4664,14 @@ function drawMoons(cx,cy,t,front){
       drawBlockMoon(pos,m,requestedDiameter);
       continue;
     }
+    if(m.visualRenderer==='mini_ring'){
+      const renderedDiameter=Math.max(10,requestedDiameter);
+      m.visualDiameter=renderedDiameter;
+      m.hitRadius=Math.max(6,renderedDiameter*.62+3);
+      drawMiniRingMoon(pos.x,pos.y,renderedDiameter/10,state.simDays*.02);
+      drawMoonLoreDetails(m,pos,renderedDiameter);
+      continue;
+    }
     const native=moonNativeFrame(requestedDiameter);
     const im=texturedMoonSprite(native.frame,moonTintColor(m),m,native.diameter);
     const renderedDiameter=native.diameter;
@@ -5933,167 +5942,246 @@ function drawCutawayInterior(cut,mode='verdant',seedShift=0){
   });
   drawMegastructureEllipse(cut.x,cut.y,cut.rx,cut.ry,mixHex(C.white,C.black,.24),1,0,0,Math.PI*2,true,2);
 }
-function drawMiniRingMoon(mx,my,scale=1){
-  const rx=5*scale, ry=2*scale;
-  drawMegastructureEllipse(mx,my,rx+1,ry+1,mixHex(C.white,C.black,.36),1,0,0,Math.PI*2,true,2);
-  drawMegastructureEllipse(mx,my,rx,ry,mixHex(C.green,C.yellow,.12),1,0,0,Math.PI*2,true,1);
+
+function drawMiniRingMoon(mx,my,scale=1,spin=0){
+  const rx=5.2*scale, ry=2.2*scale;
+  drawMegastructureEllipse(mx,my,rx+2,ry+2,mixHex(C.white,C.black,.62),.34,0,0,Math.PI*2,true,2);
+  drawMegastructureEllipse(mx,my,rx+1,ry+1,mixHex(C.white,C.black,.46),.90,0,0,Math.PI*2,true,2);
+  drawMegastructureEllipse(mx,my,rx,ry,mixHex(C.green,C.yellow,.14),1,0,0,Math.PI*2,true,2);
+  drawMegastructureEllipse(mx,my,rx*.72,ry*.62,C.black,1);
+  const dots=20;
+  for(let i=0;i<dots;i++){
+    const raw=i/dots, th=(raw+spin)*Math.PI*2;
+    const x=mx+Math.cos(th)*rx*.86, y=my+Math.sin(th)*ry*.86;
+    ctx.fillStyle=i%3===0?mixHex(C.white,C.green,.16):mixHex(C.white,C.black,.54);
+    ctx.fillRect(Math.round(x),Math.round(y),1,1);
+  }
+}
+function habitatRingColor(theta,cross,seed,depth=0){
+  const edge=cross<.18||cross>.82;
+  if(edge){
+    const metal=periodicNoise01(theta,cross,72,10,seed^0x5411);
+    let col=mixHex(C.white,C.black,.54+metal*.16);
+    if(metal>.76) col=mixHex(col,C.blue,.08);
+    return depth<0?mixHex(col,C.black,.12):col;
+  }
+  const terrain=periodicNoise01(theta,cross,30,9,seed^0x5522);
+  const detail=periodicNoise01(theta,cross,90,23,seed^0x5533);
+  const ridge=periodicNoise01(theta,cross,54,12,seed^0x5544);
+  let col=terrain<.24?C.blue:terrain>.78?mixHex(C.brown,C.green,.22):(detail>.68?mixHex(C.green,C.yellow,.10):mixHex(C.green,C.brown,.18));
+  if(ridge>.84) col=mixHex(C.white,C.green,.18);
+  if(Math.abs(mod(theta*24,1)-.5)>.47 && detail>.40) col=mixHex(col,C.black,.16);
+  const shade=.90+(depth*.5+.5)*.12;
+  return shade<1?mixHex(col,C.black,1-shade):mixHex(col,C.white,shade-1);
+}
+function drawHabitatRingHalf(cx,cy,outer,band,flat,angle,front,seedShift=0,spinSpeed=.010){
+  const inner=outer-band, seed=(planet.seed||0)^seedShift;
+  const steps=Math.max(180,Math.round(outer*10));
+  for(let i=0;i<steps;i++){
+    const raw=i/steps;
+    const a=(raw-.5)*Math.PI*2;
+    const depth=Math.sin(a);
+    if(front ? depth<0 : depth>=0) continue;
+    const theta=mod(raw+state.simDays*spinSpeed,1);
+    for(let r=inner;r<=outer;r+=1){
+      const cross=(r-inner)/Math.max(1,band);
+      const p=haloPointOnRing(raw,r,cx,cy,outer,flat,angle);
+      ctx.fillStyle=habitatRingColor(theta,cross,seed,depth);
+      ctx.fillRect(Math.round(p.x),Math.round(p.y),1,1);
+    }
+  }
+  const ribs=48;
+  for(let i=0;i<ribs;i++){
+    const raw=i/ribs;
+    const a=(raw-.5)*Math.PI*2;
+    const depth=Math.sin(a);
+    if(front ? depth<0 : depth>=0) continue;
+    if((i+seed)%3!==0) continue;
+    const a0=haloPointOnRing(raw,inner+1,cx,cy,outer,flat,angle);
+    const b0=haloPointOnRing(raw,outer-1,cx,cy,outer,flat,angle);
+    drawPixelLine(a0.x,a0.y,b0.x,b0.y,mixHex(C.white,C.black,.66),front?.34:.24);
+    if((i+seed)%7===0){
+      const lamp=haloPointOnRing(raw,inner+2,cx,cy,outer,flat,angle);
+      ctx.globalAlpha=front?.82:.52; ctx.fillStyle=C.cyan; ctx.fillRect(Math.round(lamp.x),Math.round(lamp.y),1,1); ctx.globalAlpha=1;
+    }
+  }
 }
 function drawBernalSphereWorld(cx,cy,t){
-  const rx=Math.max(18,planet.rx+1), ry=Math.max(18,planet.ry+1);
-  drawMegastructureNoiseFillEllipse(cx,cy,rx,ry,[mixHex(C.white,C.black,.28),mixHex(C.white,C.blue,.18),mixHex(C.white,C.brown,.22),C.white],0x2222,.36);
-  drawMegastructurePanelOverlay(cx,cy,rx,ry,0x2222,.32);
-  const cut={x:cx+rx*.18,y:cy-ry*.05,rx:rx*.56,ry:ry*.48};
-  drawCutawayInterior(cut,'verdant',0x4011);
-  drawMegastructureLine(cx-rx*.18,cy+ry*.04,cx+rx*.52,cy+ry*.09,mixHex(C.white,C.black,.30),1,.82);
+  const rx=Math.max(18,planet.rx+1), ry=Math.max(18,planet.ry+1), seed=planet.seed||0;
+  drawMegastructureNoiseFillEllipse(cx,cy,rx,ry,[mixHex(C.white,C.black,.24),mixHex(C.white,C.blue,.18),mixHex(C.white,C.brown,.22),C.white],0x2222,.58);
+  drawMegastructurePanelOverlay(cx,cy,rx,ry,0x2222,.40);
+  const cut={x:cx+rx*.14,y:cy-ry*.01,rx:rx*.48,ry:ry*.36};
+  drawMegastructureEllipse(cut.x,cut.y,cut.rx+2,cut.ry+2,mixHex(C.white,C.black,.72),1);
+  drawMegastructureEllipse(cut.x,cut.y,cut.rx+1,cut.ry+1,mixHex(C.white,C.black,.46),1);
+  clipMegastructureSphere(cut.x,cut.y,cut.rx,cut.ry,()=>{
+    for(let y=Math.floor(cut.y-cut.ry);y<=Math.ceil(cut.y+cut.ry);y++){
+      const ny=(y-cut.y)/cut.ry; if(Math.abs(ny)>1) continue;
+      for(let x=Math.floor(cut.x-cut.rx);x<=Math.ceil(cut.x+cut.rx);x++){
+        const nx=(x-cut.x)/cut.rx, rr=nx*nx+ny*ny; if(rr>1) continue;
+        const u=(nx+1)*.5, v=(ny+1)*.5;
+        const n=periodicNoise01(u,v,13,7,seed^0x4011), n2=periodicNoise01(u,v,41,19,seed^0x4012);
+        let col=n<.24?mixHex(C.blue,C.cyan,.14):n>.76?mixHex(C.green,C.yellow,.14):mixHex(C.green,C.brown,.18);
+        const river=Math.abs(v-(.46+.10*Math.sin(u*6.0)+(n2-.5)*.06));
+        if(river<.06) col=river<.03?mixHex(C.blue,C.white,.20):mixHex(C.cyan,C.blue,.06);
+        if(v<.24) col=mixHex(col,C.white,.12);
+        if(v>.72) col=mixHex(col,C.brown,.16);
+        if(n2>.84) col=mixHex(col,C.white,.18);
+        ctx.fillStyle=col; ctx.fillRect(x,y,1,1);
+      }
+    }
+    for(let i=0;i<6;i++){
+      const yy=cut.y-cut.ry*.38+i*cut.ry*.16;
+      drawMegastructureLine(cut.x-cut.rx*.88,yy,cut.x+cut.rx*.88,yy+cut.ry*.03,mixHex(C.white,C.black,.56),1,.30);
+    }
+    for(let i=0;i<18;i++){
+      const px=cut.x-cut.rx*.72+h2(i,71,seed)*cut.rx*1.42;
+      const py=cut.y+cut.ry*.08+h2(i,73,seed)*cut.ry*.42;
+      ctx.fillStyle=i%4===0?mixHex(C.white,C.black,.44):mixHex(C.green,C.black,.20);
+      ctx.fillRect(Math.round(px),Math.round(py),1+(i%5===0),1+((i+1)%7===0));
+    }
+    ctx.globalAlpha=.18; ctx.fillStyle=C.black;
+    for(let i=0;i<cut.rx*1.2;i++) ctx.fillRect(Math.round(cut.x-cut.rx+i),Math.round(cut.y-cut.ry*.50+i*.20),1,Math.max(1,Math.round(cut.ry*.10)));
+    ctx.globalAlpha=1;
+  });
+  drawMegastructureEllipse(cut.x,cut.y,cut.rx,cut.ry,mixHex(C.white,C.black,.20),1,0,Math.PI*.56,Math.PI*1.44,true,2);
 }
-function drawRingHabitatBand(cx,cy,rx,ry,angle,seedShift=0){
-  drawMegastructureEllipse(cx,cy,rx*1.48,ry*.46,mixHex(C.white,C.black,.30),1,angle,0,Math.PI*2,true,6);
-  drawMegastructureEllipse(cx,cy,rx*1.44,ry*.42,mixHex(C.green,C.yellow,.12),1,angle,0,Math.PI*2,true,2);
-  drawMegastructureEllipse(cx,cy,rx*1.35,ry*.38,mixHex(C.white,C.cyan,.14),1,angle,0,Math.PI*2,true,1);
-  const seed=(planet.seed||0)^seedShift;
-  ctx.save();
-  ctx.translate(cx,cy); ctx.rotate(angle);
-  for(let i=0;i<42;i++){
-    if((i%9)===0) continue;
-    const a=i/42*Math.PI*2;
-    const px=Math.cos(a)*rx*1.40, py=Math.sin(a)*ry*.40;
-    ctx.fillStyle=i%2?mixHex(C.white,C.black,.52):mixHex(C.white,C.green,.18);
-    ctx.globalAlpha=.86;
-    ctx.fillRect(Math.round(px),Math.round(py),1+(i%7===0),1);
-  }
-  for(let i=0;i<10;i++){
-    const a=i/10*Math.PI*2+h2(i,77,seed)*.08;
-    const px=Math.cos(a)*rx*1.41, py=Math.sin(a)*ry*.40;
-    ctx.fillStyle=mixHex(C.white,C.black,.60);
-    ctx.globalAlpha=.46;
-    ctx.fillRect(Math.round(px),Math.round(py),2,1);
-  }
-  ctx.restore();
-  ctx.globalAlpha=1;
+function drawRingworldPrimeBack(cx,cy,t){
+  const outer=Math.max(54,planet.rx*1.48), band=Math.max(6,Math.round(planet.rx*.13));
+  drawHabitatRingHalf(cx,cy,outer,band,.34,-.16,false,0x5511,.018);
+}
+function drawRingworldPrimeFront(cx,cy,t){
+  const outer=Math.max(54,planet.rx*1.48), band=Math.max(6,Math.round(planet.rx*.13));
+  drawHabitatRingHalf(cx,cy,outer,band,.34,-.16,true,0x5511,.018);
 }
 function drawRingworldPrimeWorld(cx,cy,t){
-  const rx=Math.max(18,planet.rx), ry=Math.max(18,planet.ry);
-  const spin=state.simDays*.006;
-  drawRingHabitatBand(cx,cy,rx,ry,-.16,0x5511);
-  const moonA=spin+1.1, mx=cx+Math.cos(moonA)*rx*1.95, my=cy+Math.sin(moonA)*ry*.95;
-  for(let i=0;i<28;i++){
-    if(i%2!==0) continue;
-    const a=i/28*Math.PI*2;
-    const ox=cx+Math.cos(a)*rx*1.95, oy=cy+Math.sin(a)*ry*.95;
-    ctx.fillStyle=mixHex(C.white,C.black,.34);
-    ctx.fillRect(Math.round(ox),Math.round(oy),1,1);
-  }
-  drawMiniRingMoon(mx,my,1.1);
+  drawRingworldPrimeFront(cx,cy,t);
 }
 function drawDomeworld(cx,cy,t){
-  const rx=Math.max(18,planet.rx), ry=Math.max(18,planet.ry);
-  clipMegastructureSphere(cx,cy,rx,ry,()=>{
-    for(let i=0;i<7;i++){
-      const px=cx-rx*.60+h2(i,101,planet.seed)*rx*1.18;
-      const py=cy-ry*.48+h2(i,119,planet.seed)*ry*1.06;
-      const dr=3+Math.floor(h2(i,137,planet.seed)*4);
-      drawMegastructureEllipse(px,py+1,dr*1.10,Math.max(2,dr*.44),mixHex(C.green,C.yellow,.10),.96);
-      for(let b=0;b<7;b++){
-        ctx.fillStyle=b%2?mixHex(C.white,C.black,.50):mixHex(C.green,C.black,.26);
-        ctx.fillRect(Math.round(px-dr*.58+h2(i,b+149,planet.seed)*dr*1.08),Math.round(py-.4+h2(b,i+163,planet.seed)*dr*.46),1,1+Math.floor(h2(b,i+179,planet.seed)*2));
+  const domes=[];
+  for(let i=0;i<8;i++){
+    const lon=mod(.08+h2(i,201,planet.seed)*.86,1), lat=.23+h2(i,233,planet.seed)*.52;
+    const p=spherePointFromLonLat(lon,lat,cx,cy,.97); if(!p) continue;
+    domes.push({p,r:3+Math.floor(h2(i,257,planet.seed)*4),seed:i});
+  }
+  domes.sort((a,b)=>a.p.depth-b.p.depth);
+  for(const d of domes){
+    const px=d.p.x, py=d.p.y, dr=d.r*(.74+.26*d.p.depth);
+    drawMegastructureEllipse(px,py+dr*.55,dr*1.00,Math.max(1.5,dr*.28),mixHex(C.black,C.brown,.56),.34);
+    clipMegastructureSphere(px,py,dr*.92,Math.max(2,dr*.58),()=>{
+      for(let y=Math.floor(py-dr*.5);y<=Math.ceil(py+dr*.4);y++){
+        for(let x=Math.floor(px-dr*.8);x<=Math.ceil(px+dr*.8);x++){
+          const nx=(x-px)/(dr*.92), ny=(y-py)/Math.max(2,dr*.58); if(nx*nx+ny*ny>1) continue;
+          const n=periodicNoise01((nx+1)*.5,(ny+1)*.5,10,6,(planet.seed^d.seed)^0x6622);
+          let col=n<.22?mixHex(C.blue,C.cyan,.12):n>.72?mixHex(C.green,C.yellow,.18):mixHex(C.green,C.brown,.18);
+          if(Math.abs(ny-.10)<.10 && n<.45) col=mixHex(C.brown,C.green,.10);
+          ctx.fillStyle=col; ctx.fillRect(x,y,1,1);
+        }
       }
-      drawMegastructureEllipse(px,py,dr,Math.max(2,dr*.68),mixHex(C.cyan,C.white,.14),.30);
-      drawMegastructureEllipse(px,py,dr,Math.max(2,dr*.68),mixHex(C.white,C.cyan,.36),.70,0,Math.PI,Math.PI*2,true,1);
-    }
-  });
+      for(let i=0;i<8;i++){
+        const bx=px-dr*.55+h2(i,d.seed+331,planet.seed)*dr*1.08;
+        const bh=1+Math.floor(h2(d.seed,i+349,planet.seed)*3);
+        ctx.fillStyle=i%2?mixHex(C.white,C.black,.42):mixHex(C.green,C.black,.18);
+        ctx.fillRect(Math.round(bx),Math.round(py+dr*.12-bh),1+((i+d.seed)%5===0),bh);
+      }
+    });
+    drawMegastructureEllipse(px,py,dr,Math.max(2,dr*.68),mixHex(C.cyan,C.white,.10),.36);
+    drawMegastructureEllipse(px,py,dr,Math.max(2,dr*.68),mixHex(C.white,C.cyan,.34),.78,0,Math.PI,Math.PI*2,true,1);
+  }
 }
-function drawTexturedTorus(cx,cy,rx,ry,innerScale=.62,hubScale=.16,rot=0,seedShift=0){
+function drawTexturedTorus(cx,cy,rx,ry,innerScale=.62,hubScale=.16,rot=0,seedShift=0,spin=0,thickness=2){
   ctx.save(); ctx.translate(cx,cy); ctx.rotate(rot);
+  drawMegastructureEllipse(0,thickness,rx+1,ry+1,mixHex(C.white,C.black,.76),.34,0,0,Math.PI*2,true,6);
   drawMegastructureNoiseFillEllipse(0,0,rx,ry,[mixHex(C.white,C.black,.26),mixHex(C.white,C.blue,.18),mixHex(C.white,C.brown,.24),C.white],seedShift,.98);
+  drawMegastructureEllipse(0,-1,rx,ry,mixHex(C.white,C.white,.0),.18,0,Math.PI,Math.PI*2,true,2);
+  drawMegastructureEllipse(0,1,rx,ry,mixHex(C.white,C.black,.70),.26,0,0,Math.PI,true,2);
   drawMegastructureEllipse(0,0,rx*innerScale,ry*innerScale,C.black,1);
   drawMegastructureNoiseFillEllipse(0,0,rx*hubScale,ry*hubScale,[mixHex(C.white,C.black,.32),mixHex(C.white,C.blue,.14),mixHex(C.white,C.brown,.18),C.white],seedShift^0x39,.98);
-  drawMegastructureEllipse(0,0,rx*.06,ry*.06,C.black,1);
+  drawMegastructureEllipse(0,0,Math.max(1,rx*.06),Math.max(1,ry*.06),C.black,1);
   for(let i=0;i<4;i++){
-    const a=i*Math.PI/2+state.simDays*.004;
-    drawMegastructureLine(Math.cos(a)*rx*(hubScale*.9),Math.sin(a)*ry*(hubScale*.9),Math.cos(a)*rx*.72,Math.sin(a)*ry*.72,mixHex(C.white,C.black,.44),1,.86);
+    const a=i*Math.PI/2+spin;
+    drawMegastructureLine(Math.cos(a)*rx*(hubScale*.8),Math.sin(a)*ry*(hubScale*.8),Math.cos(a)*rx*.76,Math.sin(a)*ry*.76,mixHex(C.white,C.black,.44),1,.92);
   }
-  for(let i=0;i<22;i++){
-    const a=i/22*Math.PI*2;
-    ctx.fillStyle=i%2?mixHex(C.white,C.black,.52):mixHex(C.white,C.blue,.16);
-    const px=Math.cos(a)*rx*.82, py=Math.sin(a)*ry*.82;
+  for(let i=0;i<28;i++){
+    const a=i/28*Math.PI*2+spin*1.5;
+    const px=Math.cos(a)*rx*.84, py=Math.sin(a)*ry*.84;
+    ctx.fillStyle=i%3===0?mixHex(C.white,C.green,.18):mixHex(C.white,C.black,.52);
     ctx.fillRect(Math.round(px),Math.round(py),1,1);
   }
   ctx.restore();
 }
 function drawVonBraunWheelWorld(cx,cy){
-  const rx=Math.max(20,planet.rx+3), ry=Math.max(12,planet.ry*.54);
-  drawTexturedTorus(cx,cy,rx,ry,.62,.16,-.32,0x7201);
+  const rx=Math.max(22,planet.rx*0.78), ry=Math.max(13,planet.ry*.40);
+  drawTexturedTorus(cx,cy,rx,ry,.60,.15,-.52,0x7201,state.simDays*.20,2);
 }
 function drawStanfordTorusWorld(cx,cy){
-  const rx=Math.max(21,planet.rx+3), ry=Math.max(13,planet.ry*.56);
-  ctx.save(); ctx.translate(cx,cy); ctx.rotate(-.12);
-  drawMegastructureNoiseFillEllipse(-8,0,rx,ry,[mixHex(C.white,C.black,.24),mixHex(C.white,C.blue,.18),mixHex(C.white,C.brown,.20),C.white],0x8801,.98);
-  drawMegastructureEllipse(-8,0,rx*.62,ry*.62,C.black,1);
-  drawMegastructureNoiseFillEllipse(-8,0,rx*.14,ry*.14,[mixHex(C.white,C.black,.32),mixHex(C.white,C.blue,.14),mixHex(C.white,C.brown,.18),C.white],0x8802,.98);
-  for(let i=0;i<4;i++){
-    const a=i*Math.PI/2+state.simDays*.004;
-    drawMegastructureLine(-8+Math.cos(a)*rx*.14,Math.sin(a)*ry*.14,-8+Math.cos(a)*rx*.70,Math.sin(a)*ry*.70,mixHex(C.white,C.black,.44),1,.82);
-  }
-  drawMegastructureLine(8,0,46,0,mixHex(C.white,C.black,.40),1,.92);
-  drawMegastructureNoiseFillEllipse(17,0,7,4,[mixHex(C.white,C.black,.28),mixHex(C.white,C.blue,.16),mixHex(C.white,C.brown,.18),C.white],0x8803,.98);
-  drawMegastructureEllipse(17,0,4,2,C.black,1);
-  for(let i=0;i<6;i++) drawMegastructureLine(8+i*6,-1,11+i*6,1,mixHex(C.white,C.black,.56),1,.62);
-  ctx.fillStyle=mixHex(C.white,C.blue,.18); ctx.fillRect(47,-2,6,4);
+  const rx=Math.max(24,planet.rx*0.82), ry=Math.max(14,planet.ry*.42), spin=state.simDays*.18;
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(-.18);
+  drawTexturedTorus(-12,0,rx,ry,.61,.12,0,0x8801,spin,2);
+  drawMegastructureLine(7,0,48,0,mixHex(C.white,C.black,.42),1,.94);
+  for(let i=0;i<8;i++) drawMegastructureLine(10+i*5,-1,12+i*5,1,mixHex(C.white,C.black,.58),1,.60);
+  drawMegastructureNoiseFillEllipse(20,0,7,4,[mixHex(C.white,C.black,.28),mixHex(C.white,C.blue,.16),mixHex(C.white,C.brown,.18),C.white],0x8803,.98);
+  drawMegastructureEllipse(20,0,4,2,C.black,1);
+  drawMegastructureNoiseFillEllipse(52,0,5,3,[mixHex(C.white,C.black,.28),mixHex(C.white,C.blue,.16),mixHex(C.white,C.brown,.18),C.white],0x8804,.98);
+  ctx.fillStyle=mixHex(C.white,C.blue,.16); ctx.fillRect(55,-1,5,2);
   ctx.restore();
 }
 function drawCylinderHabitatWorld(cx,cy){
-  const len=Math.max(48,planet.rx*2.25), r=Math.max(11,planet.ry*.74), angle=-.34;
+  const len=Math.max(70,planet.rx*1.7), r=Math.max(11,planet.ry*.56), angle=-.42, seed=planet.seed||0;
+  const half=len*.5, winHalf=len*.20, roll=state.simDays*.22;
   ctx.save();
   ctx.translate(cx,cy); ctx.rotate(angle);
-  ctx.beginPath(); ctx.rect(-len*.36,-r,len*.72,r*2); ctx.clip();
-  for(let y=Math.floor(-r);y<=Math.ceil(r);y++){
-    for(let x=Math.floor(-len*.36);x<=Math.ceil(len*.36);x++){
-      const u=(x+len*.36)/Math.max(1,len*.72), v=(y+r)/Math.max(1,r*2);
-      const n=periodicNoise01(u,v,18,8,planet.seed^0x9311), n2=periodicNoise01(u,v,46,20,planet.seed^0x9312);
-      let col=n<.32?mixHex(C.white,C.black,.30):n<.62?mixHex(C.white,C.blue,.18):mixHex(C.white,C.brown,.22);
-      if(n2>.80) col=mixHex(col,C.white,.14);
+  for(let x=Math.floor(-half-r);x<=Math.ceil(half+r);x++){
+    for(let y=Math.floor(-r-2);y<=Math.ceil(r+2);y++){
+      const capX=Math.abs(x)-half;
+      const inside = capX<=0 ? (Math.abs(y)<=r) : ((capX/r)*(capX/r)+(y/r)*(y/r)<=1);
+      if(!inside) continue;
+      const bodyX=clamp(x,-half,half), nx=bodyX/Math.max(1,half), ny=y/Math.max(1,r);
+      const n=periodicNoise01((nx+1)*.5,(ny+1)*.5,18,8,seed^0x9311), n2=periodicNoise01((nx+1)*.5,(ny+1)*.5,44,18,seed^0x9312);
+      let col=n<.32?mixHex(C.white,C.black,.28):n<.62?mixHex(C.white,C.blue,.18):mixHex(C.white,C.brown,.22);
+      const light=clamp(.88-ny*.20,0,1); if(light<1) col=mixHex(col,C.black,1-light);
+      const bandCenter=Math.sin(roll)*r*.40;
+      const bandHalfHeight=Math.max(2,r*(.18+.10*Math.max(0,Math.cos(roll))));
+      const inWindow=Math.abs(y-bandCenter)<=bandHalfHeight && Math.abs(x)<=winHalf;
+      if(inWindow){
+        const u=(x+winHalf)/Math.max(1,winHalf*2), v=(y-bandCenter+bandHalfHeight)/Math.max(1,bandHalfHeight*2);
+        const land=periodicNoise01(u,v,10,5,seed^0x9351), water=periodicNoise01(u,v,28,9,seed^0x9352);
+        col=land<.24?mixHex(C.blue,C.cyan,.16):land>.74?mixHex(C.green,C.yellow,.12):mixHex(C.green,C.brown,.18);
+        if(water>.86) col=mixHex(C.blue,C.white,.16);
+        if(mod(u*8,1)<.06) col=mixHex(col,C.white,.16);
+      }else if(Math.abs(mod((x+half)/7,1)-.5)>.46){
+        col=mixHex(col,C.black,.18);
+      }
+      if(n2>.84) col=mixHex(col,C.white,.12);
       ctx.fillStyle=col; ctx.fillRect(x,y,1,1);
     }
   }
-  drawMegastructureEllipse(-len*.36,0,r*.58,r,mixHex(C.white,C.black,.14));
-  drawMegastructureEllipse(len*.36,0,r*.58,r,mixHex(C.white,C.black,.26));
-  const winX=-len*.18, winW=len*.38;
-  ctx.fillStyle=mixHex(C.cyan,C.white,.14); ctx.fillRect(winX,-r*.44,winW,r*.88);
-  for(let y=Math.floor(-r*.44);y<=Math.ceil(r*.44);y++){
-    for(let x=Math.floor(winX+1);x<=Math.ceil(winX+winW-2);x++){
-      const u=(x-(winX+1))/Math.max(1,winW-2), v=(y+r*.44)/Math.max(1,r*.88);
-      const land=periodicNoise01(u,v,11,5,planet.seed^0x9351), water=periodicNoise01(u,v,27,9,planet.seed^0x9352);
-      let col=land<.24?mixHex(C.blue,C.cyan,.16):land<.33?C.yellow:land>.70?mixHex(C.green,C.yellow,.12):mixHex(C.green,C.brown,.18);
-      if(water>.84) col=mixHex(C.blue,C.cyan,.06);
-      ctx.fillStyle=col; ctx.fillRect(x,y,1,1);
-    }
-  }
-  for(let i=0;i<7;i++){
-    const lx=winX+2+i*(winW-4)/6;
-    drawMegastructureLine(lx,-r*.42,lx,r*.42,mixHex(C.white,C.black,.40),1,.58);
-  }
-  for(let i=0;i<10;i++){
-    const x=-len*.31+i*(len*.62/9);
-    drawMegastructureLine(x,-r*.88,x,r*.88,mixHex(C.white,C.black,.46),1,.34);
-  }
+  drawMegastructureEllipse(-half,0,r*.62,r,mixHex(C.white,C.black,.32),1);
+  drawMegastructureEllipse(half,0,r*.62,r,mixHex(C.white,C.black,.18),1);
+  const bandCenter=Math.sin(roll)*r*.40;
+  drawMegastructureLine(-winHalf,bandCenter-r*.24,winHalf,bandCenter-r*.24,mixHex(C.white,C.cyan,.22),1,.56);
+  drawMegastructureLine(-winHalf,bandCenter+r*.24,winHalf,bandCenter+r*.24,mixHex(C.white,C.black,.38),1,.48);
   ctx.restore();
 }
-function drawBishopRingWorld(cx,cy){
-  const rx=Math.max(30,planet.rx*1.10), ry=Math.max(12,planet.ry*.36);
-  ctx.save();
-  ctx.translate(cx,cy); ctx.rotate(-.18);
-  drawMegastructureEllipse(0,0,rx,ry,mixHex(C.white,C.black,.20),1,0,0,Math.PI*2,true,7);
-  drawMegastructureEllipse(0,0,rx,ry,mixHex(C.green,C.yellow,.14),1,0,0,Math.PI*2,true,3);
-  for(let i=0;i<46;i++){
-    if(i%11===0) continue;
-    const a=i/46*Math.PI*2;
-    const px=Math.cos(a)*rx*.995, py=Math.sin(a)*ry*.995;
-    ctx.fillStyle=i%2?mixHex(C.white,C.black,.52):mixHex(C.green,C.yellow,.10);
-    ctx.fillRect(Math.round(px),Math.round(py),1,1);
+function drawOpenHabitatRing(cx,cy,outer,band,flat,angle,spinSpeed=.028,seedShift=0){
+  const inner=outer-band, seed=(planet.seed||0)^seedShift;
+  const steps=Math.max(220,Math.round(outer*12));
+  for(let i=0;i<steps;i++){
+    const raw=i/steps, a=(raw-.5)*Math.PI*2, depth=Math.sin(a), theta=mod(raw+state.simDays*spinSpeed,1);
+    for(let r=inner;r<=outer;r+=1){
+      const cross=(r-inner)/Math.max(1,band), q=haloPointOnRing(raw,r,cx,cy,outer,flat,angle);
+      ctx.fillStyle=habitatRingColor(theta,cross,seed,depth); ctx.fillRect(Math.round(q.x),Math.round(q.y),1,1);
+    }
   }
-  drawMegastructureEllipse(0,0,rx*.72,ry*.56,C.black,1);
-  drawTinyArtificialSun(0,0,5);
-  ctx.restore();
+  for(let i=0;i<56;i++){
+    const raw=i/56, q0=haloPointOnRing(raw,inner+1,cx,cy,outer,flat,angle), q1=haloPointOnRing(raw,outer-1,cx,cy,outer,flat,angle);
+    if(i%3===0) drawPixelLine(q0.x,q0.y,q1.x,q1.y,mixHex(C.white,C.black,.68),.24);
+    if(i%6===0){ ctx.globalAlpha=.86; ctx.fillStyle=C.cyan; ctx.fillRect(Math.round(q0.x),Math.round(q0.y),1,1); ctx.globalAlpha=1; }
+  }
+}
+function drawBishopRingWorld(cx,cy){
+  const outer=Math.max(34,planet.rx*.88), band=Math.max(7,Math.round(planet.rx*.16));
+  drawOpenHabitatRing(cx,cy,outer,band,.40,-.18,.040,0x9911);
+  drawTinyArtificialSun(cx,cy,5);
 }
 function drawShellworldWorld(cx,cy){
   const rx=Math.max(20,planet.rx), ry=Math.max(20,planet.ry);
@@ -6116,12 +6204,16 @@ function drawShellworldWorld(cx,cy){
   }
   drawTinyArtificialSun(cx+Math.cos(sunA)*orbitR,cy+Math.sin(sunA)*orbitR*.52,4);
 }
+
 function isMegastructureOverlayRenderer(r){
   return r==='bernalsphere'||r==='ringworldprime'||r==='domeworld'||r==='shellworld';
 }
+function drawMegastructureUnderlayBeforeBase(cx,cy,t){
+  if(planet.renderer==='ringworldprime') return drawRingworldPrimeBack(cx,cy,t);
+}
 function drawMegastructureOverlayAfterBase(cx,cy,t){
   if(planet.renderer==='bernalsphere') return drawBernalSphereWorld(cx,cy,t);
-  if(planet.renderer==='ringworldprime') return drawRingworldPrimeWorld(cx,cy,t);
+  if(planet.renderer==='ringworldprime') return drawRingworldPrimeFront(cx,cy,t);
   if(planet.renderer==='domeworld') return drawDomeworld(cx,cy,t);
   if(planet.renderer==='shellworld') return drawShellworldWorld(cx,cy,t);
 }
@@ -6144,8 +6236,9 @@ function drawPlanet(cx,cy,t){
   drawLoreSetpieces(cx,cy,false);
   if(planet.renderer==='eyeuniverse') drawEyeUniverseCloud(cx,cy);
   drawMoons(cx,cy,t,false); ringPoints(cx,cy,false); if(showEnvironment) drawAtmosphereLimb(cx,cy);
+  if(isMegastructureOverlayRenderer(planet.renderer)) drawMegastructureUnderlayBeforeBase(cx,cy,t);
   renderPlanetSurfaceImage(cx,cy);
-  if(isMegastructureOverlayRenderer(planet.renderer)) drawMegastructureOverlayAfterBase(cx,cy,t);
+  if(planet.renderer==='bernalsphere' || planet.renderer==='domeworld' || planet.renderer==='shellworld') drawMegastructureOverlayAfterBase(cx,cy,t);
   drawDarkBrambleSilhouette(cx,cy);
   if(planet.renderer==='eyeuniverse') drawEyeUniverseGlyph(cx,cy);
   if(planet.renderer==='brittlehollow') drawBrittleHollowBlackHole(cx,cy);
@@ -6159,6 +6252,7 @@ function drawPlanet(cx,cy,t){
     drawPolarVortices(cx,cy);
     drawAuroras(cx,cy);
   }
+  if(planet.renderer==='ringworldprime') drawRingworldPrimeFront(cx,cy,t);
   ringPoints(cx,cy,true); drawMoons(cx,cy,t,true);
   drawLoreSetpieces(cx,cy,true);
   if(normalView){drawCivilizationOrbitObjects(cx,cy,true);drawCivilizationMoonMission(cx,cy);}
