@@ -1875,20 +1875,32 @@ function makePlanetScan(p){
     lossRisk:r()<.045
   };
 }
-const PROCEDURAL_MAJOR_DAMAGE_TYPES=['SHATTERED_EDGE','MISSING_HEMISPHERE','EXPLOSION_DAMAGE','BITE'];
-const PROCEDURAL_SURFACE_DAMAGE_TYPES=['CRATER','CRATER_FIELD','SURFACE_RIFT'];
+const PROCEDURAL_MAJOR_DAMAGE_TYPES=['SHATTERED_EDGE','MISSING_HEMISPHERE','EXPLOSION_DAMAGE','BITE','MISSING_CHUNK','DEEP_CRATER'];
+const PROCEDURAL_SURFACE_DAMAGE_TYPES=['CRATER','CRATER_FIELD','SURFACE_RIFT','CRACK_NETWORK'];
 function atmosphereImpactExposure(p){
   return ({NONE:1,TRACE:.9,THIN:.72,NORMAL:.42,DENSE:.2,SUPERDENSE:.08})[p?.atmosDensity] ?? .45;
 }
 function tectonicDamageBias(p){
   return ({DORMANT:0,LOW:.004,ACTIVE:.009,HIGH:.013,EXTREME:.018,CATASTROPHIC:.024})[p?.scan?.tectonics] ?? 0;
 }
+function makeProceduralDamageProfile(p,r,type,severity,major=false){
+  const activeCandidate=type==='SURFACE_RIFT'||type==='CRACK_NETWORK'||type==='SHATTERED_EDGE'||type==='EXPLOSION_DAMAGE'||type==='MISSING_CHUNK'||type==='DEEP_CRATER';
+  const active=activeCandidate && r()<(major?.38:.22);
+  const debris=major && (type==='SHATTERED_EDGE'||type==='EXPLOSION_DAMAGE'||type==='MISSING_CHUNK'||type==='MISSING_HEMISPHERE') && r()<.82;
+  const fragmentMode=debris?pick(r,['FIXED_LOCAL','FREE_ROTATE','ORBIT','DRIFT']):'ATTACHED';
+  return {
+    type,lon:.08+r()*.84,lat:.12+r()*.76,angle:r()*Math.PI*2,severity,
+    seed:((p.seed^0x44535452^Math.floor(r()*0x7fffffff))>>>0),active,
+    growthRate:active?(major?.00085+r()*.0011:.00018+r()*.00038):0,
+    debris,fragmentMode,fragmentCount:debris?(2+Math.floor(r()*4)):0,
+    detachThreshold:major?.72:.88
+  };
+}
 function configureRarePlanetDamage(p,r){
   if(!p || p.solar || p.special || p.lorePreset || p.shape==='cube' || p.shape==='haloRing') return;
-  // Surface damage should stay discoverable, but direct impact scarring should depend
-  // strongly on atmospheric shielding. Thin or absent atmospheres are hit much more
-  // often, while dense atmospheres mostly burn up incoming debris. Rift networks are
-  // handled separately so tectonic planets can still show fractures.
+  p.damageProfiles=[];
+  // Surface damage remains discoverable, but direct impact scars are atmosphere-weighted.
+  // Tectonic rifts are separate from impacts and may slowly grow if they roll as active.
   const impactExposure=atmosphereImpactExposure(p);
   const impactChance=.01+impactExposure*.055;
   const riftChance=.015+tectonicDamageBias(p);
@@ -1897,28 +1909,36 @@ function configureRarePlanetDamage(p,r){
   if(surfaceRoll<impactChance){
     type=r()<(.34+impactExposure*.18)?'CRATER_FIELD':'CRATER';
   }else if(surfaceRoll<impactChance+riftChance){
-    type='SURFACE_RIFT';
+    type=r()<.28?'CRACK_NETWORK':'SURFACE_RIFT';
   }
   if(type){
-    p.damageProfile={type,angle:r()*Math.PI*2,severity:.42+r()*.34,seed:((p.seed^0x44535452)>>>0)};
+    p.damageProfiles.push(makeProceduralDamageProfile(p,r,type,.42+r()*.34,false));
+    // A damaged world can now carry more than one independent scar. Keep this uncommon.
+    if(r()<.18){
+      const secondary=(type==='CRATER'||type==='CRATER_FIELD')?(r()<.65?'CRATER':'SURFACE_RIFT'):(r()<.55?'CRATER':'CRACK_NETWORK');
+      p.damageProfiles.push(makeProceduralDamageProfile(p,r,secondary,.28+r()*.26,false));
+    }
     if(p.scan){
-      p.scan.anomaly=type==='SURFACE_RIFT'?'PLANETARY RIFT NETWORK':'IMPACT-SCARRED SURFACE';
-      if(type!=='SURFACE_RIFT') p.scan.tectonics=p.scan.tectonics==='DORMANT'?'LOW':p.scan.tectonics;
+      p.scan.anomaly=(type==='SURFACE_RIFT'||type==='CRACK_NETWORK')?'PLANETARY RIFT NETWORK':'IMPACT-SCARRED SURFACE';
+      if(type!=='SURFACE_RIFT'&&type!=='CRACK_NETWORK') p.scan.tectonics=p.scan.tectonics==='DORMANT'?'LOW':p.scan.tectonics;
     }
   }
-  if(r()>=.015) return;
-  const majorType=pick(r,PROCEDURAL_MAJOR_DAMAGE_TYPES);
-  p.damageProfile={type:majorType,angle:r()*Math.PI*2,severity:.62+r()*.32,seed:((p.seed^0x44535452)>>>0)};
-  p.destroyedProcedural=true;
-  p.populationBase=0;
-  p.lifeText='NO SURVIVING BIOSPHERE IS DETECTED. THE PLANET HAS SUFFERED CATASTROPHIC STRUCTURAL DAMAGE.';
-  p.noLifeText=p.lifeText;
-  if(p.scan){
-    p.scan.lifeTypePotential='NONE'; p.scan.techPotential='NONE';
-    p.scan.anomaly=`CATASTROPHIC PLANETARY DAMAGE / ${majorType.replaceAll('_',' ')}`;
-    p.scan.tectonics='CATASTROPHIC'; p.scan.volcanism=majorType==='EXPLOSION_DAMAGE'?'EXTREME':'HIGH';
+  if(r()<.015){
+    const majorType=pick(r,PROCEDURAL_MAJOR_DAMAGE_TYPES);
+    p.damageProfiles.push(makeProceduralDamageProfile(p,r,majorType,.62+r()*.32,true));
+    p.destroyedProcedural=true;
+    p.populationBase=0;
+    p.lifeText='NO SURVIVING BIOSPHERE IS DETECTED. THE PLANET HAS SUFFERED CATASTROPHIC STRUCTURAL DAMAGE.';
+    p.noLifeText=p.lifeText;
+    if(p.scan){
+      p.scan.lifeTypePotential='NONE'; p.scan.techPotential='NONE';
+      p.scan.anomaly=`CATASTROPHIC PLANETARY DAMAGE / ${majorType.replaceAll('_',' ')}`;
+      p.scan.tectonics='CATASTROPHIC'; p.scan.volcanism=majorType==='EXPLOSION_DAMAGE'?'EXTREME':'HIGH';
+    }
+    p.civilization=null;
   }
-  p.civilization=null;
+  if(p.damageProfiles.length) p.damageProfile=p.damageProfiles[p.damageProfiles.length-1];
+  else { delete p.damageProfiles; delete p.damageProfile; }
 }
 
 function makeMoonScan(p,m,index){
@@ -2101,7 +2121,13 @@ function applyLorePreset(p,preset,r){
     }));
     p.moons=p.moonData.filter(m=>!m.kind).length;
   }
-  if(preset.damage) p.damageProfile={...preset.damage,seed:(preset.damage.seed??(p.seed^0x6d616765))>>>0};
+  if(Array.isArray(preset.damages)){
+    p.damageProfiles=preset.damages.map((d,i)=>normalizeDamageProfile({...d,seed:(d.seed??(p.seed^0x6d616765^(i*0x9e37)))>>>0},i,p));
+    p.damageProfile=p.damageProfiles[p.damageProfiles.length-1]||null;
+  }else if(preset.damage){
+    p.damageProfile=normalizeDamageProfile({...preset.damage,seed:(preset.damage.seed??(p.seed^0x6d616765))>>>0},0,p);
+    p.damageProfiles=[p.damageProfile];
+  }
   makePlanetScan(p);
   Object.assign(p.scan,preset.scan||{});
   if(preset.scan?.lifeTypePotential) p.scan.lifeTypePotential=preset.scan.lifeTypePotential;
@@ -3353,6 +3379,11 @@ function planetFixedDamageCoords(nx,ny){
     z:screenZ*ca-nx*sa
   };
 }
+function projectPlanetLocalVector(v,cx,cy,radial=1){
+  const a=(state.phase||0)*Math.PI*2,ca=Math.cos(a),sa=Math.sin(a);
+  const sx=v.x*ca-v.z*sa, sz=v.x*sa+v.z*ca;
+  return {x:cx+sx*planet.rx*radial,y:cy+v.y*planet.ry*radial,depth:sz,sx,sy:v.y};
+}
 function damageSpace(nx,ny,profile){
   const a=profile?.angle||0,ca=Math.cos(a),sa=Math.sin(a);
   return {x:nx*ca+ny*sa,y:-nx*sa+ny*ca};
@@ -3360,197 +3391,330 @@ function damageSpace(nx,ny,profile){
 function damageNoise(x,y,seed=0){
   return h2(Math.floor((x+1.2)*43),Math.floor((y+1.2)*43),seed>>>0)-.5;
 }
+const DAMAGE_SURFACE_TYPES=new Set(['CRATER','CRATER_FIELD','SURFACE_RIFT','RIFT','CRACK_NETWORK','SCORCHED_REGION','INDUSTRIAL_SCAR']);
+const DAMAGE_VOLUMETRIC_TYPES=new Set(['BITE','DEEP_CRATER','MISSING_CHUNK','MISSING_HEMISPHERE','SHATTERED_EDGE','EXPLOSION_DAMAGE']);
+const DAMAGE_ARTIFICIAL_TYPES=new Set(['PANEL_CUTOUT','HEX_CUTOUT','STRUCTURAL_BREACH','MECHANICAL_DAMAGE','CUSTOM_MASK']);
+const DAMAGE_SPECIAL_TYPES=new Set(['TRANSPARENT_VOID','HOLLOW_WORLD_OPENING','CUSTOM_INTERIOR','PUZZLE_PIECE']);
+const DAMAGE_FRAGMENT_MODES=['ATTACHED','FIXED_LOCAL','FREE_ROTATE','ORBIT','DRIFT'];
 function damageVisibleInCurrentView(){ return state.viewMode===0 || state.viewMode===1; }
-function geometryMissingAt(nx,ny,p=planet){
-  if(!p || !damageVisibleInCurrentView()) return false;
-  const fixed=planetFixedDamageCoords(nx,ny);
-  if(fixed.z<0) return false;
-  if(p.renderer==='wikipedia') return wikipediaMissingPiece(fixed.x,fixed.y);
+function normalizeDamageProfile(profile,index=0,p=planet){
+  if(!profile) return null;
+  if(profile._damage130Normalized) return profile;
+  const type=String(profile.type||'NONE').toUpperCase();
+  profile.type=type;
+  profile.seed=(profile.seed??((p?.seed||0)^0x6d616765^(index*0x9e3779b9)))>>>0;
+  profile.severity=clamp(profile.severity??.62,.05,1.35);
+  profile.baseSeverity=clamp(profile.baseSeverity??profile.severity,.05,1.35);
+  profile.angle=Number.isFinite(profile.angle)?profile.angle:0;
+  if(Number.isFinite(profile.lon)) profile.lon=mod(profile.lon,1);
+  if(Number.isFinite(profile.lat)) profile.lat=clamp(profile.lat,0,1);
+  profile.active=!!profile.active;
+  profile.growthRate=Math.max(0,Number(profile.growthRate)||0);
+  profile.detachThreshold=clamp(profile.detachThreshold??.78,.25,1.25);
+  profile.fragmentMode=DAMAGE_FRAGMENT_MODES.includes(profile.fragmentMode)?profile.fragmentMode:(profile.debris?'FIXED_LOCAL':'ATTACHED');
+  profile.fragmentCount=clamp(Math.round(profile.fragmentCount??(profile.debris?3:0)),0,8);
+  profile.interiorMaterial=profile.interiorMaterial||null;
+  profile._damage130Normalized=true;
+  return profile;
+}
+function damageProfilesFor(p=planet){
+  if(!p) return [];
+  if(Array.isArray(p.damageProfiles)){
+    for(let i=0;i<p.damageProfiles.length;i++) normalizeDamageProfile(p.damageProfiles[i],i,p);
+    if(!p.damageProfile && p.damageProfiles.length) p.damageProfile=p.damageProfiles[0];
+    return p.damageProfiles;
+  }
+  if(p.damageProfile){
+    p.damageProfiles=[normalizeDamageProfile(p.damageProfile,0,p)];
+    return p.damageProfiles;
+  }
+  return [];
+}
+function hasPlanetDamage(p=planet){
+  return !!(p && (p.renderer==='wikipedia'||p.renderer==='brittlehollow'||damageProfilesFor(p).some(q=>q&&q.type!=='NONE')));
+}
+function addPlanetDamageProfile(p,profile){
+  if(!p||!profile) return null;
+  const list=damageProfilesFor(p),normalized=normalizeDamageProfile({...profile},list.length,p);
+  list.push(normalized);p.damageProfiles=list;p.damageProfile=normalized;
+  if(renderCache.frame) renderCache.frame.lastPhase=NaN;
+  return normalized;
+}
+function removePlanetDamageProfile(p,profileOrIndex){
+  if(!p) return false;
+  const list=damageProfilesFor(p),index=typeof profileOrIndex==='number'?profileOrIndex:list.indexOf(profileOrIndex);
+  if(index<0||index>=list.length) return false;
+  list.splice(index,1);p.damageProfiles=list;p.damageProfile=list[list.length-1]||null;
+  if(!list.length){delete p.damageProfiles;delete p.damageProfile;}
+  if(renderCache.frame) renderCache.frame.lastPhase=NaN;
+  return true;
+}
+function setPlanetDamageActive(profile,active=true,growthRate=null){
+  if(!profile) return false;
+  profile.active=!!active;
+  if(growthRate!=null) profile.growthRate=Math.max(0,Number(growthRate)||0);
+  profile._damageStartSimDay=state.simDays||0;
+  return true;
+}
+function damageSeverityAt(profile,p=planet){
+  if(!profile) return 0;
+  normalizeDamageProfile(profile,0,p);
+  if(!profile.active || profile.growthRate<=0) return profile.baseSeverity??profile.severity??0;
+  if(profile._damageStartSimDay==null) profile._damageStartSimDay=state.simDays||0;
+  const elapsed=Math.max(0,(state.simDays||0)-profile._damageStartSimDay);
+  return clamp((profile.baseSeverity??profile.severity??0)+elapsed*profile.growthRate,.05,1.35);
+}
+function damageProfileAnchor(profile){
+  const lon=Number.isFinite(profile?.lon)?mod(profile.lon,1):mod(.72+(profile?.angle||0)/(Math.PI*2),1);
+  const lat=Number.isFinite(profile?.lat)?clamp(profile.lat,0,1):.50;
+  const la=(lat-.5)*Math.PI,lo=(lon-.5)*Math.PI*2,c=Math.cos(la),s=Math.sin(la);
+  const anchor={x:Math.sin(lo)*c,y:s,z:Math.cos(lo)*c};
+  const east={x:Math.cos(lo),y:0,z:-Math.sin(lo)};
+  const north={x:-Math.sin(lo)*s,y:c,z:-Math.cos(lo)*s};
+  return {anchor,east,north,lon,lat};
+}
+function damageProfileCoords(local,profile){
+  if(Number.isFinite(profile?.lon)||Number.isFinite(profile?.lat)){
+    const b=damageProfileAnchor(profile);
+    const dot=local.x*b.anchor.x+local.y*b.anchor.y+local.z*b.anchor.z;
+    const x=local.x*b.east.x+local.y*b.east.y+local.z*b.east.z;
+    const y=local.x*b.north.x+local.y*b.north.y+local.z*b.north.z;
+    const a=profile?.angle||0,ca=Math.cos(a),sa=Math.sin(a);
+    return {x:x*ca+y*sa,y:-x*sa+y*ca,radial:dot,anchored:true};
+  }
+  const q=damageSpace(local.x,local.y,profile);
+  return {x:q.x,y:q.y,radial:local.z,anchored:false};
+}
+function emptyDamageField(){
+  return {missing:false,depth:0,rim:0,crack:0,scar:0,material:'surface',transparent:false,profile:null,type:'NONE'};
+}
+function mergeDamageField(out,sample,profile){
+  if(!sample) return out;
+  if(sample.missing && (!out.missing || sample.depth>=out.depth)){
+    out.missing=true; out.depth=Math.max(out.depth,sample.depth||.1); out.material=sample.material||profile?.interiorMaterial||'planet';
+    out.transparent=!!sample.transparent; out.profile=profile; out.type=profile?.type||sample.type||'UNKNOWN';
+  }else if(!out.profile && (sample.rim||sample.crack||sample.scar)){
+    out.profile=profile; out.type=profile?.type||sample.type||'UNKNOWN';
+  }
+  out.depth=Math.max(out.depth,sample.depth||0);
+  out.rim=Math.max(out.rim,sample.rim||0);
+  out.crack=Math.max(out.crack,sample.crack||0);
+  out.scar=Math.max(out.scar,sample.scar||0);
+  return out;
+}
+function sampleDamageProfile(local,profile,p=planet,index=0){
+  if(!profile||profile.type==='NONE') return null;
+  const sev=damageSeverityAt(profile,p),q=damageProfileCoords(local,profile),x=q.x,y=q.y,seed=profile.seed>>>0;
+  const n=damageNoise(x*1.15,y*1.15,seed),fine=damageNoise(x*3.1,y*3.1,seed^0x51a7);
+  const type=profile.type;
+  if(type==='CRATER'||type==='DEEP_CRATER'){
+    const cx=q.anchored?0:.26,cy=q.anchored?0:-.08,rx=.12+sev*.10,ry=.10+sev*.08;
+    const d=Math.sqrt(((x-cx)/rx)**2+((y-cy)/ry)**2);
+    if(d>=1.16) return null;
+    const core=clamp(1-d,0,1),rim=d<1.16&&d>.80?1-(Math.abs(d-.98)/.18):0;
+    if(type==='DEEP_CRATER'&&d<.44+sev*.08) return {missing:true,depth:clamp(.30+core*.56,0,1),rim,material:profile.interiorMaterial||'planet'};
+    return {depth:core*.22,rim:clamp(rim,0,1),scar:core};
+  }
+  if(type==='CRATER_FIELD'){
+    const exposure=atmosphereImpactExposure(p),count=Math.max(1,Math.min(4,1+Math.floor(exposure*3)));
+    let best=0,rim=0;
+    for(let i=0;i<count;i++){
+      const cx=(valueNoise(i*1.73,.31,seed^0x50495458,64)*.72-.36),cy=(valueNoise(i*2.11,1.27,seed^0x50495459,64)*.78-.39);
+      const r=.045+valueNoise(i*2.71,2.37,seed^0x50495452,64)*(.035+sev*.018),d=Math.sqrt(((x-cx)/(r*1.15))**2+((y-cy)/r)**2);
+      best=Math.max(best,clamp(1-d,0,1)); if(d>.76&&d<1.14) rim=Math.max(rim,1-Math.abs(d-.95)/.19);
+    }
+    if(best||rim) return {depth:best*.12,rim:clamp(rim,0,1),scar:best};
+    return null;
+  }
+  if(type==='SURFACE_RIFT'||type==='RIFT'||type==='CRACK_NETWORK'){
+    const bend=(valueNoise((y+1.35)*2.4,.41,seed^0x52494654,64)-.5)*.34+Math.sin(y*5.2+(seed%997)*.0063)*.035;
+    const fineN=valueNoise((y+1.7)*7.2,1.13,seed^0x46494e45,64)-.5;
+    const width=.009+sev*.012+Math.max(-.003,fineN*.006),dist=Math.abs(x-bend);
+    let crack=dist<width&&Math.abs(y)<.91;
+    let branch=false;
+    const upperT=clamp((y+.46)/.48,0,1),upper=bend-upperT*.17+(valueNoise((y+1.1)*4,2.37,seed^0x425231,64)-.5)*.035;
+    const lowerT=clamp((y-.08)/.46,0,1),lower=bend+lowerT*.14+(valueNoise((y+1.0)*4.6,3.11,seed^0x425232,64)-.5)*.030;
+    branch=(y>-.46&&y<.02&&Math.abs(x-upper)<(.006+sev*.007))||(y>.08&&y<.54&&Math.abs(x-lower)<(.006+sev*.006));
+    if(type==='CRACK_NETWORK'){
+      const branch2=Math.abs(y-(Math.sin(x*7.2+seed*.0001)*.17+n*.10))<(.007+sev*.006)&&Math.abs(x)<.70;
+      branch=branch||branch2;
+    }
+    if(!crack&&!branch){
+      const rim=dist<width+.012+sev*.006&&Math.abs(y)<.93;
+      return rim?{rim:.55,scar:.18}:null;
+    }
+    const strength=crack?1:.74;
+    if(profile.active&&sev>.80&&crack&&Math.abs(y)<(.18+(sev-.80)*.90)&&dist<width*(.48+.40*(sev-.80))){
+      return {missing:true,depth:clamp(.22+(sev-.80)*1.7,0,1),rim:.92,crack:1,scar:1,material:profile.interiorMaterial||'planet'};
+    }
+    return {depth:.05*strength,rim:.68*strength,crack:strength,scar:.55*strength};
+  }
+  if(type==='SCORCHED_REGION'||type==='INDUSTRIAL_SCAR'){
+    const r=.22+sev*.16+n*.04,d=Math.sqrt((x/(r*1.18))**2+(y/r)**2);
+    if(d>1) return null;
+    const scar=clamp(1-d,0,1);
+    return {scar:type==='INDUSTRIAL_SCAR'?scar*.82:scar,rim:type==='INDUSTRIAL_SCAR'&&Math.abs(mod(x*18,1)-.5)>.44?.36:0};
+  }
+  if(type==='BITE'){
+    const shift=q.anchored?0:.92,r=.27+sev*.16+n*.035;
+    const main=((x-shift)/r)**2+((y+.01)/(r*.88))**2<1;
+    const upper=((x-(shift-.14))/(r*.70))**2+((y+.26)/(r*.62))**2<1;
+    const lower=((x-(shift-.12))/(r*.74))**2+((y-.27)/(r*.64))**2<1;
+    if(main||upper||lower) return {missing:true,depth:.52+sev*.36,rim:.72,material:profile.interiorMaterial||'planet'};
+    return null;
+  }
+  if(type==='MISSING_CHUNK'){
+    const cx=q.anchored?0:.62,cy=q.anchored?0:-.03,r=.18+sev*.15;
+    const d=((x-cx)/(r*1.05+n*.035))**2+((y-cy)/(r*.88+fine*.025))**2;
+    if(d<1) return {missing:true,depth:clamp(.42+(1-d)*.46,0,1),rim:.78,material:profile.interiorMaterial||'planet'};
+    if(d<1.22) return {rim:clamp((1.22-d)/.22,0,1)};
+    return null;
+  }
+  if(type==='SHATTERED_EDGE'){
+    const rag=.66-sev*.16+n*.18,wedge=x>rag&&(Math.abs(y)<.84||fine>.18);
+    const crack=x>.30&&Math.abs(y-(n*.55))<.025+sev*.018&&damageNoise(x*2.1,y*2.7,seed^0x19d1)>.06;
+    if(wedge) return {missing:true,depth:.48+sev*.42,rim:.84,material:profile.interiorMaterial||'planet'};
+    if(crack) return {crack:1,rim:.70,scar:.72};
+    return null;
+  }
+  if(type==='MISSING_HEMISPHERE'){
+    const boundary=.22-sev*.27+n*.13;
+    if(x>boundary) return {missing:true,depth:clamp(.62+(x-boundary)*.42,0,1),rim:.76,material:profile.interiorMaterial||'planet'};
+    if(x>boundary-.035) return {rim:.72};
+    return null;
+  }
+  if(type==='EXPLOSION_DAMAGE'){
+    const shift=q.anchored?0:.68,r=.19+sev*.12;
+    const a=((x-(shift+.11))/(r*1.12))**2+((y+.05)/r)**2<1+n*.16;
+    const b=((x-(shift-.07))/(r*.84))**2+((y-.34)/(r*.78))**2<1+n*.12;
+    const c=((x-(shift))/(r*.72))**2+((y+.39)/(r*.70))**2<1-n*.10;
+    const torn=x>(shift+.06)-sev*.18+n*.16&&Math.abs(y)<.82;
+    if(a||b||c||torn) return {missing:true,depth:.58+sev*.34,rim:.88,material:profile.interiorMaterial||'planet'};
+    return null;
+  }
+  if(type==='CUSTOM_MASK'&&!q.anchored){
+    const open=x>.38+n*.16&&y>-.68+n*.08&&y<.70+n*.09;
+    const cavity=((x-.46)/.20)**2+((y+.40)/.18)**2<1+n*.12;
+    const lower=((x-.56)/.17)**2+((y-.50)/.15)**2<1-n*.10;
+    if(open||cavity||lower) return {missing:true,depth:.70,rim:.92,material:profile.interiorMaterial||'mechanical'};
+    if(x>.33+n*.16&&y>-.72&&y<.74) return {rim:.58};
+    return null;
+  }
+  if(type==='PANEL_CUTOUT'||type==='STRUCTURAL_BREACH'||type==='MECHANICAL_DAMAGE'||type==='CUSTOM_MASK'){
+    const w=.18+sev*.20,h=.20+sev*.26,dx=Math.abs(x)/w,dy=Math.abs(y)/h;
+    const panel=dx<1&&dy<1;
+    const breach=type!=='PANEL_CUTOUT'&&((x/(w*.74))**2+(y/(h*.86))**2<1+n*.14);
+    if(panel||breach) return {missing:true,depth:.44+sev*.32,rim:.92,material:profile.interiorMaterial||'mechanical'};
+    if(dx<1.12&&dy<1.12) return {rim:.52};
+    return null;
+  }
+  if(type==='HEX_CUTOUT'){
+    const r=.18+sev*.18,ax=Math.abs(x)/r,ay=Math.abs(y)/r;
+    const inside=ax<=.866&&ay<=1&&ay+ax*.577<=1;
+    if(inside) return {missing:true,depth:.38+sev*.38,rim:.90,material:profile.interiorMaterial||'mechanical'};
+    return null;
+  }
+  if(type==='TRANSPARENT_VOID'||type==='HOLLOW_WORLD_OPENING'||type==='CUSTOM_INTERIOR'){
+    const r=.20+sev*.18,d=((x/r)**2)+((y/(r*.94))**2);
+    if(d<1) return {missing:true,depth:.42+(1-d)*.48,rim:.86,material:profile.interiorMaterial||(type==='TRANSPARENT_VOID'?'transparent':type==='HOLLOW_WORLD_OPENING'?'hollow':'planet'),transparent:type==='TRANSPARENT_VOID'};
+    return null;
+  }
+  return null;
+}
+function specialRendererDamageField(local,p=planet){
+  if(p.renderer==='wikipedia'&&wikipediaMissingPiece(local.x,local.y)) return {missing:true,depth:.60,rim:.92,material:'transparent',transparent:true,type:'PUZZLE_PIECE'};
   if(p.renderer==='brittlehollow'){
-    const x=fixed.x,y=fixed.y;
-    const shellNoise=damageNoise(x*1.8,y*1.9,(p.seed^0x4252484f)>>>0);
+    const x=local.x,y=local.y,shellNoise=damageNoise(x*1.8,y*1.9,(p.seed^0x4252484f)>>>0);
     const cavity=((x-.02)/(.27+shellNoise*.025))**2+((y+.00)/(.31+shellNoise*.028))**2;
     const notchUpper=((x-.03)/(.18+shellNoise*.016))**2+((y+.21)/(.10+shellNoise*.014))**2;
     const notchLower=((x+.04)/(.16+shellNoise*.014))**2+((y-.23)/(.12+shellNoise*.014))**2;
     const notchRight=((x+.16)/(.11+shellNoise*.014))**2+((y-.01)/(.16+shellNoise*.016))**2;
     let open=cavity<1||notchUpper<1||notchLower<1||notchRight<1;
     if(open){
-      const bridgeA=Math.abs(y+.02)<.030 && x>-.24 && x<.09;
-      const bridgeB=Math.abs(y-.16)<.028 && x>-.09 && x<.19;
-      const bridgeC=Math.abs(x+.08)<.026 && y>-.20 && y<.07;
+      const bridgeA=Math.abs(y+.02)<.030&&x>-.24&&x<.09,bridgeB=Math.abs(y-.16)<.028&&x>-.09&&x<.19,bridgeC=Math.abs(x+.08)<.026&&y>-.20&&y<.07;
       const bridgeNoise=damageNoise(x*5.4,y*5.7,(p.seed^0x42524944)>>>0);
-      if((bridgeA||bridgeB||bridgeC) && bridgeNoise>.02) open=false;
+      if((bridgeA||bridgeB||bridgeC)&&bridgeNoise>.02) open=false;
     }
-    return open;
+    if(open) return {missing:true,depth:.72,rim:.92,material:'hollow',transparent:false,type:'HOLLOW_WORLD_OPENING'};
   }
-  const profile=p.damageProfile; if(!profile||profile.type==='NONE'||profile.type==='CRATER'||profile.type==='CRATER_FIELD'||profile.type==='SURFACE_RIFT') return false;
-  if(profile.type==='PUZZLE_PIECE') return wikipediaMissingPiece(fixed.x,fixed.y);
-  const sev=clamp(profile.severity??.72,.2,1),q=damageSpace(fixed.x,fixed.y,profile),x=q.x,y=q.y,n=damageNoise(x,y,profile.seed);
-  if(profile.type==='BITE'){
-    const r=.27+sev*.16+n*.035;
-    const main=((x-.92)/r)**2+((y+.01)/(r*.88))**2<1;
-    const upper=((x-.78)/(r*.70))**2+((y+.26)/(r*.62))**2<1;
-    const lower=((x-.80)/(r*.74))**2+((y-.27)/(r*.64))**2<1;
-    return main||upper||lower;
-  }
-  if(profile.type==='SHATTERED_EDGE'){
-    const rag=.66-sev*.16+n*.18;
-    const wedge=x>rag && (Math.abs(y)<.84 || damageNoise(x*1.7,y*1.9,profile.seed^0x51a7)>.18);
-    const crack=x>.30 && Math.abs(y-(n*.55))<.025+sev*.018 && damageNoise(x*2.1,y*2.7,profile.seed^0x19d1)>.06;
-    return wedge||crack;
-  }
-  if(profile.type==='MISSING_HEMISPHERE'){
-    const boundary=.22-sev*.27+n*.13;
-    return x>boundary;
-  }
-  if(profile.type==='EXPLOSION_DAMAGE'){
-    const r=.19+sev*.12;
-    const a=((x-.79)/(r*1.12))**2+((y+.05)/r)**2<1+n*.16;
-    const b=((x-.61)/(r*.84))**2+((y-.34)/(r*.78))**2<1+n*.12;
-    const c=((x-.68)/(r*.72))**2+((y+.39)/(r*.70))**2<1-n*.10;
-    const torn=x>.74-sev*.18+n*.16 && Math.abs(y)<.82;
-    return a||b||c||torn;
-  }
-  if(profile.type==='CUSTOM_MASK'){
-    // Unfinished battle-station shell: a large construction sector is genuinely absent,
-    // with a noisy boundary and smaller punched-through gaps around it.
-    const open=x>.38+n*.16 && y>-.68+n*.08 && y<.70+n*.09;
-    const cavity=((x-.46)/.20)**2+((y+.40)/.18)**2<1+n*.12;
-    const lower=((x-.56)/.17)**2+((y-.50)/.15)**2<1-n*.10;
-    return open||cavity||lower;
-  }
-  return false;
+  return null;
 }
+function damageFieldAt(nx,ny,p=planet){
+  const out=emptyDamageField();
+  if(!p||!damageVisibleInCurrentView()) return out;
+  const local=planetFixedDamageCoords(nx,ny);
+  if(local.z<0) return out;
+  const special=specialRendererDamageField(local,p);
+  if(special) mergeDamageField(out,special,null);
+  const profiles=damageProfilesFor(p);
+  for(let i=0;i<profiles.length;i++) mergeDamageField(out,sampleDamageProfile(local,profiles[i],p,i),profiles[i]);
+  return out;
+}
+function geometryMissingAt(nx,ny,p=planet){ return damageFieldAt(nx,ny,p).missing; }
 function damageEdgeAt(nx,ny,p=planet){
-  if(!p||geometryMissingAt(nx,ny,p)) return false;
-  const profile=p.renderer==='wikipedia'?{type:'PUZZLE_PIECE'}:p.damageProfile;
-  if(!profile||profile.type==='NONE'||profile.type==='CRATER'||profile.type==='CRATER_FIELD'||profile.type==='SURFACE_RIFT') return false;
-  const e=Math.max(1/Math.max(18,p.rx||40),1/Math.max(18,p.ry||40))*1.65;
-  return geometryMissingAt(nx+e,ny,p)||geometryMissingAt(nx-e,ny,p)||geometryMissingAt(nx,ny+e,p)||geometryMissingAt(nx,ny-e,p)||
-         geometryMissingAt(nx+e*.7,ny+e*.7,p)||geometryMissingAt(nx-e*.7,ny-e*.7,p);
+  if(!p||!damageVisibleInCurrentView()) return false;
+  const f=damageFieldAt(nx,ny,p); if(f.missing) return false;
+  if(f.rim>.35) return true;
+  const e=Math.max(1/Math.max(18,p.rx||40),1/Math.max(18,p.ry||40))*1.55;
+  return damageFieldAt(nx+e,ny,p).missing||damageFieldAt(nx-e,ny,p).missing||damageFieldAt(nx,ny+e,p).missing||damageFieldAt(nx,ny-e,p).missing;
 }
-function damageSurfaceColor(base,nx,ny,p=planet){
-  const profile=p?.damageProfile;
-  if(profile?.type==='CRATER'){
-    const fixed=planetFixedDamageCoords(nx,ny);
-    const q=damageSpace(fixed.x,fixed.y,profile),sev=clamp(profile.severity??.7,.2,1),cx=.26,cy=-.08;
-    const d=Math.sqrt(((q.x-cx)/(.22+sev*.10))**2+((q.y-cy)/(.18+sev*.08))**2);
-    if(d<1){
-      if(d<.68) return mixHex(base,C.black,.52);
-      return mixHex(base,p.worldType==='ICE'?C.cyan:C.brown,.42);
+function damageSurfaceColor(base,nx,ny,p=planet,field=null){
+  if(!p||!damageVisibleInCurrentView()) return base;
+  const local=planetFixedDamageCoords(nx,ny),profiles=damageProfilesFor(p);
+  let col=base;
+  for(let i=0;i<profiles.length;i++){
+    const profile=profiles[i],sample=sampleDamageProfile(local,profile,p,i); if(!sample||sample.missing) continue;
+    const type=profile.type,scar=sample.scar||0,crack=sample.crack||0,rim=sample.rim||0;
+    if(type==='CRATER'||type==='CRATER_FIELD'||type==='DEEP_CRATER'){
+      if(scar>.05) col=mixHex(col,C.black,.18+scar*.34);
+      if(rim>.05) col=mixHex(col,p.worldType==='ICE'?C.cyan:C.brown,.16+rim*.26);
+    }else if(type==='SURFACE_RIFT'||type==='RIFT'||type==='CRACK_NETWORK'){
+      if(crack>.05) col=p.worldType==='VOLCANIC'?mixHex(C.red,C.black,.18):mixHex(col,C.black,.42+crack*.28);
+      else if(rim>.05) col=mixHex(col,C.brown,.12+rim*.20);
+    }else if(type==='SCORCHED_REGION'){
+      if(scar>.05) col=mixHex(col,mixHex(C.black,C.red,.12),.18+scar*.50);
+    }else if(type==='INDUSTRIAL_SCAR'){
+      if(scar>.05) col=mixHex(col,mixHex(C.white,C.black,.58),.14+scar*.38);
+      if(rim>.05) col=mixHex(col,C.black,.18);
+    }else if(rim>.05){
+      col=mixHex(col,p.renderer==='deathstar2'||p.renderer==='deathstar3'?mixHex(C.white,C.black,.62):C.brown,.12+rim*.28);
     }
   }
-  if(profile?.type==='CRATER_FIELD'){
-    const fixed=planetFixedDamageCoords(nx,ny);
-    const q=damageSpace(fixed.x,fixed.y,profile),sev=clamp(profile.severity??.62,.2,1);
-    const exposure=atmosphereImpactExposure(p);
-    const basins=[[-.18,-.16,.10,.085],[.16,.04,.085,.075],[.27,-.20,.115,.090],[-.03,.22,.075,.065]];
-    const basinCount=Math.max(1,Math.min(basins.length,1+Math.floor(exposure*3)));
-    for(let i=0;i<basinCount;i++){
-      const [cx,cy,rx,ry]=basins[i];
-      const d=Math.sqrt(((q.x-cx)/(rx+sev*.045))**2+((q.y-cy)/(ry+sev*.045))**2);
-      if(d<1){
-        if(d<.60) return mixHex(base,C.black,.44);
-        return mixHex(base,p.worldType==='ICE'?C.cyan:C.brown,.30);
-      }
-    }
-    // Replace the old high-density pepper pattern with sparse, individually-shaped
-    // micro-impacts and short ejecta scars. This reads as tiny crater pits instead
-    // of dark dithering, and density falls off when atmosphere is thicker.
-    const seed=(profile.seed||p.seed)>>>0;
-    const microCount=1+Math.floor(exposure*4);
-    const rimColor=p.worldType==='ICE'?mixHex(C.white,C.cyan,.16):mixHex(C.brown,C.white,.10);
-    for(let i=0;i<microCount;i++){
-      const cx=valueNoise(i*1.73,.31,seed^0x50495458,64)*.74-.37;
-      const cy=valueNoise(i*2.11,1.27,seed^0x50495459,64)*.82-.41;
-      const radius=.018+valueNoise(i*2.71,2.37,seed^0x50495452,64)*(.012+exposure*.014+sev*.006);
-      const skew=.72+valueNoise(i*3.19,3.91,seed^0x50495453,64)*.52;
-      const dx=q.x-cx, dy=q.y-cy;
-      const d=Math.sqrt((dx/(radius*skew))**2 + (dy/radius)**2);
-      if(d<1){
-        if(d<.56) return mixHex(base,C.black,.30+.08*exposure);
-        return mixHex(base,rimColor,.20);
-      }
-      const ang=valueNoise(i*4.01,4.83,seed^0x454a4543,64)*Math.PI*2;
-      const ax=Math.cos(ang), ay=Math.sin(ang);
-      const along=dx*ax+dy*ay;
-      const across=Math.abs(-dx*ay+dy*ax);
-      const ejectaLen=radius*(1.8+exposure*1.4);
-      const ejectaWidth=radius*(.18+exposure*.18);
-      if(along>radius*.55 && along<ejectaLen){
-        const taper=1-along/ejectaLen;
-        if(across<ejectaWidth*Math.max(.18,taper)) return mixHex(base,rimColor,.08+.06*exposure);
-      }
-    }
+  field=field||damageFieldAt(nx,ny,p);
+  let edgeStrength=field.rim;
+  if(edgeStrength<=.35&&(p.renderer==='wikipedia'||p.renderer==='brittlehollow')&&damageEdgeAt(nx,ny,p)) edgeStrength=.72;
+  if(edgeStrength>.35){
+    if(p.renderer==='wikipedia') return mixHex(C.white,C.black,.36);
+    if(p.renderer==='deathstar2'||p.renderer==='deathstar3'||field.material==='mechanical') return mixHex(col,C.black,.32);
+    if(p.renderer==='ooo') return mixHex(col,C.brown,.34);
+    col=mixHex(col,C.brown,.18+edgeStrength*.18);
   }
-  if(profile?.type==='SURFACE_RIFT'){
-    const fixed=planetFixedDamageCoords(nx,ny);
-    const q=damageSpace(fixed.x,fixed.y,profile),sev=clamp(profile.severity??.62,.2,1);
-    const seed=(profile.seed||p.seed)>>>0;
-    // Smooth low-frequency wandering gives the main fault a canyon/crack silhouette
-    // instead of the old cell-hash stair-step line. Fine noise varies its width.
-    const bend=(valueNoise((q.y+1.35)*2.4,.41,seed^0x52494654,64)-.5)*.34
-      +Math.sin(q.y*5.2+(seed%997)*.0063)*.035;
-    const fine=valueNoise((q.y+1.7)*7.2,1.13,seed^0x46494e45,64)-.5;
-    const mainWidth=.010+sev*.011+Math.max(-.003,fine*.006);
-    const mainDist=Math.abs(q.x-bend);
-    const main=mainDist<mainWidth && Math.abs(q.y)<.91;
-
-    // Two short offshoots peel away from the main fracture. They deliberately
-    // occupy only part of the latitude range so the result reads as branching
-    // geology rather than a second parallel stripe.
-    const upperT=clamp((q.y+.46)/.48,0,1);
-    const upperCenter=bend-(upperT*.17)+(valueNoise((q.y+1.1)*4.0,2.37,seed^0x425231,64)-.5)*.035;
-    const upper=q.y>-.46&&q.y<.02&&Math.abs(q.x-upperCenter)<(.006+sev*.007);
-    const lowerT=clamp((q.y-.08)/.46,0,1);
-    const lowerCenter=bend+(lowerT*.14)+(valueNoise((q.y+1.0)*4.6,3.11,seed^0x425232,64)-.5)*.030;
-    const lower=q.y>.08&&q.y<.54&&Math.abs(q.x-lowerCenter)<(.006+sev*.006);
-
-    if(main||upper||lower){
-      if(p.worldType==='VOLCANIC') return mixHex(C.red,C.black,.18);
-      return mixHex(base,C.black,.68);
-    }
-    const rimWidth=mainWidth+.010+sev*.006;
-    if(mainDist<rimWidth && Math.abs(q.y)<.93) return mixHex(base,C.brown,.22);
-  }
-  if(!damageEdgeAt(nx,ny,p)) return base;
-  if(p.renderer==='wikipedia') return mixHex(C.white,C.black,.36);
-  if(p.renderer==='deathstar2'||p.renderer==='deathstar3') return mixHex(C.white,C.black,.62);
-  if(p.renderer==='ooo'){
-    const layer=mod(Math.floor((ny+1)*18),4);
-    return [C.black,mixHex(C.brown,C.black,.34),mixHex(C.brown,C.red,.16),mixHex(C.yellow,C.brown,.34)][layer];
-  }
-  const q=damageNoise(nx,ny,(profile?.seed||p.seed)^0x4d414e54);
-  if(q>.24) return C.yellow;
-  if(q<-.18) return mixHex(C.red,C.black,.20);
-  return mixHex(C.brown,C.red,.24);
+  return col;
 }
-function damageInteriorColor(nx,ny,p=planet){
+function damageInteriorColor(nx,ny,p=planet,field=null){
   if(!p) return C.black;
-  if(p.renderer==='deathstar'||p.renderer==='deathstar2'||p.renderer==='deathstar3'){
-    const mech=damageNoise(nx*1.9,ny*1.9,(p.seed^0x44535452)>>>0);
-    const band=mod(Math.floor((ny+1)*20)+Math.floor((nx+1)*14),5);
+  field=field||damageFieldAt(nx,ny,p);
+  const material=field?.material||'planet';
+  if(material==='transparent') return null;
+  if(material==='mechanical'||p.renderer==='deathstar'||p.renderer==='deathstar2'||p.renderer==='deathstar3'){
+    const mech=damageNoise(nx*1.9,ny*1.9,(p.seed^0x44535452)>>>0),band=mod(Math.floor((ny+1)*20)+Math.floor((nx+1)*14),5);
     let col=[mixHex(C.white,C.black,.82),mixHex(C.white,C.black,.68),mixHex(C.blue,C.black,.60),mixHex(C.white,C.black,.88),mixHex(C.cyan,C.black,.72)][band];
-    if(mech>.28) col=mixHex(col,C.white,.12);
-    else if(mech<-.26) col=mixHex(col,C.black,.18);
+    if(mech>.28) col=mixHex(col,C.white,.12); else if(mech<-.26) col=mixHex(col,C.black,.18);
     return col;
   }
-  const rr=Math.sqrt(nx*nx+ny*ny);
-  const noise=damageNoise(nx*1.8,ny*1.8,(p.seed^0x434f5245)>>>0);
-  const striation=damageNoise(nx*5.4,ny*5.4,(p.seed^0x4c415941)>>>0);
-  let layerR=rr+noise*.035;
+  const depth=clamp(field?.depth||0,0,1),rr=Math.sqrt(nx*nx+ny*ny),noise=damageNoise(nx*1.8,ny*1.8,(p.seed^0x434f5245)>>>0),striation=damageNoise(nx*5.4,ny*5.4,(p.seed^0x4c415941)>>>0);
+  const layerR=clamp(rr*(1-depth*.58)+noise*.035,0,1);
+  if(material==='hollow'){
+    if(layerR<.28) return striation>.06?mixHex(C.black,C.red,.08):mixHex(C.black,C.purple,.04);
+    if(layerR<.55) return mixHex(C.purple,C.black,.24);
+    return mixHex(C.brown,C.black,.30);
+  }
   if(p.renderer==='ooo'){
     if(layerR<.18) return striation>.10?mixHex(C.yellow,C.white,.12):mixHex(C.red,C.yellow,.26);
     if(layerR<.34) return striation>.18?mixHex(C.brown,C.red,.08):mixHex(C.brown,C.red,.24);
     if(layerR<.56) return striation<-.16?mixHex(C.brown,C.black,.26):mixHex(C.brown,C.red,.10);
     if(layerR<.78) return striation>.12?mixHex(C.yellow,C.brown,.22):mixHex(C.brown,C.yellow,.16);
     return striation>.22?mixHex(C.green,C.brown,.42):mixHex(C.brown,C.green,.28);
-  }
-  if(p.renderer==='brittlehollow'){
-    if(layerR<.22) return striation>.06?mixHex(C.black,C.red,.08):mixHex(C.black,C.purple,.04);
-    if(layerR<.40) return striation>.12?mixHex(C.red,C.yellow,.14):mixHex(C.brown,C.red,.18);
-    if(layerR<.68) return striation<-.10?mixHex(C.brown,C.black,.30):mixHex(C.purple,C.black,.18);
-    return striation>.16?mixHex(C.white,C.black,.56):mixHex(C.brown,C.white,.18);
   }
   if(p.worldType==='ICE'){
     if(layerR<.18) return mixHex(C.yellow,C.red,.18);
@@ -3564,9 +3728,8 @@ function damageInteriorColor(nx,ny,p=planet){
   if(layerR<.80) return striation<-.18?mixHex(C.yellow,C.brown,.20):mixHex(C.brown,C.yellow,.12);
   return striation>.16?mixHex(C.white,C.brown,.36):mixHex(C.brown,C.white,.26);
 }
-function specialSurfaceMask(nx,ny){
-  return geometryMissingAt(nx,ny,planet);
-}
+function specialSurfaceMask(nx,ny){ return geometryMissingAt(nx,ny,planet); }
+
 function loreSurfaceColor(lon,lat,normY,nx,z){
   if(state.viewMode===2 && hasAtmosphereView()) return atmosphereViewColor(lon,lat,nx,z);
   if(state.viewMode===3){
@@ -4284,13 +4447,13 @@ function renderPlanetSurfaceImage(cx,cy){
   const surface=ensureSurfaceMap(),frame=ensurePlanetFrameGeometry(cx,cy);
   // If time is paused and neither climate nor view changed, the already
   // projected offscreen frame can be reused verbatim.
-  if(frame.lastPhase===state.phase && frame.lastSurfaceRevision===renderCache.surfaceRevision){
+  const activeDamage=damageProfilesFor(planet).some(profile=>profile?.active&&profile.growthRate>0);
+  if(frame.lastPhase===state.phase && frame.lastSurfaceRevision===renderCache.surfaceRevision && (!activeDamage || frame.lastDamageDay===state.simDays)){
     ctx.drawImage(frame.c,frame.minX,frame.minY); return;
   }
   const out=frame.image.data; out.fill(0);
   const src=surface.data,sw=surface.width;
-  const profile=planet.damageProfile;
-  const dynamicDamage=damageVisibleInCurrentView() && (planet.renderer==='wikipedia'||!!(profile&&profile.type&&profile.type!=='NONE'));
+  const dynamicDamage=damageVisibleInCurrentView() && hasPlanetDamage(planet);
   for(let i=0;i<frame.active.length;i++){
     if(!frame.active[i]) continue;
     const lon=mod(frame.lonBase[i]+state.phase,1);
@@ -4298,20 +4461,22 @@ function renderPlanetSurfaceImage(cx,cy){
     const si=(sy*sw+sx)*4,di=i*4;
     let rgb=shadeRgbFast(src[si],src[si+1],src[si+2],frame.shade[i]);
     if(dynamicDamage){
-      const nx=frame.nxMap[i],ny=frame.nyMap[i];
-      if(specialSurfaceMask(nx,ny)){
-        if(planet.renderer==='wikipedia'||planet.renderer==='outland') continue;
-        rgb=rgbForHex(damageInteriorColor(nx,ny,planet));
+      const nx=frame.nxMap[i],ny=frame.nyMap[i],field=damageFieldAt(nx,ny,planet);
+      if(field.missing){
+        if(field.transparent||planet.renderer==='wikipedia'||planet.renderer==='outland') continue;
+        const interior=damageInteriorColor(nx,ny,planet,field);
+        if(interior==null) continue;
+        rgb=rgbForHex(interior);
       }else{
         const baseHex=rgbToHex(rgb[0],rgb[1],rgb[2]);
-        const damaged=damageSurfaceColor(baseHex,nx,ny,planet);
+        const damaged=damageSurfaceColor(baseHex,nx,ny,planet,field);
         if(damaged!==baseHex) rgb=rgbForHex(damaged);
       }
     }
     out[di]=rgb[0];out[di+1]=rgb[1];out[di+2]=rgb[2];out[di+3]=255;
   }
   frame.g.putImageData(frame.image,0,0);
-  frame.lastPhase=state.phase;frame.lastSurfaceRevision=renderCache.surfaceRevision;
+  frame.lastPhase=state.phase;frame.lastSurfaceRevision=renderCache.surfaceRevision;frame.lastDamageDay=state.simDays;
   ctx.drawImage(frame.c,frame.minX,frame.minY);
 }
 function drawAtmosphereLimb(cx,cy){
@@ -4355,7 +4520,7 @@ function drawWeatherSystems(cx,cy){
   const label=weatherLabel(), atmosphereMode=state.viewMode===2, base=atmosphereAccentColor();
   for(let i=0;i<planet.weatherSystems.length;i++){
     const w=planet.weatherSystems[i],pos=weatherSystemPosition(w,cx,cy); if(!pos) continue;
-    if((planet.damageProfile||planet.renderer==='wikipedia')&&!planetContainsPoint(pos.x,pos.y,cx,cy,1)) continue;
+    if(hasPlanetDamage(planet)&&!planetContainsPoint(pos.x,pos.y,cx,cy,1)) continue;
     const alpha=(atmosphereMode?.86:.42)*w.intensity,size=Math.max(2,w.size*(.72+pos.depth*.28));
     const electrical=label.includes('STORM')||label.includes('HURRICANE')||label.includes('MONSOON')||label.includes('ELECTRIC');
     const flashTick=Math.floor(performance.now()/150)+(planet.seed%97)+i*11;
@@ -6242,6 +6407,92 @@ function drawShellworldWorld(cx,cy){
   drawTinyArtificialSun(cx+Math.cos(sunA)*orbitR,cy+Math.sin(sunA)*orbitR*.52,4);
 }
 
+
+function damageFragmentSpecs(profile,index=0,p=planet){
+  normalizeDamageProfile(profile,index,p);
+  const sev=damageSeverityAt(profile,p);
+  let count=profile.fragmentCount||0;
+  if(!count&&profile.active&&(profile.type==='SURFACE_RIFT'||profile.type==='RIFT'||profile.type==='CRACK_NETWORK')&&sev>.98) count=1;
+  if(!count||sev<profile.detachThreshold) return [];
+  const key=`${profile.seed}|${count}|${profile.fragmentMode}`;
+  if(profile._damageFragmentKey===key&&Array.isArray(profile._damageFragments)) return profile._damageFragments;
+  const specs=[];
+  for(let i=0;i<count;i++){
+    const seed=(profile.seed^(i*0x9e3779b9))>>>0;
+    specs.push({
+      seed,
+      tangentX:(h2(i,11,seed)-.5)*(.16+sev*.09),
+      tangentY:(h2(i,23,seed)-.5)*(.16+sev*.09),
+      radial:.08+h2(i,31,seed)*(.10+sev*.07),
+      size:2+Math.floor(h2(i,37,seed)*3),
+      phase:h2(i,41,seed)*Math.PI*2,
+      speed:.006+h2(i,43,seed)*.014,
+      spin:(h2(i,47,seed)-.5)*.22
+    });
+  }
+  profile._damageFragmentKey=key;profile._damageFragments=specs;
+  return specs;
+}
+function damageFragmentLocalVector(profile,spec){
+  const b=damageProfileAnchor(profile),v={
+    x:b.anchor.x*(1+spec.radial)+b.east.x*spec.tangentX+b.north.x*spec.tangentY,
+    y:b.anchor.y*(1+spec.radial)+b.east.y*spec.tangentX+b.north.y*spec.tangentY,
+    z:b.anchor.z*(1+spec.radial)+b.east.z*spec.tangentX+b.north.z*spec.tangentY
+  };
+  const len=Math.max(.0001,Math.sqrt(v.x*v.x+v.y*v.y+v.z*v.z));
+  return {x:v.x/len,y:v.y/len,z:v.z/len};
+}
+function damageFragmentScreen(profile,spec,cx,cy){
+  const mode=profile.fragmentMode||'FIXED_LOCAL',sev=damageSeverityAt(profile,planet);
+  if(mode==='ORBIT'){
+    const a=spec.phase+(state.simDays||0)*spec.speed,rad=1.38+spec.radial*1.8;
+    return {x:cx+Math.cos(a)*planet.rx*rad,y:cy+Math.sin(a)*planet.ry*rad*.62,depth:Math.sin(a),rotation:a*.72+(state.simDays||0)*spec.spin};
+  }
+  const local=damageFragmentLocalVector(profile,spec);
+  let radial=mode==='ATTACHED'?1.015:1.08+spec.radial;
+  if(mode==='DRIFT'){
+    if(profile._damageStartSimDay==null) profile._damageStartSimDay=state.simDays||0;
+    radial+=Math.min(.85,Math.max(0,(state.simDays||0)-profile._damageStartSimDay)*(.0008+spec.speed*.05));
+  }
+  const q=projectPlanetLocalVector(local,cx,cy,radial);
+  return {x:q.x,y:q.y,depth:q.depth,rotation:spec.phase+(mode==='FREE_ROTATE'?(state.simDays||0)*spec.spin:0)};
+}
+function drawDamageFragmentSprite(x,y,size,seed,rotation,material='planet'){
+  const main=material==='mechanical'?mixHex(C.white,C.black,.56):material==='hollow'?mixHex(C.purple,C.black,.42):mixHex(C.brown,C.red,.16);
+  const edge=material==='mechanical'?mixHex(C.white,C.black,.30):mixHex(C.brown,C.white,.20);
+  ctx.fillStyle=main;
+  const cells=Math.max(5,size*3);
+  for(let i=0;i<cells;i++){
+    const a=rotation+h2(i,17,seed)*Math.PI*2,rr=h2(i,29,seed)*size;
+    const px=Math.round(x+Math.cos(a)*rr),py=Math.round(y+Math.sin(a)*rr*.72);
+    ctx.fillRect(px,py,1+(i%7===0),1+(i%11===0));
+  }
+  ctx.fillStyle=edge;
+  for(let i=0;i<Math.max(3,size);i++){
+    const a=rotation+i/Math.max(3,size)*Math.PI*2,rr=size*.78;
+    ctx.fillRect(Math.round(x+Math.cos(a)*rr),Math.round(y+Math.sin(a)*rr*.70),1,1);
+  }
+  if(material==='mechanical'){
+    ctx.fillStyle=C.cyan;
+    if((seed&3)===0) ctx.fillRect(Math.round(x),Math.round(y),1,1);
+  }
+}
+function drawDetachedDamageChunks(cx,cy,t,front=true){
+  if(!damageVisibleInCurrentView()||!planet) return;
+  const profiles=damageProfilesFor(planet);
+  for(let pi=0;pi<profiles.length;pi++){
+    const profile=profiles[pi],specs=damageFragmentSpecs(profile,pi,planet);
+    if(!specs.length) continue;
+    for(const spec of specs){
+      const pos=damageFragmentScreen(profile,spec,cx,cy);
+      if(front ? pos.depth<-.02 : pos.depth>=-.02) continue;
+      const material=profile.interiorMaterial||(DAMAGE_ARTIFICIAL_TYPES.has(profile.type)?'mechanical':'planet');
+      const depthScale=.78+clamp((pos.depth+1)*.5,0,1)*.34;
+      drawDamageFragmentSprite(pos.x,pos.y,Math.max(2,Math.round(spec.size*depthScale)),spec.seed,pos.rotation,material);
+    }
+  }
+}
+
 function isMegastructureOverlayRenderer(r){
   return r==='ringworldprime'||r==='domeworld'||r==='shellworld';
 }
@@ -6268,6 +6519,7 @@ function drawPlanet(cx,cy,t){
   const normalView=state.viewMode===0, atmosphereView=state.viewMode===2, showEnvironment=normalView||atmosphereView;
   if(normalView) drawCivilizationOrbitObjects(cx,cy,false);
   drawLoreSetpieces(cx,cy,false);
+  drawDetachedDamageChunks(cx,cy,t,false);
   if(planet.renderer==='eyeuniverse') drawEyeUniverseCloud(cx,cy);
   drawMoons(cx,cy,t,false); ringPoints(cx,cy,false); if(showEnvironment) drawAtmosphereLimb(cx,cy);
   if(isMegastructureOverlayRenderer(planet.renderer)) drawMegastructureUnderlayBeforeBase(cx,cy,t);
@@ -6287,6 +6539,7 @@ function drawPlanet(cx,cy,t){
     drawAuroras(cx,cy);
   }
   if(planet.renderer==='ringworldprime') drawRingworldPrimeFront(cx,cy,t);
+  drawDetachedDamageChunks(cx,cy,t,true);
   ringPoints(cx,cy,true); drawMoons(cx,cy,t,true);
   drawLoreSetpieces(cx,cy,true);
   if(normalView){drawCivilizationOrbitObjects(cx,cy,true);drawCivilizationMoonMission(cx,cy);}
