@@ -897,12 +897,10 @@ const FICTIONAL_ALIASES={
   'RUINS OF DOOM':'RUINS OF DOOM','INFESTATION':'INFESTATION','IT CAME FROM THE SKY':'IT CAME FROM THE SKY',
   'TX-5000':'TX-5000','TX5000':'TX-5000','DANCETOPIA':'DANCETOPIA',
   'DYSON':'DYSON SPHERE','DYSON SPHERE':'DYSON SPHERE','DYSON SHELL':'DYSON SPHERE',
-  'BERNAL':'BERNAL SPHERE','BERNAL SPHERE':'BERNAL SPHERE','ISLAND ONE':'BERNAL SPHERE',
   'RINGWORLD':'RINGWORLD PRIME','RING WORLD':'RINGWORLD PRIME','ARTIFICIAL RINGWORLD':'RINGWORLD PRIME','RINGWORLD PRIME':'RINGWORLD PRIME',
   'DOMEWORLD':'DOMEWORLD','DOME WORLD':'DOMEWORLD','MEGADOME WORLD':'DOMEWORLD','GLASS DOME WORLD':'DOMEWORLD',
   'ROTATING WHEEL SPACE STATION':'VON BRAUN WHEEL','ROTATING WHEEL':'VON BRAUN WHEEL','WHEEL STATION':'VON BRAUN WHEEL','VON BRAUN WHEEL':'VON BRAUN WHEEL',
-  'STANFORD TORUS':'STANFORD TORUS','STANFORD':'STANFORD TORUS',
-  "O'NEILL CYLINDER":"O'NEILL CYLINDER",'ONEILL CYLINDER':"O'NEILL CYLINDER",
+  'STANFORD TORUS':'VON BRAUN WHEEL','STANFORD':'VON BRAUN WHEEL',
   'BISHOP RING':'BISHOP RING',
   'SHELLWORLD':'SHELLWORLD','SHELL WORLD':'SHELLWORLD','NESTED SHELLWORLD':'SHELLWORLD','ARTIFICIAL PLANET':'SHELLWORLD',
   'GRAND CANYON PLANET':'CHASM','CANYON PLANET':'CHASM','CRACKED PLANET':'CHASM','MEGA CANYON':'CHASM'
@@ -1593,15 +1591,6 @@ const LORE_PRESETS={
   'IT CAME FROM THE SKY':sporeHiddenPreset({renderer:'sporeice',worldType:'ICE',worldClass:'FROZEN RESEARCH WORLD',tScore:'T1',theme:'crash',radiusKm:5700,gravity:.84,water:.31,cloud:.36,temp:-42,life:true,population:2,atmos:'THIN',chem:'N2 / O2',weather:'SNOW / ICE FOG',tech:'RESEARCH OUTPOST',anomaly:'CRASHED ALIEN VESSEL / SECRET RESEARCH BASE',observation:'A FROZEN T1 WORLD WITH A DARK CRASH SCAR AND A SMALL RESEARCH COMPLEX VISIBLE AGAINST THE ICE.',loreReport:'BENEATH THE SNOW OF THIS REMOTE WORLD SITS A SECRET RESEARCH FACILITY BUILT AROUND A CRASHED ALIEN OBJECT. THE REST OF THE PLANET IS QUIET ICE.'}),
   'TX-5000':sporeHiddenPreset({renderer:'tx5000',worldType:'BARREN',worldClass:'SUPERWEAPON RESEARCH WORLD',tScore:'T0',theme:'industrial',radiusKm:6300,gravity:1.03,water:.01,cloud:.22,temp:46,life:false,population:6,atmos:'THIN',chem:'CO2 / INDUSTRIAL GAS',weather:'SMOG / STATIC',tech:'SPACE AGE',anomaly:'PLANETARY SUPERWEAPON COMPLEX / REACTOR GRID',observation:'A T0 INDUSTRIAL RESEARCH WORLD DOMINATED BY A GIGANTIC SUPERWEAPON COMPLEX, REACTORS AND POWER CONDUITS.',loreReport:'TX-5000 IS ALMOST ENTIRELY MACHINE TERRAIN. RESEARCH DOMES, REACTORS AND A HUGE WEAPON INSTALLATION ARE CONNECTED BY BRIGHT POWER LINES ACROSS A DEAD SURFACE.'}),
   DANCETOPIA:sporeHiddenPreset({renderer:'sporecity',worldClass:'GALACTIC RESORT WORLD',tScore:'T3',theme:'dance',radiusKm:6000,gravity:.90,water:.41,cloud:.20,temp:29,life:true,population:8,weather:'CLEAR / PARTY HAZE',tech:'SPACE AGE',anomaly:'PLANET-WIDE ENTERTAINMENT GRID / NIGHT LIGHTS',observation:'AN ABSURDLY COLORFUL T3 RESORT WORLD WHOSE CITIES, LIGHTS AND ENTERTAINMENT DISTRICTS ARE VISIBLE FROM ORBIT.',loreReport:'DANCETOPIA IS A GALACTIC PARTY PLANET. COLORED CITY GRIDS, RESORT DISTRICTS AND CONSTANT ARTIFICIAL LIGHT TURN THE NIGHT SIDE INTO A NEON PATCHWORK.'}),
-  'BERNAL SPHERE':{
-    renderer:'bernalsphere',worldType:'ARTIFICIAL',worldClass:'CUTAWAY BERNAL SPHERE',visualRadius:42,radiusKm:900,gravity:.98,massEarth:.0012,density:.01,
-    water:.32,cloudCover:0,cloudSpeed:0,defaultTempC:21,tempRange:[18,27],life:true,populationBase:7,dayHours:24,yearDays:365,distanceAU:1.0,axialTiltDeg:0,rotationDirection:1,
-    atmosDensity:'SEALED',atmosChemistry:'N2 / O2',weather:'CONTROLLED INTERIOR WEATHER',ring:false,moons:[],disableAutoCivilization:true,
-    observation:'A METALLIC BERNAL SPHERE WITH A MASSIVE CUTAWAY APERTURE THAT EXPOSES ITS ARTIFICIAL INTERIOR LANDSCAPE.',
-    scan:{ageBy:.03,pressureAtm:1.0,pressureText:'SEALED 1.00 ATM',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.04,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:1.4,lifeTypePotential:'INTELLIGENT',techPotential:'INTERSTELLAR',iron:'ABUNDANT',carbon:'COMMON',uranium:'COMMON',anomaly:'CUTAWAY SPHERE / INTERIOR BIOSPHERE',lossRisk:false},
-    loreReport:'THIS BERNAL SPHERE PRESENTS AS A SMALL METAL PLANET UNTIL ITS ENORMOUS OPENING REVEALS FARMLANDS, WATERWAYS AND STRUCTURAL TERRACES INSIDE THE HULL.',
-    lifeLabel:'ABUNDANT',populationLabel:'MANY',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'INTERSTELLAR'
-  },
   'RINGWORLD PRIME':{
     renderer:'ringworldprime',worldType:'VERDANT',worldClass:'PLANET WITH ORBITAL RINGWORLD',visualRadius:44,radiusKm:7200,gravity:1.01,massEarth:1.08,density:1.0,
     water:.52,cloudCover:.18,cloudSpeed:.05,defaultTempC:17,tempRange:[-10,34],life:true,populationBase:7,dayHours:26,yearDays:402,distanceAU:1.1,axialTiltDeg:9,rotationDirection:1,
@@ -1622,31 +1611,13 @@ const LORE_PRESETS={
     lifeLabel:'LOCALIZED',populationLabel:'HIGH',lifeTypeLabel:'ENGINEERED',techLevelLabel:'INTERPLANETARY'
   },
   'VON BRAUN WHEEL':{
-    renderer:'wheelstation',worldType:'ARTIFICIAL',worldClass:'VON BRAUN WHEEL STATION',visualRadius:41,radiusKm:140,gravity:.42,massEarth:.0003,density:.01,
-    water:.04,cloudCover:0,cloudSpeed:0,defaultTempC:20,tempRange:[16,29],life:true,populationBase:5,dayHours:24,yearDays:365,distanceAU:1.0,axialTiltDeg:0,rotationDirection:1,
+    renderer:'wheelstation',worldType:'ARTIFICIAL',worldClass:'VON BRAUN WHEEL STATION',visualRadius:42,radiusKm:160,gravity:.43,massEarth:.0003,density:.01,
+    water:.06,cloudCover:0,cloudSpeed:0,defaultTempC:20,tempRange:[16,29],life:true,populationBase:6,dayHours:24,yearDays:365,distanceAU:1.0,axialTiltDeg:0,rotationDirection:1,
     atmosDensity:'SEALED',atmosChemistry:'N2 / O2',weather:'CONTROLLED',ring:false,moons:[],disableAutoCivilization:true,
-    observation:'A CLASSIC TOROIDAL SPACE STATION WITH A CENTRAL HUB, SPOKES AND A SPINNING HABITAT RIM.',
-    scan:{ageBy:.01,pressureAtm:1.0,pressureText:'SEALED 1.00 ATM',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.05,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:.1,lifeTypePotential:'INTELLIGENT',techPotential:'INTERPLANETARY',iron:'ABUNDANT',carbon:'COMMON',uranium:'COMMON',anomaly:'ROTATING TORUS STATION / AXIAL HUB',lossRisk:false},
-    loreReport:'THE VON BRAUN WHEEL IS A STRAIGHT-UP CLASSIC: A ROTATING WHEEL WITH PRESSURIZED RIM HABITATS AND A COMPACT CENTRAL HUB.',
-    lifeLabel:'COMMON',populationLabel:'MODERATE',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'INTERPLANETARY'
-  },
-  'STANFORD TORUS':{
-    renderer:'torushab',worldType:'ARTIFICIAL',worldClass:'STANFORD TORUS COMPLEX',visualRadius:43,radiusKm:1100,gravity:.98,massEarth:.0007,density:.01,
-    water:.14,cloudCover:0,cloudSpeed:0,defaultTempC:20,tempRange:[17,28],life:true,populationBase:6,dayHours:24,yearDays:365,distanceAU:1.0,axialTiltDeg:0,rotationDirection:1,
-    atmosDensity:'SEALED',atmosChemistry:'N2 / O2',weather:'CONTROLLED',ring:false,moons:[],disableAutoCivilization:true,
-    observation:'A LONG-WHEEL HABITAT: A HUGE ROTATING TORUS CONNECTED BY A LONG AXIAL SPINE TO SUPPORT MODULES AND A SECONDARY RING.',
-    scan:{ageBy:.02,pressureAtm:1.0,pressureText:'SEALED 1.00 ATM',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.04,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:.4,lifeTypePotential:'INTELLIGENT',techPotential:'INTERSTELLAR',iron:'ABUNDANT',carbon:'COMMON',uranium:'COMMON',anomaly:'LONG-AXIS TORUS COMPLEX / SERVICE SPINE',lossRisk:false},
-    loreReport:'THIS STANFORD TORUS DESIGN HAS GROWN INTO A LONGER, MORE INDUSTRIAL COMPLEX, WITH THE MAIN WHEEL ATTACHED TO A LONG SERVICE BOOM AND OUTBOARD STRUCTURES.',
+    observation:'A CLASSIC ROTATING WHEEL STATION WITH A CENTRAL HUB, FOUR SPOKES, DENSE RIM HABITATS AND TORUS-LIKE ENGINEERING IN ITS STRUCTURE.',
+    scan:{ageBy:.02,pressureAtm:1.0,pressureText:'SEALED 1.00 ATM',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.04,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:.2,lifeTypePotential:'INTELLIGENT',techPotential:'INTERSTELLAR',iron:'ABUNDANT',carbon:'COMMON',uranium:'COMMON',anomaly:'ROTATING WHEEL STATION / PRESSURIZED RIM HABITATS',lossRisk:false},
+    loreReport:'THE VON BRAUN WHEEL NOW ABSORBS THE OLD STANFORD TORUS SLOT: IT REPRESENTS THE CLASSIC FAMILY OF ROTATING WHEEL / TORUS HABITATS, BUT VISUALLY IT LEANS INTO THE ICONIC SPOKED WHEEL STATION LOOK.',
     lifeLabel:'ABUNDANT',populationLabel:'MANY',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'INTERSTELLAR'
-  },
-  "O'NEILL CYLINDER":{
-    renderer:'cylinderhab',worldType:'ARTIFICIAL',worldClass:"O'NEILL CYLINDER HABITAT",visualRadius:42,radiusKm:3200,gravity:.96,massEarth:.002,density:.01,
-    water:.16,cloudCover:0,cloudSpeed:0,defaultTempC:20,tempRange:[18,28],life:true,populationBase:7,dayHours:24,yearDays:365,distanceAU:1.0,axialTiltDeg:0,rotationDirection:1,
-    atmosDensity:'SEALED',atmosChemistry:'N2 / O2',weather:'CONTROLLED',ring:false,moons:[],disableAutoCivilization:true,
-    observation:'A LONG CYLINDRICAL STATION SPINNING ON ITS LONG AXIS, WITH A GIANT WINDOW EXPOSING INTERIOR CONTINENTS AND WATER BANDS.',
-    scan:{ageBy:.04,pressureAtm:1.0,pressureText:'SEALED 1.00 ATM',magField:'ARTIFICIAL',oxygen:21,nitrogen:78,co2:.04,tectonics:'ENGINEERED',volcanism:'NONE',oceanDepthKm:.7,lifeTypePotential:'INTELLIGENT',techPotential:'INTERSTELLAR',iron:'ABUNDANT',carbon:'ABUNDANT',uranium:'COMMON',anomaly:'WINDOWED CYLINDER HABITAT / INTERIOR BIOSPHERE',lossRisk:false},
-    loreReport:"THE CYLINDER'S INTERIOR CARRIES LONG LAND STRIPS, RIVERS AND SETTLEMENT BANDS, VISIBLE THROUGH A HUGE LONGITUDINAL VIEWING WINDOW.",
-    lifeLabel:'ABUNDANT',populationLabel:'HIGH',lifeTypeLabel:'INTELLIGENT',techLevelLabel:'INTERSTELLAR'
   },
   'BISHOP RING':{
     renderer:'bishopring',worldType:'ARTIFICIAL',worldClass:'BISHOP RING HABITAT',visualRadius:47,radiusKm:18000,gravity:.99,massEarth:.004,density:.003,
@@ -6110,8 +6081,74 @@ function drawTexturedTorus(cx,cy,rx,ry,innerScale=.62,hubScale=.16,rot=0,seedShi
   ctx.restore();
 }
 function drawVonBraunWheelWorld(cx,cy){
-  const rx=Math.max(22,planet.rx*0.78), ry=Math.max(13,planet.ry*.40);
-  drawTexturedTorus(cx,cy,rx,ry,.60,.15,-.52,0x7201,state.simDays*.20,2);
+  const spin=state.simDays*.22;
+  const angle=-0.34;
+  const rx=Math.max(15,planet.rx*0.44);
+  const ry=Math.max(25,planet.ry*0.74);
+  const innerRx=rx*0.73, innerRy=ry*0.73;
+  const hubRx=Math.max(3,rx*0.12), hubRy=Math.max(3,ry*0.12);
+  const spokeColor=mixHex(C.white,C.black,.42);
+  const metalPalette=[mixHex(C.white,C.black,.24),mixHex(C.white,C.blue,.16),mixHex(C.white,C.brown,.18),C.white];
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.rotate(angle);
+
+  // soft shadow to push it into space a bit
+  drawMegastructureEllipse(1,2,rx+3,ry+3,mixHex(C.black,C.brown,.68),.24,0,0,Math.PI*2,true,8);
+
+  // outer wheel rim
+  drawMegastructureNoiseFillEllipse(0,0,rx,ry,metalPalette,0x7a01,.98);
+  drawMegastructureEllipse(0,0,rx,ry,mixHex(C.white,C.white,.04),.18,0,Math.PI,Math.PI*2,true,2);
+  drawMegastructureEllipse(0,0,rx,ry,mixHex(C.white,C.black,.72),.22,0,0,Math.PI,true,2);
+  drawMegastructureEllipse(0,0,innerRx,innerRy,C.black,1);
+  drawMegastructureEllipse(0,0,innerRx+1,innerRy+1,mixHex(C.white,C.black,.46),1,0,0,Math.PI*2,true,3);
+
+  // paneling along the ring
+  const panelCount=30;
+  for(let i=0;i<panelCount;i++){
+    const a=i/panelCount*Math.PI*2 + spin;
+    const px=Math.cos(a)*(rx*0.88), py=Math.sin(a)*(ry*0.88);
+    const col=(i%4===0)?mixHex(C.white,C.blue,.12):mixHex(C.white,C.black,.54);
+    ctx.fillStyle=col;
+    ctx.fillRect(Math.round(px),Math.round(py),1,1);
+    if(i%5===0) ctx.fillRect(Math.round(Math.cos(a)*(rx*0.78)),Math.round(Math.sin(a)*(ry*0.78)),1,1);
+  }
+
+  // habitat pods / radiators around outer rim, like the reference station silhouette.
+  const podCount=18;
+  for(let i=0;i<podCount;i++){
+    const a=i/podCount*Math.PI*2 + spin;
+    const ox=Math.cos(a), oy=Math.sin(a);
+    const baseX=ox*rx, baseY=oy*ry;
+    const podX=ox*(rx+4), podY=oy*(ry+4);
+    drawMegastructureLine(baseX,baseY,podX,podY,mixHex(C.white,C.black,.44),1,.72);
+    const pw=Math.abs(ox)>Math.abs(oy)?1:2;
+    const ph=Math.abs(oy)>Math.abs(ox)?1:2;
+    ctx.fillStyle=i%3===0?mixHex(C.white,C.blue,.14):mixHex(C.white,C.black,.26);
+    ctx.fillRect(Math.round(podX)-Math.floor(pw/2),Math.round(podY)-Math.floor(ph/2),pw,ph);
+    if(i%4===0){ ctx.fillStyle=C.white; ctx.fillRect(Math.round(podX),Math.round(podY),1,1); }
+  }
+
+  // rotating spokes
+  for(let i=0;i<4;i++){
+    const a=spin+i*Math.PI/2;
+    drawMegastructureLine(Math.cos(a)*hubRx*.9,Math.sin(a)*hubRy*.9,Math.cos(a)*innerRx*.94,Math.sin(a)*innerRy*.94,spokeColor,1,.98);
+  }
+
+  // hub and axle
+  drawMegastructureNoiseFillEllipse(0,0,hubRx*1.55,hubRy*1.55,metalPalette,0x7a09,.98);
+  drawMegastructureEllipse(0,0,hubRx*1.02,hubRy*1.02,C.black,1);
+  drawMegastructureNoiseFillEllipse(0,0,hubRx*.62,hubRy*.62,metalPalette,0x7a0a,.98);
+
+  // one small side module so silhouette is less perfectly clean
+  drawMegastructureLine(rx*0.16,ry*0.10,rx*0.50,ry*0.10,mixHex(C.white,C.black,.48),1,.84);
+  drawMegastructureNoiseFillEllipse(rx*0.60,ry*0.10,3,2,metalPalette,0x7a0b,.98);
+
+  ctx.restore();
+}
+
+function drawStanfordTorusWorld(cx,cy){
+  drawVonBraunWheelWorld(cx,cy);
 }
 function drawStanfordTorusWorld(cx,cy){
   const rx=Math.max(24,planet.rx*0.82), ry=Math.max(14,planet.ry*.42), spin=state.simDays*.18;
@@ -6206,22 +6243,19 @@ function drawShellworldWorld(cx,cy){
 }
 
 function isMegastructureOverlayRenderer(r){
-  return r==='bernalsphere'||r==='ringworldprime'||r==='domeworld'||r==='shellworld';
+  return r==='ringworldprime'||r==='domeworld'||r==='shellworld';
 }
 function drawMegastructureUnderlayBeforeBase(cx,cy,t){
   if(planet.renderer==='ringworldprime') return drawRingworldPrimeBack(cx,cy,t);
 }
 function drawMegastructureOverlayAfterBase(cx,cy,t){
-  if(planet.renderer==='bernalsphere') return drawBernalSphereWorld(cx,cy,t);
   if(planet.renderer==='ringworldprime') return drawRingworldPrimeFront(cx,cy,t);
   if(planet.renderer==='domeworld') return drawDomeworld(cx,cy,t);
   if(planet.renderer==='shellworld') return drawShellworldWorld(cx,cy,t);
 }
 function drawSpecialMegastructure(cx,cy,t){
   if(isMegastructureOverlayRenderer(planet.renderer)) return false;
-  if(planet.renderer==='wheelstation'){ drawVonBraunWheelWorld(cx,cy); return true; }
-  if(planet.renderer==='torushab'){ drawStanfordTorusWorld(cx,cy); return true; }
-  if(planet.renderer==='cylinderhab'){ drawCylinderHabitatWorld(cx,cy); return true; }
+  if(planet.renderer==='wheelstation' || planet.renderer==='torushab'){ drawVonBraunWheelWorld(cx,cy); return true; }
   if(planet.renderer==='bishopring'){ drawBishopRingWorld(cx,cy); return true; }
   return false;
 }
@@ -6238,7 +6272,7 @@ function drawPlanet(cx,cy,t){
   drawMoons(cx,cy,t,false); ringPoints(cx,cy,false); if(showEnvironment) drawAtmosphereLimb(cx,cy);
   if(isMegastructureOverlayRenderer(planet.renderer)) drawMegastructureUnderlayBeforeBase(cx,cy,t);
   renderPlanetSurfaceImage(cx,cy);
-  if(planet.renderer==='bernalsphere' || planet.renderer==='domeworld' || planet.renderer==='shellworld') drawMegastructureOverlayAfterBase(cx,cy,t);
+  if(planet.renderer==='domeworld' || planet.renderer==='shellworld') drawMegastructureOverlayAfterBase(cx,cy,t);
   drawDarkBrambleSilhouette(cx,cy);
   if(planet.renderer==='eyeuniverse') drawEyeUniverseGlyph(cx,cy);
   if(planet.renderer==='brittlehollow') drawBrittleHollowBlackHole(cx,cy);
